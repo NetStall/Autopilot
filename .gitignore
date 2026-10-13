@@ -1,0 +1,39 @@
+# ---- Secrets & personal data ----
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+*.local.json
+data/
+
+# ---- .NET ----
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+.vs/
+TestResults/
+*.trx
+coverage*.xml
+*.coverage
+
+# ---- Node / Nuxt ----
+node_modules/
+.nuxt/
+.output/
+.nitro/
+.cache/
+.data/
+dist/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- Editors & OS ----
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+.DS_Store
+Thumbs.db
