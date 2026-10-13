@@ -1,0 +1,20 @@
+import { describe, expect, it } from 'vitest'
+import { employerTypeLabel, isIntermediary } from '../app/utils/employerType'
+
+describe('employerTypeLabel', () => {
+  it('returns German labels for every employer type', () => {
+    expect(employerTypeLabel('Direct')).toBe('Direkter Arbeitgeber')
+    expect(employerTypeLabel('Agency')).toBe('Personalvermittlung')
+    expect(employerTypeLabel('Temporary')).toBe('Zeitarbeit')
+    expect(employerTypeLabel('Unknown')).toBe('Unbekannt')
+  })
+})
+
+describe('isIntermediary', () => {
+  it('marks agencies and temporary work, not direct employers', () => {
+    expect(isIntermediary('Agency')).toBe(true)
+    expect(isIntermediary('Temporary')).toBe(true)
+    expect(isIntermediary('Direct')).toBe(false)
+    expect(isIntermediary('Unknown')).toBe(false)
+  })
+})
