@@ -1,0 +1,4 @@
+# Test-specific analyzer settings
+[*.cs]
+# Test names use underscores for readability (Method_does_something_when_condition).
+dotnet_diagnostic.CA1707.severity = none
