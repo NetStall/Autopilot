@@ -106,4 +106,12 @@ dotnet build backend/JobAutopilot.sln
 dotnet test  backend/JobAutopilot.sln
 dotnet run --project backend/src/JobAutopilot.Api
 cd frontend; npm install; npm run dev
+cd frontend; npm test; npm run typecheck; npm run build
+
+# integration tests need Docker (Testcontainers) or an existing server:
+$env:JOBAUTOPILOT_TEST_POSTGRES = "Host=localhost;Port=5432;Username=…;Password=…"
+
+# new EF migration
+dotnet tool restore
+dotnet ef migrations add <DescriptiveName> --project backend/src/JobAutopilot.Infrastructure --startup-project backend/src/JobAutopilot.Api --output-dir Persistence/Migrations
 ```
