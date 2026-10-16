@@ -60,6 +60,21 @@ public class VacancyEndpointsTests(PostgresFixture postgres) : IntegrationTestBa
     }
 
     [Fact]
+    public async Task Create_accepts_a_published_date_with_a_non_utc_offset()
+    {
+        var publishedAt = new DateTimeOffset(2026, 10, 9, 0, 0, 0, TimeSpan.FromHours(2));
+        var request = new CreateVacancyRequest { Title = "Dev", Company = "Firma", PublishedAt = publishedAt };
+
+        var response = await Client.PostAsJsonAsync("/api/vacancies", request, JsonOptions, CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        await using var db = Postgres.CreateDbContext();
+        var stored = await db.Vacancies.SingleAsync(CancellationToken);
+        stored.PublishedAt.Should().Be(publishedAt, "the same instant is stored, normalised to UTC");
+        stored.PublishedAt!.Value.Offset.Should().Be(TimeSpan.Zero);
+    }
+
+    [Fact]
     public async Task Create_returns_validation_problem_for_missing_fields()
     {
         var response = await Client.PostAsJsonAsync(
