@@ -1,0 +1,20 @@
+{
+  "ergebnisliste": [
+    {
+      "stellenangebotsTitel": "Full Stack Entwickler (m/w/d)",
+      "firma": "Beispiel Software GmbH",
+      "stellenlokationen": [
+        { "adresse": { "plz": "94032", "ort": "Passau" } }
+      ],
+      "veroeffentlichungszeitraum": { "von": "2026-10-12" },
+      "referenznummer": "10000-0000000003-S"
+    },
+    {
+      "stellenangebotsTitel": "Eintrag ohne Referenznummer",
+      "firma": "Beispiel Software GmbH"
+    }
+  ],
+  "maxErgebnisse": 5,
+  "page": 2,
+  "size": 2
+}

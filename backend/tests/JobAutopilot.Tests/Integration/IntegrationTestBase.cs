@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace JobAutopilot.Tests.Integration;
 
 [CollectionDefinition(Name)]
@@ -23,8 +25,13 @@ public abstract class IntegrationTestBase(PostgresFixture postgres) : IAsyncLife
         Postgres.EnsureAvailable();
         await Postgres.ResetAsync(CancellationToken);
 
-        Factory = new ApiFactory(Postgres);
+        Factory = new ApiFactory(Postgres, ConfigureServices);
         Client = Factory.CreateClient();
+    }
+
+    /// <summary>Override to replace services (e.g. external sources) for the tests of one class.</summary>
+    protected virtual void ConfigureServices(IServiceCollection services)
+    {
     }
 
     public async ValueTask DisposeAsync()

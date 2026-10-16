@@ -1,0 +1,16 @@
+{
+  "ergebnisliste": [
+    {
+      "stellenangebotsTitel": "Backend Developer .NET (m/w/d)",
+      "firma": "Beispiel Software GmbH",
+      "stellenlokationen": [
+        { "adresse": { "plz": "84028", "ort": "Landshut" } }
+      ],
+      "veroeffentlichungszeitraum": { "von": "2026-10-01" },
+      "referenznummer": "10000-0000000004-S"
+    }
+  ],
+  "maxErgebnisse": 5,
+  "page": 3,
+  "size": 2
+}

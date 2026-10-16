@@ -1,0 +1,35 @@
+{
+  "ergebnisliste": [
+    {
+      "stellenangebotsart": "ARBEIT",
+      "stellenangebotsTitel": "Softwareentwickler C# (m/w/d)",
+      "firma": "Beispiel Software GmbH",
+      "stellenlokationen": [
+        { "adresse": { "plz": "94469", "ort": "Deggendorf", "region": "BAYERN", "land": "DEUTSCHLAND" }, "breite": 48.84, "laenge": 12.96 }
+      ],
+      "veroeffentlichungszeitraum": { "von": "2026-10-09" },
+      "datumErsteVeroeffentlichung": "2026-10-09",
+      "aenderungsdatum": "2026-10-09T07:42:03.326",
+      "referenznummer": "10000-0000000001-S",
+      "entfernung": 0
+    },
+    {
+      "stellenangebotsart": "ARBEIT",
+      "stellenangebotsTitel": ".NET Entwickler (m/w/d)",
+      "firma": "Muster Personal AG",
+      "stellenlokationen": [
+        { "adresse": { "ort": "Regensburg", "region": "BAYERN", "land": "DEUTSCHLAND" } }
+      ],
+      "veroeffentlichungszeitraum": { "von": "2026-10-14" },
+      "datumErsteVeroeffentlichung": "2026-10-14",
+      "referenznummer": "10000-0000000002-S",
+      "externeURL": "https://karriere.example.de/jobs/42?cp=BA",
+      "entfernung": 12
+    }
+  ],
+  "maxErgebnisse": 5,
+  "page": 1,
+  "size": 2,
+  "woOutput": { "bereinigterOrt": "Deggendorf", "suchmodus": "UMKREISSUCHE", "koordinaten": [ { "lat": 48.83, "lon": 12.97 } ] },
+  "facetten": {}
+}
