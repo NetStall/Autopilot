@@ -4,8 +4,9 @@ A personal tool for a structured job search in Germany: it fetches vacancies, ra
 recruitment agencies, drafts tailored cover letters with the Claude API and tracks every application.
 Nothing is ever sent without explicit human approval of that exact application.
 
-**Status:** step 01 of the [roadmap](docs/ROADMAP.md) — foundation (solution, `Vacancy` entity in PostgreSQL,
-`/health`, vacancy list API and page, CI). Agent rules: [AGENTS.md](AGENTS.md).
+**Status:** step 02 of the [roadmap](docs/ROADMAP.md) — vacancies are imported from the Bundesagentur für Arbeit
+Jobsuche API on demand and shown in the list (step 01: solution, PostgreSQL, `/health`, vacancy API and page, CI).
+Agent rules: [AGENTS.md](AGENTS.md).
 
 ## Stack
 
@@ -32,7 +33,8 @@ xUnit v3 + FluentAssertions + Testcontainers · Vitest · Docker Compose · GitH
 Dependencies point inwards: `Api → Infrastructure → Core`.
 Endpoints are **minimal APIs grouped per feature** (`Features/Vacancies/VacancyEndpoints.cs`) — less ceremony than
 controllers, with typed results that produce an accurate OpenAPI document.
-More background: [ADR 0001](docs/decisions/0001-foundation.md).
+More background: [ADR 0001](docs/decisions/0001-foundation.md) (foundation),
+[ADR 0002](docs/decisions/0002-vacancy-import.md) (import), [Jobsuche API notes](docs/arbeitsagentur-api.md).
 
 ## Run locally (Windows, PowerShell)
 
@@ -49,7 +51,27 @@ dotnet run --project backend/src/JobAutopilot.Api
 cd frontend; npm install; npm run dev          # → http://localhost:3000
 ```
 
-Create a vacancy by hand:
+### Import vacancies from the Arbeitsagentur
+
+Runs the searches configured in `Import:Searches` (`appsettings.json`) and stores new postings; running it again
+only updates the known ones (nothing you marked as seen is reset):
+
+```powershell
+Invoke-RestMethod -Method Post http://localhost:5080/api/imports/arbeitsagentur
+# first run:  fetched 3, added 3, updated 0   (real run on 2026-10-16)
+# second run: fetched 3, added 0, updated 3
+```
+
+One ad-hoc search instead of the configured ones:
+
+```powershell
+Invoke-RestMethod -Method Post http://localhost:5080/api/imports/arbeitsagentur -ContentType 'application/json' `
+  -Body '{ "keyword": "Softwareentwickler", "location": "Regensburg", "radiusKm": 30, "publishedWithinDays": 14 }'
+```
+
+Paging, delay and retries are configured in the `Arbeitsagentur` section; see [the API notes](docs/arbeitsagentur-api.md).
+
+### Create a vacancy by hand
 
 ```powershell
 Invoke-RestMethod -Method Post http://localhost:5080/api/vacancies -ContentType 'application/json' `
@@ -71,6 +93,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 | GET | `/api/vacancies?page=1&pageSize=20` | newest first, `pageSize` ≤ 100 |
 | GET | `/api/vacancies/{id}` | one vacancy |
 | POST | `/api/vacancies` | create a manual vacancy; validation errors as ProblemDetails |
+| POST | `/api/imports/arbeitsagentur` | import: empty body = configured searches, or one `{ keyword, location, radiusKm, publishedWithinDays }`; 502 if the API is unreachable |
 
 ### Database migrations
 
@@ -89,7 +112,9 @@ cd frontend; npm test; npm run typecheck
 
 Integration tests run the real API in memory (`WebApplicationFactory`) against **real PostgreSQL started by
 Testcontainers**, so constraints, enum mapping and migrations are tested exactly as they run in production.
-Without Docker they are skipped locally (in CI they fail instead). To use an existing PostgreSQL server instead
+External services are never called from tests: the Arbeitsagentur client is tested with a fake
+`HttpMessageHandler` and hand-written fixtures (`tests/JobAutopilot.Tests/Fixtures/arbeitsagentur/`), the endpoint
+with a fake `IVacancySource`. Without Docker the integration tests are skipped locally (in CI they fail instead). To use an existing PostgreSQL server instead
 of a container — a temporary database is created and dropped on it:
 
 ```powershell
@@ -102,6 +127,6 @@ dotnet test backend/JobAutopilot.sln
 ```
 backend/   JobAutopilot.sln, src/{Api,Core,Infrastructure}, tests/JobAutopilot.Tests
 frontend/  Nuxt 4 app (app/pages, app/components, app/composables)
-docs/      roadmap and architecture decisions
+docs/      roadmap, architecture decisions, API notes
 prompts/   task prompts, one per roadmap step
 ```
