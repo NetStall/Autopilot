@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using JobAutopilot.Api.Features.Health;
+using JobAutopilot.Api.Features.VacancyImports;
 using JobAutopilot.Api.Features.Vacancies;
 using JobAutopilot.Infrastructure;
 using JobAutopilot.Infrastructure.Persistence;
@@ -10,6 +11,7 @@ const string FrontendCorsPolicy = "Frontend";
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.Configure<ImportOptions>(builder.Configuration.GetSection(ImportOptions.SectionName));
 
 builder.Services.AddProblemDetails();
 builder.Services.AddValidation();
@@ -43,5 +45,6 @@ if (app.Environment.IsDevelopment())
 
 app.MapHealthEndpoints();
 app.MapVacancyEndpoints();
+app.MapImportEndpoints();
 
 await app.RunAsync();
