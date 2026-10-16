@@ -60,6 +60,40 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
         _source.Searches[0].Should().Be(new VacancySearch(".NET Entwickler", "Deggendorf", 50, 14));
     }
 
+    [Fact]
+    public async Task Empty_form_post_like_windows_powershell_runs_all_configured_searches()
+    {
+        // Invoke-RestMethod -Method Post (Windows PowerShell 5.1) sends this content type with an empty body.
+        using var content = new StringContent(string.Empty, System.Text.Encoding.UTF8, "application/x-www-form-urlencoded");
+
+        var response = await Client.PostAsync(Url, content, CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        _source.Searches.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public async Task Non_json_body_returns_415()
+    {
+        using var content = new StringContent("keyword=Dev", System.Text.Encoding.UTF8, "application/x-www-form-urlencoded");
+
+        var response = await Client.PostAsync(Url, content, CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnsupportedMediaType);
+        _source.Searches.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Malformed_json_returns_400()
+    {
+        using var content = new StringContent("{ keyword: ", System.Text.Encoding.UTF8, "application/json");
+
+        var response = await Client.PostAsync(Url, content, CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        _source.Searches.Should().BeEmpty();
+    }
+
     [Theory]
     [InlineData("""{ "keyword": "" }""", "Keyword")]
     [InlineData("""{ "keyword": "Dev", "radiusKm": 201 }""", "RadiusKm")]
