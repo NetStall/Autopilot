@@ -26,7 +26,7 @@ public class VacancyEndpointsTests(PostgresFixture postgres) : IntegrationTestBa
         page.Items.Should().BeEmpty();
         page.TotalCount.Should().Be(0);
         page.Page.Should().Be(1);
-        page.PageSize.Should().Be(VacancyEndpoints.DefaultPageSize);
+        page.PageSize.Should().Be(VacancyListQuery.DefaultPageSize);
     }
 
     [Fact]

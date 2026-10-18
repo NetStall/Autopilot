@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using JobAutopilot.Api.Common;
 using JobAutopilot.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -9,9 +8,6 @@ namespace JobAutopilot.Api.Features.Vacancies;
 public static partial class VacancyEndpoints
 {
     private const string LogCategory = "JobAutopilot.Api.Vacancies";
-
-    public const int DefaultPageSize = 20;
-    public const int MaxPageSize = 100;
 
     public static IEndpointRouteBuilder MapVacancyEndpoints(this IEndpointRouteBuilder app)
     {
@@ -24,24 +20,25 @@ public static partial class VacancyEndpoints
         return app;
     }
 
-    /// <summary>Newest first, by the time the vacancy entered the system.</summary>
     private static async Task<Ok<PagedResponse<VacancyDto>>> ListVacancies(
+        [AsParameters] VacancyListQuery request,
         AppDbContext db,
-        CancellationToken cancellationToken,
-        [Range(1, int.MaxValue)] int page = 1,
-        [Range(1, MaxPageSize)] int pageSize = DefaultPageSize)
+        CancellationToken cancellationToken)
     {
-        var query = db.Vacancies.AsNoTracking();
+        var filter = request.ToFilter();
+        var page = request.PageOrDefault;
+        var pageSize = request.PageSizeOrDefault;
+
+        var query = db.Vacancies.AsNoTracking().ApplyFilter(filter);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var vacancies = await query
-            .OrderByDescending(v => v.FetchedAt)
-            .ThenByDescending(v => v.Id)
+            .ApplySort(filter.Sort)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        var items = vacancies.Select(v => v.ToDto()).ToList();
+        var items = vacancies.ConvertAll(v => v.ToDto());
         return TypedResults.Ok(new PagedResponse<VacancyDto>(items, page, pageSize, totalCount));
     }
 
