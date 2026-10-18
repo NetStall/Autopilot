@@ -28,6 +28,15 @@ jobs:
       - name: Test
         run: dotnet test backend/JobAutopilot.sln --configuration Release --no-build
 
+      # `dotnet list package --vulnerable` exits 0 even when it finds something, so the output is checked.
+      - name: Vulnerable NuGet packages (fail on high/critical)
+        run: |
+          dotnet list backend/JobAutopilot.sln package --vulnerable --include-transitive 2>&1 | tee vulnerable.txt
+          if grep -qiE '\b(High|Critical)\b' vulnerable.txt; then
+            echo "::error::High or critical vulnerable NuGet packages found"
+            exit 1
+          fi
+
   frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -53,6 +62,11 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # npm audit --audit-level=high, with documented, time-boxed exceptions (audit-allowlist.json) for advisories
+      # that have no fix yet; allowlisted packages must not be in the production bundle.
+      - name: npm audit (fail on high/critical)
+        run: node scripts/audit-check.mjs --bundle .output
 
   docker:
     runs-on: ubuntu-latest

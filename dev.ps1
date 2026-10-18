@@ -124,7 +124,15 @@ foreach ($port in @($ApiPort, $WebPort)) {
     }
 }
 
-if (-not (Test-Path (Join-Path $root 'frontend/node_modules'))) {
+$nodeModules = Join-Path $root 'frontend/node_modules'
+$installedLock = Join-Path $nodeModules '.package-lock.json'
+$lockFile = Join-Path $root 'frontend/package-lock.json'
+$needsInstall = -not (Test-Path $installedLock)
+if (-not $needsInstall) {
+    # package-lock.json changed (e.g. after git pull) since the last install.
+    $needsInstall = (Get-Item $lockFile).LastWriteTimeUtc -gt (Get-Item $installedLock).LastWriteTimeUtc
+}
+if ($needsInstall) {
     Write-Status 'Installing frontend dependencies (npm install) ...' Yellow
     Push-Location (Join-Path $root 'frontend')
     try {

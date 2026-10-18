@@ -11,7 +11,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
-    "test": "vitest run"
+    "test": "vitest run",
+    "audit:check": "node scripts/audit-check.mjs"
   },
   "dependencies": {
     "nuxt": "^4.6.1",

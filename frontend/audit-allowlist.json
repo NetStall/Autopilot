@@ -1,0 +1,14 @@
+[
+  {
+    "id": "GHSA-86w9-cpqp-85rv",
+    "package": "node-forge",
+    "reason": "No patched release exists (latest 1.4.0 is affected). Pulled in by nitropack > listhen for dev-server HTTPS certificates; not part of the production server bundle (checked in CI with --bundle). The app never verifies RSA signatures.",
+    "expires": "2027-01-18"
+  },
+  {
+    "id": "GHSA-vfj7-8cjw-p6xm",
+    "package": "braces",
+    "reason": "No patched release exists (latest 3.0.3 is affected). Glob matching in build tooling (micromatch/fast-glob) on our own file patterns only; not part of the production server bundle (checked in CI with --bundle).",
+    "expires": "2027-01-18"
+  }
+]
