@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { employerTypeLabel, isIntermediary } from '../app/utils/employerType'
+import { employerTypeLabel, isIntermediary, sourceLabel } from '../app/utils/employerType'
 
 describe('employerTypeLabel', () => {
   it('returns German labels for every employer type', () => {
@@ -16,5 +16,12 @@ describe('isIntermediary', () => {
     expect(isIntermediary('Temporary')).toBe(true)
     expect(isIntermediary('Direct')).toBe(false)
     expect(isIntermediary('Unknown')).toBe(false)
+  })
+})
+
+describe('sourceLabel', () => {
+  it('returns German labels for every source', () => {
+    expect(sourceLabel('Arbeitsagentur')).toBe('Bundesagentur für Arbeit')
+    expect(sourceLabel('Manual')).toBe('Manuell erfasst')
   })
 })
