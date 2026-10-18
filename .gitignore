@@ -37,3 +37,6 @@ pnpm-debug.log*
 *.swp
 .DS_Store
 Thumbs.db
+
+# ---- Database dumps (contain personal data) ----
+backups/

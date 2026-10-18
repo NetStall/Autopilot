@@ -4,6 +4,17 @@ A personal tool for a structured job search in Germany: it fetches vacancies, ra
 recruitment agencies, drafts tailored cover letters with the Claude API and tracks every application.
 Nothing is ever sent without explicit human approval of that exact application.
 
+## Quick start
+
+Prerequisite for both: [Docker Desktop](https://www.docker.com/products/docker-desktop/) running.
+
+```powershell
+docker compose up -d     # "use" mode: db + api + frontend in Docker → http://localhost:3000
+./dev.ps1                # "dev" mode: db in Docker, API (dotnet watch) + frontend (nuxt dev) in one window
+```
+
+Dev mode additionally needs the .NET 10 SDK and Node 24; Ctrl+C stops API and frontend. Details below.
+
 **Status:** step 03 (+ 03b) of the [roadmap](docs/ROADMAP.md) — a usable vacancy list: import from the
 Bundesagentur für Arbeit with one click (region around Deggendorf + fully remote jobs in all of Germany,
 apprenticeships/internships filtered out), filter (text, place, employer type, new/seen, remote, search), open the
@@ -46,18 +57,50 @@ More background: [ADR 0001](docs/decisions/0001-foundation.md) (foundation),
 
 ## Run locally (Windows, PowerShell)
 
-Prerequisites: .NET 10 SDK, Node 24, Docker Desktop.
+`.env` holds the local database credentials and the ports (copied from `.env.example` by `dev.ps1`; never
+committed). All ports are bound to `127.0.0.1` only — nothing is reachable from the network
+([docs/SECURITY.md](docs/SECURITY.md)).
+
+### Use mode — everything in Docker
 
 ```powershell
-Copy-Item .env.example .env                    # local DB credentials (never committed)
-docker compose up -d db                        # PostgreSQL 17 on localhost:5432
-
-dotnet run --project backend/src/JobAutopilot.Api
-# → http://localhost:5080/health, http://localhost:5080/openapi/v1.json
-# migrations are applied automatically in Development
-
-cd frontend; npm install; npm run dev          # → http://localhost:3000
+Copy-Item .env.example .env            # once
+docker compose up -d                   # builds the images on first start, waits for health checks
+# → UI http://localhost:3000 · API http://localhost:5080/health
+docker compose logs -f api             # logs
+docker compose down                    # stop (data stays in the "pgdata" volume)
+docker compose up -d --build           # after pulling new code
 ```
+
+The API container runs as non-root, applies migrations on start (`Database__MigrateOnStartup=true`) and runs in
+`Production` mode. `NUXT_PUBLIC_API_BASE` is read by the frontend **at runtime**; it is the URL the *browser* uses
+to call the API (all data is loaded client-side), so in compose it is `http://localhost:${API_PORT}` — the
+published port, not the container name. CORS on the API allows exactly `http://localhost:${WEB_PORT}`.
+
+### Dev mode — one window
+
+```powershell
+./dev.ps1                              # or: ./dev.ps1 -ApiPort 5081 -WebPort 3001
+```
+
+The script checks Docker / .NET / Node / `.env`, starts the `db` container and waits until it is healthy, then runs
+the API with `dotnet watch` and the frontend with `nuxt dev` with prefixed output (`[api]`, `[web]`). **Ctrl+C** stops
+both process trees; the database keeps running (`docker compose stop db`). It refuses to start if a port is already
+in use (e.g. while use mode is running). Works in Windows PowerShell 5.1 and PowerShell 7. If scripts are blocked:
+`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+
+Manual alternative: `docker compose up -d db`, `dotnet run --project backend/src/JobAutopilot.Api`,
+`cd frontend; npm install; npm run dev`. Migrations are applied on start when `Database:MigrateOnStartup` is
+`true` (it is in `appsettings.Development.json`).
+
+### Backup and restore
+
+```powershell
+./scripts/backup-db.ps1                                   # → ./backups/jobautopilot-<timestamp>.sql (git-ignored)
+./scripts/restore-db.ps1 ./backups/jobautopilot-20261018-213850.sql   # replaces all data, asks first
+```
+
+Stop the API before a restore. The restore runs in one transaction — on an error nothing changes.
 
 ### Import vacancies from the Arbeitsagentur
 
@@ -192,4 +235,6 @@ frontend/  Nuxt 4 app: app/pages (list, detail), app/components, app/composables
            app/utils (URL filters, dates, URL safety — unit-tested in frontend/test)
 docs/      roadmap, architecture decisions, API notes
 prompts/   task prompts, one per roadmap step
+scripts/   backup-db.ps1, restore-db.ps1
+dev.ps1    dev mode in one window
 ```
