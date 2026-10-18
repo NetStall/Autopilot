@@ -53,7 +53,9 @@ controllers, with typed results that produce an accurate OpenAPI document.
 More background: [ADR 0001](docs/decisions/0001-foundation.md) (foundation),
 [ADR 0002](docs/decisions/0002-vacancy-import.md) (import), [ADR 0003](docs/decisions/0003-vacancy-list-ui.md)
 (list UI), [ADR 0004](docs/decisions/0004-title-prefilter.md) (title pre-filter),
-[Jobsuche API notes](docs/arbeitsagentur-api.md).
+[Jobsuche API notes](docs/arbeitsagentur-api.md), [ADR 0005](docs/decisions/0005-single-import-lock.md) (one import
+at a time). Security: [docs/SECURITY.md](docs/SECURITY.md) — threat model, review findings, and the rule that
+**authentication comes before anything is reachable from outside localhost**.
 
 ## Run locally (Windows, PowerShell)
 
@@ -66,7 +68,7 @@ committed). All ports are bound to `127.0.0.1` only — nothing is reachable fro
 ```powershell
 Copy-Item .env.example .env            # once
 docker compose up -d                   # builds the images on first start, waits for health checks
-# → UI http://localhost:3000 · API http://localhost:5080/health
+# → UI http://localhost:3000 · API http://localhost:5080/health/ready
 docker compose logs -f api             # logs
 docker compose down                    # stop (data stays in the "pgdata" volume)
 docker compose up -d --build           # after pulling new code
@@ -175,13 +177,14 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 
 | Method | Path | |
 |---|---|---|
-| GET | `/health` | `{ "status": "ok", "checks": { "database": "Healthy" } }`, 503 if the DB is unreachable |
+| GET | `/health/live` | process is up: `{ "status": "ok", "checks": {} }` |
+| GET | `/health/ready` | ready to serve: `{ "status": "ok", "checks": { "database": "Healthy" } }`, 503 if the DB is unreachable |
 | GET | `/api/vacancies` | paged `{ items, page, pageSize, totalCount }`, filters below |
 | GET | `/api/vacancies/{id}` | one vacancy, 404 if unknown |
 | PATCH | `/api/vacancies/{id}` | `{ "isSeen": true \| false }` → 204; no other field is patchable |
 | POST | `/api/vacancies/seen` | `{ "ids": [...] }` (1–100) → 204, marks them as seen |
 | POST | `/api/vacancies` | create a manual vacancy |
-| POST | `/api/imports/arbeitsagentur` | import: empty body = configured searches, or one search `{ name, keyword, location, radiusKm, publishedWithinDays, remoteOnly, maxPages }`; returns `{ fetched, added, updated, unchanged, excluded, durationMs, searches: [...] }`, 502 if the API is unreachable |
+| POST | `/api/imports/arbeitsagentur` | import: empty body = configured searches, or one search `{ name, keyword, location, radiusKm, publishedWithinDays, remoteOnly, maxPages }`; returns `{ fetched, added, updated, unchanged, excluded, durationMs, searches: [...] }`; 409 while another import runs, 429 after 6 imports/min, 502 if the Arbeitsagentur API is unreachable |
 | GET | `/api/imports/searches` | the configured searches (for the UI filter) |
 
 Query parameters of `GET /api/vacancies`:
