@@ -28,7 +28,15 @@ internal sealed class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
             .HasConversion<string>()
             .HasMaxLength(EnumMaxLength);
 
+        // PostgreSQL text[]; Core only sees a List<string>.
+        // Default '{}' so the column can be added to tables that already have rows.
+        builder.Property(v => v.MatchedSearches)
+            .HasColumnType("text[]")
+            .HasDefaultValueSql("'{}'::text[]")
+            .IsRequired();
+
         builder.HasIndex(v => new { v.Source, v.ExternalId }).IsUnique();
+        builder.HasIndex(v => v.IsRemote);
         builder.HasIndex(v => v.FetchedAt);
     }
 }

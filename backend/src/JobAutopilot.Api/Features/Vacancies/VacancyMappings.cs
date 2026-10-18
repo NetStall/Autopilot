@@ -16,7 +16,9 @@ public static class VacancyMappings
         vacancy.EmployerType,
         vacancy.PublishedAt,
         vacancy.FetchedAt,
-        vacancy.IsSeen);
+        vacancy.IsSeen,
+        vacancy.IsRemote,
+        [.. vacancy.MatchedSearches]);
 
     public static Vacancy ToManualVacancy(this CreateVacancyRequest request, DateTimeOffset now) =>
         Vacancy.CreateManual(

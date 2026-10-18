@@ -14,4 +14,6 @@ public sealed record VacancyDto(
     EmployerType EmployerType,
     DateTimeOffset? PublishedAt,
     DateTimeOffset FetchedAt,
-    bool IsSeen);
+    bool IsSeen,
+    bool IsRemote,
+    IReadOnlyList<string> MatchedSearches);

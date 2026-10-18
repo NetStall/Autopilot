@@ -29,6 +29,33 @@ public class Vacancy
 
     public bool IsSeen { get; set; }
 
+    /// <summary>Found by at least one remote-only search. Once true, imports never reset it.</summary>
+    public bool IsRemote { get; set; }
+
+    /// <summary>Names of all searches that have found this vacancy (no duplicates). Empty for manual vacancies.</summary>
+    public List<string> MatchedSearches { get; set; } = [];
+
+    /// <summary>Records that <paramref name="searchName"/> found this vacancy; returns whether anything changed.</summary>
+    public bool MarkFoundBy(string searchName, bool remoteOnly)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(searchName);
+        var changed = false;
+
+        if (!MatchedSearches.Contains(searchName, StringComparer.OrdinalIgnoreCase))
+        {
+            MatchedSearches.Add(searchName);
+            changed = true;
+        }
+
+        if (remoteOnly && !IsRemote)
+        {
+            IsRemote = true;
+            changed = true;
+        }
+
+        return changed;
+    }
+
     /// <summary>
     /// Creates a vacancy that Vitalii entered by hand. Manual vacancies have no id in any
     /// external system, so a unique one is generated.
