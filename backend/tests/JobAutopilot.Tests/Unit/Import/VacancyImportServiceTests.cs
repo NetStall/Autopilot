@@ -192,5 +192,5 @@ public class VacancyImportServiceTests
     }
 
     private Task<ImportResult> ImportAsync(params VacancySearch[] searches) =>
-        new VacancyImportService(_store, _clock).ImportAsync(_source, searches, CancellationToken);
+        new VacancyImportService(_store, _clock).ImportAsync(_source, searches, TitleExclusionFilter.None, CancellationToken);
 }

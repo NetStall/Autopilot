@@ -6,17 +6,19 @@ namespace JobAutopilot.Core.Import;
 /// Runs searches against a source and upserts the results by <c>Source + ExternalId</c>:
 /// new vacancies are added, known ones get fresh posting data but keep everything the user did with them
 /// (<see cref="Vacancy.IsSeen"/>, <see cref="Vacancy.EmployerType"/>). Everything is saved at once at the end,
-/// so a failing source leaves the database untouched.
+/// so a failing source leaves the database untouched. Titles matching the exclusion filter are not stored.
 /// </summary>
 public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeProvider)
 {
     public async Task<ImportResult> ImportAsync(
         IVacancySource source,
         IReadOnlyList<VacancySearch> searches,
+        TitleExclusionFilter exclusion,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(searches);
+        ArgumentNullException.ThrowIfNull(exclusion);
 
         var now = timeProvider.GetUtcNow();
         var handledInRun = new HashSet<string>(StringComparer.Ordinal);
@@ -25,11 +27,21 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
         foreach (var search in searches)
         {
             var fetched = 0;
+            var excluded = 0;
             var candidates = new List<VacancyCandidate>();
             await foreach (var candidate in source.SearchAsync(search, cancellationToken))
             {
                 fetched++;
-                if (handledInRun.Add(candidate.ExternalId))
+                if (!handledInRun.Add(candidate.ExternalId))
+                {
+                    continue;
+                }
+
+                if (exclusion.IsExcluded(candidate.Title))
+                {
+                    excluded++;
+                }
+                else
                 {
                     candidates.Add(candidate);
                 }
@@ -63,7 +75,7 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
                 }
             }
 
-            results.Add(new SearchImportResult(search, fetched, added, updated, unchanged));
+            results.Add(new SearchImportResult(search, fetched, added, updated, unchanged, excluded));
         }
 
         await store.SaveChangesAsync(cancellationToken);
@@ -73,6 +85,7 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
             results.Sum(r => r.Added),
             results.Sum(r => r.Updated),
             results.Sum(r => r.Unchanged),
+            results.Sum(r => r.Excluded),
             results);
     }
 

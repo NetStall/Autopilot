@@ -39,7 +39,8 @@ public static partial class ImportEndpoints
         ImportResult result;
         try
         {
-            result = await importService.ImportAsync(source, searches, cancellationToken);
+            var exclusion = new TitleExclusionFilter(importOptions.Value.ExcludeTitleTerms);
+            result = await importService.ImportAsync(source, searches, exclusion, cancellationToken);
         }
         catch (VacancySourceUnavailableException ex)
         {
@@ -54,23 +55,33 @@ public static partial class ImportEndpoints
         {
             LogSearchImported(
                 logger,
+                search.Search.Name,
                 search.Search.Keyword,
                 search.Search.Location,
                 search.Fetched,
                 search.Added,
                 search.Updated,
-                search.Unchanged);
+                search.Unchanged,
+                search.Excluded);
         }
 
         var duration = (long)timeProvider.GetElapsedTime(started).TotalMilliseconds;
-        return TypedResults.Ok(new ImportResultDto(result.Fetched, result.Added, result.Updated, result.Unchanged, duration));
+        return TypedResults.Ok(new ImportResultDto(result.Fetched, result.Added, result.Updated, result.Unchanged, result.Excluded, duration));
     }
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "Imported search {Keyword} in {Location}: fetched {Fetched}, added {Added}, updated {Updated}, unchanged {Unchanged}")]
+        Message = "Imported search {SearchName} ({Keyword} in {Location}): fetched {Fetched}, added {Added}, updated {Updated}, unchanged {Unchanged}, excluded {Excluded}")]
     private static partial void LogSearchImported(
-        ILogger logger, string keyword, string? location, int fetched, int added, int updated, int unchanged);
+        ILogger logger,
+        string searchName,
+        string keyword,
+        string? location,
+        int fetched,
+        int added,
+        int updated,
+        int unchanged,
+        int excluded);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Arbeitsagentur import failed; nothing was saved")]
     private static partial void LogImportFailed(ILogger logger, Exception exception);
