@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using static JobAutopilot.Tests.Fakes.FakeVacancySource;
 
 namespace JobAutopilot.Tests.Integration;
@@ -18,6 +19,9 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
     private const string Url = "/api/imports/arbeitsagentur";
 
     private readonly FakeVacancySource _source = new();
+
+    private int ConfiguredSearchCount =>
+        Factory.Services.GetRequiredService<IOptions<ImportOptions>>().Value.Searches.Count;
 
     protected override void ConfigureServices(IServiceCollection services)
     {
@@ -56,7 +60,7 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
         var response = await Client.PostAsync(Url, content: null, CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        _source.Searches.Should().HaveCount(14);
+        _source.Searches.Should().HaveCount(ConfiguredSearchCount);
         _source.Searches[0].Should().Be(new VacancySearch
         {
             Name = "region-softwareentwickler", Keyword = "Softwareentwickler", Location = "Deggendorf", RadiusKm = 70,
@@ -72,7 +76,7 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
         var response = await Client.PostAsync(Url, content, CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        _source.Searches.Should().HaveCount(14);
+        _source.Searches.Should().HaveCount(ConfiguredSearchCount);
     }
 
     [Fact]

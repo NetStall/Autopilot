@@ -4,10 +4,10 @@ using JobAutopilot.Core.Vacancies;
 
 namespace JobAutopilot.Tests.Fakes;
 
-/// <summary>Returns canned candidates per keyword and records which searches were run.</summary>
+/// <summary>Returns canned candidates per search name (or keyword) and records which searches were run.</summary>
 public sealed class FakeVacancySource : IVacancySource
 {
-    private readonly Dictionary<string, List<VacancyCandidate>> _resultsByKeyword = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<VacancyCandidate>> _results = new(StringComparer.Ordinal);
 
     public VacancySource Source => VacancySource.Arbeitsagentur;
 
@@ -16,9 +16,10 @@ public sealed class FakeVacancySource : IVacancySource
     /// <summary>When set, every search fails with <see cref="VacancySourceUnavailableException"/>.</summary>
     public bool IsUnavailable { get; set; }
 
-    public FakeVacancySource Returns(string keyword, params VacancyCandidate[] candidates)
+    /// <param name="searchNameOrKeyword">Matched against the search's name first, then its keyword.</param>
+    public FakeVacancySource Returns(string searchNameOrKeyword, params VacancyCandidate[] candidates)
     {
-        _resultsByKeyword[keyword] = [.. candidates];
+        _results[searchNameOrKeyword] = [.. candidates];
         return this;
     }
 
@@ -34,7 +35,8 @@ public sealed class FakeVacancySource : IVacancySource
             throw new VacancySourceUnavailableException("Fake source is down.");
         }
 
-        foreach (var candidate in _resultsByKeyword.GetValueOrDefault(search.Keyword) ?? [])
+        var candidates = _results.GetValueOrDefault(search.Name) ?? _results.GetValueOrDefault(search.Keyword) ?? [];
+        foreach (var candidate in candidates)
         {
             cancellationToken.ThrowIfCancellationRequested();
             yield return candidate;

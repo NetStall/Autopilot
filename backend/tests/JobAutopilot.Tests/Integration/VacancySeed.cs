@@ -16,7 +16,9 @@ public static class VacancySeed
         VacancySource source = VacancySource.Arbeitsagentur,
         bool isSeen = false,
         DateTimeOffset? publishedAt = null,
-        int fetchedMinutesAfterBase = 0)
+        int fetchedMinutesAfterBase = 0,
+        bool isRemote = false,
+        string[]? matchedSearches = null)
     {
         var n = Interlocked.Increment(ref _counter);
         var fetchedAt = BaseTime.AddMinutes(fetchedMinutesAfterBase);
@@ -33,6 +35,8 @@ public static class VacancySeed
             PublishedAt = publishedAt,
             FetchedAt = fetchedAt,
             IsSeen = isSeen,
+            IsRemote = isRemote,
+            MatchedSearches = [.. matchedSearches ?? []],
         };
     }
 }

@@ -49,6 +49,59 @@ public sealed class ArbeitsagenturClientTests : IDisposable
     }
 
     [Fact]
+    public async Task Remote_only_without_location_searches_all_of_germany_with_the_home_office_filter()
+    {
+        _handler.Pages[1] = "empty.json";
+
+        await SearchAsync(new VacancySearch { Name = "remote-dotnet", Keyword = ".NET", RemoteOnly = true });
+
+        _handler.Requests.Single().Uri.Should().EndWith(
+            "pc/v6/jobs?was=.NET&angebotsart=1&homeoffice=prozentual_100&veroeffentlichtseit=30&page=1&size=2");
+    }
+
+    [Fact]
+    public async Task Remote_filter_is_configurable_and_url_encoded()
+    {
+        _handler.Pages[1] = "empty.json";
+
+        await SearchAsync(
+            new VacancySearch { Name = "remote-csharp", Keyword = "C#", RemoteOnly = true },
+            remoteFilter: "prozentual_0;nv_true");
+
+        var uri = _handler.Requests.Single().Uri;
+        uri.Should().Contain("was=C%23&");
+        uri.Should().Contain("&homeoffice=prozentual_0%3Bnv_true&");
+        uri.Should().NotContain("wo=").And.NotContain("umkreis=");
+    }
+
+    [Theory]
+    [InlineData("C#", "was=C%23&")]
+    [InlineData(".NET", "was=.NET&")]
+    [InlineData("C# .NET", "was=C%23%20.NET&")]
+    [InlineData("Full Stack", "was=Full%20Stack&")]
+    [InlineData("Softwareentwickler C++", "was=Softwareentwickler%20C%2B%2B&")]
+    public void Keywords_are_url_encoded(string keyword, string expected)
+    {
+        var uri = ArbeitsagenturClient.BuildSearchUri(
+            new VacancySearch { Name = "x", Keyword = keyword }, page: 1, pageSize: 100, "prozentual_100");
+
+        uri.Should().Contain(expected);
+        uri.Should().NotContain("#", "an unencoded # would start the URL fragment and cut the keyword");
+    }
+
+    [Fact]
+    public async Task Per_search_max_pages_overrides_the_global_limit()
+    {
+        _handler.Pages[1] = "page1.json";
+        _handler.Pages[2] = "page2.json";
+        _handler.Pages[3] = "page3.json";
+
+        await SearchAsync(Search with { MaxPages = 1 }, maxPages: 10);
+
+        _handler.Requests.Select(r => r.Page).Should().Equal(1);
+    }
+
+    [Fact]
     public async Task Pages_until_max_ergebnisse_is_reached_and_skips_unusable_entries()
     {
         _handler.Pages[1] = "page1.json";
@@ -117,7 +170,10 @@ public sealed class ArbeitsagenturClientTests : IDisposable
 
     public void Dispose() => _services?.Dispose();
 
-    private async Task<List<VacancyCandidate>> SearchAsync(VacancySearch search, int maxPages = 5)
+    private async Task<List<VacancyCandidate>> SearchAsync(
+        VacancySearch search,
+        int maxPages = 5,
+        string remoteFilter = "prozentual_100")
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -126,6 +182,7 @@ public sealed class ArbeitsagenturClientTests : IDisposable
                 ["Arbeitsagentur:PageSize"] = "2",
                 ["Arbeitsagentur:MaxPages"] = maxPages.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["Arbeitsagentur:DelayBetweenPagesMs"] = "0",
+                ["Arbeitsagentur:RemoteHomeOfficeFilter"] = remoteFilter,
             })
             .Build();
 

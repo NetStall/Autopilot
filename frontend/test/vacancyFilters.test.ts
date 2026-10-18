@@ -13,9 +13,13 @@ const full: VacancyFilters = {
   location: 'Regensburg',
   employerTypes: ['Agency', 'Direct'],
   status: 'new',
+  remoteOnly: true,
+  searches: ['remote-dotnet', 'region-csharp'],
   sort: 'fetched',
   page: 3,
 }
+
+const defaults = (): VacancyFilters => ({ ...DEFAULT_FILTERS, employerTypes: [], searches: [] })
 
 describe('filtersFromQuery', () => {
   it('returns the defaults for an empty query', () => {
@@ -28,9 +32,11 @@ describe('filtersFromQuery', () => {
       location: 'Regensburg',
       employerType: ['Agency', 'Direct'],
       status: 'new',
+      remote: 'true',
+      search: ['remote-dotnet', 'region-csharp'],
       sort: 'fetched',
       page: '3',
-    })).toEqual({ ...full, employerTypes: ['Agency', 'Direct'] })
+    })).toEqual(full)
   })
 
   it('accepts a single employerType value', () => {
@@ -62,7 +68,7 @@ describe('filtersFromQuery', () => {
 
 describe('filtersToQuery', () => {
   it('leaves defaults out so the default list has a clean URL', () => {
-    expect(filtersToQuery({ ...DEFAULT_FILTERS, employerTypes: [] })).toEqual({})
+    expect(filtersToQuery(defaults())).toEqual({})
   })
 
   it('writes every non-default filter', () => {
@@ -71,13 +77,15 @@ describe('filtersToQuery', () => {
       location: 'Regensburg',
       employerType: ['Direct', 'Agency'],
       status: 'new',
+      remote: 'true',
+      search: ['remote-dotnet', 'region-csharp'],
       sort: 'fetched',
       page: '3',
     })
   })
 
   it('trims text and drops blank text', () => {
-    expect(filtersToQuery({ ...DEFAULT_FILTERS, employerTypes: [], q: '  dev  ', location: '   ' }))
+    expect(filtersToQuery({ ...defaults(), q: '  dev  ', location: '   ' }))
       .toEqual({ q: 'dev' })
   })
 
@@ -88,6 +96,42 @@ describe('filtersToQuery', () => {
 
     expect(fromUrl).toEqual({ ...full, employerTypes: ['Direct', 'Agency'] })
     expect(filtersToQuery(fromUrl)).toEqual(query)
+  })
+})
+
+describe('remote and search filters', () => {
+  it('reads remote only from remote=true', () => {
+    expect(filtersFromQuery({ remote: 'true' }).remoteOnly).toBe(true)
+    expect(filtersFromQuery({ remote: 'false' }).remoteOnly).toBe(false)
+    expect(filtersFromQuery({ remote: 'yes' }).remoteOnly).toBe(false)
+    expect(filtersFromQuery({}).remoteOnly).toBe(false)
+  })
+
+  it('reads repeatable search names, trimmed and without duplicates', () => {
+    expect(filtersFromQuery({ search: 'region-vue' }).searches).toEqual(['region-vue'])
+    expect(filtersFromQuery({ search: [' remote-dotnet ', 'remote-dotnet', '', null] }).searches)
+      .toEqual(['remote-dotnet'])
+  })
+
+  it('writes remote and search only when set', () => {
+    expect(filtersToQuery({ ...defaults(), remoteOnly: true })).toEqual({ remote: 'true' })
+    expect(filtersToQuery({ ...defaults(), searches: ['region-vue'] })).toEqual({ search: ['region-vue'] })
+    expect(filtersToQuery(defaults())).toEqual({})
+  })
+
+  it('maps to the API parameters remote and search', () => {
+    const params = filtersToApiParams({ ...defaults(), remoteOnly: true, searches: ['remote-vue'] }, 20)
+
+    expect(params.remote).toBe(true)
+    expect(params.search).toEqual(['remote-vue'])
+    expect(filtersToApiParams(defaults(), 20).remote).toBeUndefined()
+  })
+
+  it('survives a reload (URL round trip)', () => {
+    const filters = { ...defaults(), remoteOnly: true, searches: ['remote-dotnet', 'region-vue'] }
+    const fromUrl = filtersFromQuery(filtersToQuery(filters) as Record<string, string | string[]>)
+
+    expect(fromUrl).toEqual(filters)
   })
 })
 
@@ -104,6 +148,8 @@ describe('filtersToApiParams', () => {
       location: 'Regensburg',
       employerType: ['Agency', 'Direct'],
       seen: false,
+      remote: true,
+      search: ['remote-dotnet', 'region-csharp'],
       sort: 'fetched',
       page: 3,
       pageSize: 20,
@@ -111,14 +157,14 @@ describe('filtersToApiParams', () => {
   })
 
   it('sends only paging and sort for the defaults', () => {
-    expect(filtersToApiParams({ ...DEFAULT_FILTERS, employerTypes: [] }, 20))
+    expect(filtersToApiParams(defaults(), 20))
       .toEqual({ sort: 'published', page: 1, pageSize: 20 })
   })
 })
 
 describe('hasActiveFilters', () => {
   it('ignores sort and page', () => {
-    expect(hasActiveFilters({ ...DEFAULT_FILTERS, employerTypes: [], sort: 'fetched', page: 4 })).toBe(false)
+    expect(hasActiveFilters({ ...defaults(), sort: 'fetched', page: 4 })).toBe(false)
   })
 
   it.each<Partial<VacancyFilters>>([
@@ -126,7 +172,9 @@ describe('hasActiveFilters', () => {
     { location: 'Passau' },
     { employerTypes: ['Direct'] },
     { status: 'seen' },
+    { remoteOnly: true },
+    { searches: ['region-vue'] },
   ])('is true for %o', patch => {
-    expect(hasActiveFilters({ ...DEFAULT_FILTERS, employerTypes: [], ...patch })).toBe(true)
+    expect(hasActiveFilters({ ...defaults(), ...patch })).toBe(true)
   })
 })
