@@ -4,9 +4,10 @@ A personal tool for a structured job search in Germany: it fetches vacancies, ra
 recruitment agencies, drafts tailored cover letters with the Claude API and tracks every application.
 Nothing is ever sent without explicit human approval of that exact application.
 
-**Status:** step 03 of the [roadmap](docs/ROADMAP.md) — a usable vacancy list: import from the Bundesagentur für
-Arbeit with one click, filter (text, place, employer type, new/seen), open the original posting, mark postings as
-seen; filters live in the URL. Earlier steps: foundation (01), Arbeitsagentur import (02).
+**Status:** step 03 (+ 03b) of the [roadmap](docs/ROADMAP.md) — a usable vacancy list: import from the
+Bundesagentur für Arbeit with one click (region around Deggendorf + fully remote jobs in all of Germany,
+apprenticeships/internships filtered out), filter (text, place, employer type, new/seen, remote, search), open the
+original posting, mark postings as seen; filters live in the URL. Earlier steps: foundation (01), import (02).
 Agent rules: [AGENTS.md](AGENTS.md).
 
 ![Vacancy list with filters, "Neu" markers and employer type badges (demo data)](docs/img/vacancy-list.png)
@@ -40,7 +41,8 @@ Endpoints are **minimal APIs grouped per feature** (`Features/Vacancies/VacancyE
 controllers, with typed results that produce an accurate OpenAPI document.
 More background: [ADR 0001](docs/decisions/0001-foundation.md) (foundation),
 [ADR 0002](docs/decisions/0002-vacancy-import.md) (import), [ADR 0003](docs/decisions/0003-vacancy-list-ui.md)
-(list UI), [Jobsuche API notes](docs/arbeitsagentur-api.md).
+(list UI), [ADR 0004](docs/decisions/0004-title-prefilter.md) (title pre-filter),
+[Jobsuche API notes](docs/arbeitsagentur-api.md).
 
 ## Run locally (Windows, PowerShell)
 
@@ -59,23 +61,58 @@ cd frontend; npm install; npm run dev          # → http://localhost:3000
 
 ### Import vacancies from the Arbeitsagentur
 
-Runs the searches configured in `Import:Searches` (`appsettings.json`) and stores new postings; running it again
-only updates the known ones (nothing you marked as seen is reset):
+Click **Import starten** in the UI, or:
 
 ```powershell
 Invoke-RestMethod -Method Post http://localhost:5080/api/imports/arbeitsagentur
-# first run:  fetched 3, added 3, updated 0   (real run on 2026-10-16)
-# second run: fetched 3, added 0, updated 3
+# real run on 2026-10-18 (15 searches): 117 vacancies — 77 in the region, 40 fully remote
+# second run: 0 neu · 0 aktualisiert · 117 unverändert · 0 ausgeschlossen
 ```
 
-One ad-hoc search instead of the configured ones:
+It runs every search in `Import:Searches` and stores new postings. Known ones are only updated; nothing you marked
+as seen is reset. Every vacancy remembers which searches found it (`matchedSearches`), and vacancies found by a
+remote search are marked `isRemote`.
+
+#### Configuring searches
+
+Edit `backend/src/JobAutopilot.Api/appsettings.json` (or override it with user-secrets / environment variables):
+
+```jsonc
+"Import": {
+  "Searches": [
+    // region: keyword around a place
+    { "Name": "region-csharp", "Keyword": "Softwareentwickler C#", "Location": "Deggendorf", "RadiusKm": 70 },
+    // remote: no Location = all of Germany, only home-office postings
+    { "Name": "remote-dotnet", "Keyword": ".NET", "RemoteOnly": true, "MaxPages": 5 }
+  ],
+  "ExcludeTitleTerms": [ "Ausbildung", "Praktikum", "Werkstudent", "Duales Studium" ]
+}
+```
+
+| Field | |
+|---|---|
+| `Name` | unique label (letters, digits, `-`, `_`); shown in the UI filter „Suche" |
+| `Keyword` | search text. Bare `C#` / `.NET` match a lot of unrelated postings in a region (licence class C, "net…"); combine them, e.g. `Softwareentwickler C#`, `C# .NET`, `.NET Entwickler` |
+| `Location`, `RadiusKm` | place and radius in km; leave `Location` out for all of Germany (`RadiusKm` then is an error) |
+| `PublishedWithinDays` | default 30 |
+| `RemoteOnly` | only home-office postings, see `Arbeitsagentur:RemoteHomeOfficeFilter` below |
+| `MaxPages` | per-search page limit (default `Arbeitsagentur:MaxPages` = 10 × 100 results) |
+
+`ExcludeTitleTerms` is a coarse pre-filter: titles containing one of the terms as a whole word or phrase
+(case-insensitive) are not stored and are counted as „ausgeschlossen" (`Ausbildung` excludes „Ausbildung zum
+Fachinformatiker", not „Ausbildungsleiter"). Invalid search configuration stops the API at start-up with a clear
+message.
+
+`Arbeitsagentur:RemoteHomeOfficeFilter` decides what "remote" means: `prozentual_100` (default) = postings that state
+100 % home office; `prozentual_0;nv_true` = any home office incl. "nach Vereinbarung" (about 20× more results,
+mostly hybrid). Details and measured numbers: [docs/arbeitsagentur-api.md](docs/arbeitsagentur-api.md).
+
+One ad-hoc search instead of the configured ones (same fields, camelCase; `name` defaults to `ad-hoc`):
 
 ```powershell
 Invoke-RestMethod -Method Post http://localhost:5080/api/imports/arbeitsagentur -ContentType 'application/json' `
-  -Body '{ "keyword": "Softwareentwickler", "location": "Regensburg", "radiusKm": 30, "publishedWithinDays": 14 }'
+  -Body '{ "keyword": "Vue", "remoteOnly": true }'
 ```
-
-Paging, delay and retries are configured in the `Arbeitsagentur` section; see [the API notes](docs/arbeitsagentur-api.md).
 
 ### Create a vacancy by hand
 
@@ -101,7 +138,8 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 | PATCH | `/api/vacancies/{id}` | `{ "isSeen": true \| false }` → 204; no other field is patchable |
 | POST | `/api/vacancies/seen` | `{ "ids": [...] }` (1–100) → 204, marks them as seen |
 | POST | `/api/vacancies` | create a manual vacancy |
-| POST | `/api/imports/arbeitsagentur` | import: empty body = configured searches, or one `{ keyword, location, radiusKm, publishedWithinDays }`; returns `{ fetched, added, updated, unchanged, durationMs }`, 502 if the API is unreachable |
+| POST | `/api/imports/arbeitsagentur` | import: empty body = configured searches, or one search `{ name, keyword, location, radiusKm, publishedWithinDays, remoteOnly, maxPages }`; returns `{ fetched, added, updated, unchanged, excluded, durationMs, searches: [...] }`, 502 if the API is unreachable |
+| GET | `/api/imports/searches` | the configured searches (for the UI filter) |
 
 Query parameters of `GET /api/vacancies`:
 
@@ -112,6 +150,8 @@ Query parameters of `GET /api/vacancies`:
 | `employerType` | `Direct`, `Agency`, `Temporary`, `Unknown` — repeatable |
 | `seen` | `true` / `false`; omitted = all |
 | `source` | `Arbeitsagentur` / `Manual` |
+| `remote` | `true` = found by a remote search, `false` = the others |
+| `search` | name of a configured search — repeatable, matches any |
 | `sort` | `published` (default, newest first, without date last) or `fetched` |
 | `page`, `pageSize` | default 1 / 20, `pageSize` ≤ 100 |
 

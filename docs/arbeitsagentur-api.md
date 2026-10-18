@@ -73,6 +73,36 @@ too few results arrive. Results also carry `homeofficemoeglich` (bool) and, when
 
 - `C#` must be sent as `C%23`: an unencoded `#` starts the URL fragment and the API would search for `C`.
   The client uses `Uri.EscapeDataString` (covered by a test).
+- **Bare `C#` and `.NET` are imprecise in a region.** The search is fuzzy: `C%23` also matches driving licence
+  class "C/CE" (truck drivers), `.NET` matches sales, butchers, care workers … Share of IT titles among the results
+  (region Deggendorf + 70 km): `C#` 17/39, `.NET` 10/51 — but `Softwareentwickler C#` 7/7, `C# .NET` 5/5,
+  `.NET Entwickler` 4/4, `C# Entwickler` 4/4. Together with `homeoffice=prozentual_100` the bare keywords are
+  precise (3/3 each), because the home-office filter narrows the results a lot.
+- `dotnet` and `ASP.NET` return (almost) nothing; `Full Stack` and `Fullstack` return partly different postings.
+
+### Final search list (2026-10-18)
+
+A full import with the default searches: 183 results, **117 distinct vacancies** (77 region, 40 fully remote),
+0 excluded; a second run reports 117 unchanged. With step 02's configuration the import found 3.
+
+| Name | Keyword | Results | New in the run | Why |
+|---|---|---|---|---|
+| `region-softwareentwickler` | Softwareentwickler | 55 | 55 | broad, 53/55 IT titles |
+| `region-csharp` | Softwareentwickler C# | 7 | 0 | precise; marks C# postings (filter „Suche") |
+| `region-csharp-dotnet` | C# .NET | 5 | 3 | precise replacement for bare `C#` |
+| `region-dotnet` | .NET Entwickler | 4 | 1 | precise replacement for bare `.NET` |
+| `region-fullstack` / `-alt` | Full Stack / Fullstack | 9 / 11 | 4 / 2 | both spellings find different postings |
+| `region-anwendungsentw` | Anwendungsentwickler | 4 | 2 | |
+| `region-backend` | Backend | 10 | 5 | |
+| `region-vue` | Vue | 11 | 5 | |
+| `remote-csharp` / `remote-dotnet` | C# / .NET | 3 / 3 | 3 / 3 | fully remote, Germany |
+| `remote-fullstack` | Full Stack | 7 | 6 | |
+| `remote-vue` | Vue | 5 | 1 | |
+| `remote-softwareentwickler` | Softwareentwickler | 32 | 22 | broad (also Java, SAP …) — scoring in step 04 |
+| `remote-backend` | Backend | 17 | 5 | |
+
+Dropped: `Webentwickler` (region: 1 result, already found by other searches); bare `C#` / `.NET` in the region
+(noise, see above).
 - `angebotsart=1` already excludes apprenticeships (`4`), internships/trainee programmes (`34`) and
   self-employment (`2`); titles can still contain such terms (e.g. working students), hence the title
   pre-filter at import (`Import:ExcludeTitleTerms`).
