@@ -2,7 +2,8 @@
 
 The public search API behind the official job board app. It is **not officially documented**; the community
 documentation is <https://github.com/bundesAPI/jobsuche-api>. Everything below was checked against the live
-service on **2026-10-16** (7 manual requests); re-check when something breaks.
+service on **2026-10-16** (7 manual requests) and **2026-10-18** (home office, Germany-wide search, keyword
+counts — about 70 requests with 1 s pause); re-check when something breaks.
 
 ## Endpoint
 
@@ -23,16 +24,58 @@ Invoke-RestMethod -Headers @{ 'X-API-Key' = 'jobboerse-jobsuche' } `
 
 | Parameter | Meaning | Our value |
 |---|---|---|
-| `was` | keyword | `VacancySearch.Keyword` |
-| `wo` | place | `VacancySearch.Location` (left out when empty) |
+| `was` | keyword (URL-encoded: `C#` → `C%23`) | `VacancySearch.Keyword` |
+| `wo` | place; **omitted = all of Germany** | `VacancySearch.Location` |
 | `umkreis` | radius in km around `wo` | `VacancySearch.RadiusKm` (only together with `wo`) |
+| `homeoffice` | home-office filter, see below | `Arbeitsagentur:RemoteHomeOfficeFilter` when `RemoteOnly` |
 | `angebotsart` | offer type, `1` = Arbeit (employment) | always `1` |
-| `veroeffentlichtseit` | published within the last n days (0–100) | `VacancySearch.PublishedWithinDays` |
+| `veroeffentlichtseit` | published within the last n days (0–100) | `VacancySearch.PublishedWithinDays` (default 30) |
 | `page` | 1-based page | 1 … `MaxPages` |
-| `size` | page size (≤ 100) | `Arbeitsagentur:PageSize` (default 50) |
+| `size` | page size (≤ 100) | `Arbeitsagentur:PageSize` (default 100) |
 
-Also available but not used yet: `arbeitszeit` (`vz;tz;snw;ho;mj`), `zeitarbeit` (`true`/`false`), `pav`
-(private placement agencies), `befristung`, `arbeitgeber`, `berufsfeld`.
+Also available but not used yet: `arbeitszeit` (`vz;tz;snw;mj` — **`ho` no longer works in v6**, see below),
+`zeitarbeit` (`true`/`false`), `pav` (private placement agencies), `befristung`, `arbeitgeber`, `berufsfeld`.
+Unknown parameter names are silently ignored; a known parameter with an unknown value returns `400`
+(`EINGABEN_UNVOLLSTAENDIG_ODER_FEHLERHAFT`, `"detail": "Wert ungültig"`).
+
+### Home office / remote (verified 2026-10-18)
+
+The old `arbeitszeit=ho` (Heim-/Telearbeit) is still accepted but **returns 0 results** in v6 for every keyword.
+Home office is a separate parameter `homeoffice` (found in the official web app, which maps old `arbeitszeit=ho`
+links to it). Values, semicolon-separated, **order matters** (`nv_true;prozentual_0` → 400):
+
+| `homeoffice=` | Meaning | `Softwareentwickler`, Germany, 30 days |
+|---|---|---|
+| — | no filter | 3413 |
+| `prozentual_100` | posting states 100 % home office (fully remote) | 32 |
+| `prozentual_50` | states ≥ 50 % | 78 |
+| `prozentual_0` | states any percentage | 124 |
+| `prozentual_0;nv_true` | any percentage **or** "nach Vereinbarung" — the web app's "Homeoffice" filter | 663 |
+| `prozentual_100;nv_true` | fully remote or by arrangement | 571 |
+
+`nv_true` ("by arrangement") is mostly hybrid work at the employer's site. For "remote anywhere in Germany" we
+therefore default to `prozentual_100` (`Arbeitsagentur:RemoteHomeOfficeFilter`); widen it in configuration if
+too few results arrive. Results also carry `homeofficemoeglich` (bool) and, when stated, `homeofficeprozent`.
+
+### Result counts per keyword (2026-10-18, `angebotsart=1`, `veroeffentlichtseit=30`)
+
+| Keyword (`was`) | `wo=Deggendorf&umkreis=70` | Germany, no filter | Germany, `prozentual_100` | Germany, `prozentual_0;nv_true` |
+|---|---|---|---|---|
+| `Softwareentwickler` | 55 | 3413 | 32 | 663 |
+| `C%23` (C#) | 39 | 2257 | 3 | 175 |
+| `.NET` | 51 | 2478 | 3 | 172 |
+| `Full%20Stack` | 9 | 555 | 7 | 170 |
+| `Fullstack` | 11 | — | 5 | 113 |
+| `Webentwickler` | 1 | 66 | 4 | 22 |
+| `Backend` | 10 | 990 | 17 | 260 |
+| `Anwendungsentwickler` | 4 | 322 | 29 | 92 |
+| `Vue` | 11 | 193 | 5 | 41 |
+
+- `C#` must be sent as `C%23`: an unencoded `#` starts the URL fragment and the API would search for `C`.
+  The client uses `Uri.EscapeDataString` (covered by a test).
+- `angebotsart=1` already excludes apprenticeships (`4`), internships/trainee programmes (`34`) and
+  self-employment (`2`); titles can still contain such terms (e.g. working students), hence the title
+  pre-filter at import (`Import:ExcludeTitleTerms`).
 
 ### Response fields we use
 
@@ -78,8 +121,9 @@ Also available but not used yet: `arbeitszeit` (`vz;tz;snw;ho;mj`), `zeitarbeit`
 ## Paging and etiquette
 
 - Pages are requested **sequentially** with `DelayBetweenPagesMs` (default 300 ms) between them.
-- Stop when a page is empty, when `page * size >= maxErgebnisse`, or after `MaxPages` (default 5).
-  With the defaults one search makes at most 5 requests / 250 results.
+- Stop when a page is empty, when `page * size >= maxErgebnisse`, or after `MaxPages` (default 10, per search
+  overridable). With the defaults one search makes at most 10 requests / 1000 results; a warning is logged when a
+  search stops at `MaxPages` although `maxErgebnisse` reports more.
 - Imports are triggered manually only (`POST /api/imports/arbeitsagentur`), no scheduler.
 - Transient failures (5xx, 408, 429, timeouts) are retried with exponential backoff by the standard resilience
   handler (`Microsoft.Extensions.Http.Resilience`). 4xx such as 403 are not retried and make the import fail
