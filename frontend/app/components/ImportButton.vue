@@ -22,7 +22,8 @@ async function startImport() {
   try {
     const result = await api.runImport()
     summary.value = formatImportSummary(result)
-    searchResults.value = result.searches
+    // An older backend sends no per-search breakdown; the summary must not crash because of it.
+    searchResults.value = Array.isArray(result.searches) ? result.searches : []
     importVersion.value++
   }
   catch (error: unknown) {

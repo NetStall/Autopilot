@@ -22,6 +22,13 @@ describe('formatImportSummary', () => {
       .toBe('0 neu · 0 aktualisiert · 0 unverändert · 0 ausgeschlossen')
   })
 
+  it('treats counts missing in the response as 0', () => {
+    // e.g. a backend from before the excluded count existed
+    const older = { fetched: 3, added: 1, updated: 0, unchanged: 2 } as unknown as Parameters<typeof formatImportSummary>[0]
+
+    expect(formatImportSummary(older)).toBe('1 neu · 0 aktualisiert · 2 unverändert · 0 ausgeschlossen')
+  })
+
   it('formats one line of the per-search breakdown', () => {
     expect(formatSearchSummary({
       name: 'remote-dotnet',

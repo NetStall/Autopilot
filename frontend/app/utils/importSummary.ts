@@ -7,12 +7,13 @@ interface Counts {
   excluded: number
 }
 
-function formatCounts(counts: Counts): string {
+/** Missing counts (e.g. from an older backend) are shown as 0 instead of „undefined". */
+function formatCounts(counts: Partial<Counts>): string {
   return [
-    `${counts.added} neu`,
-    `${counts.updated} aktualisiert`,
-    `${counts.unchanged} unverändert`,
-    `${counts.excluded} ausgeschlossen`,
+    `${counts.added ?? 0} neu`,
+    `${counts.updated ?? 0} aktualisiert`,
+    `${counts.unchanged ?? 0} unverändert`,
+    `${counts.excluded ?? 0} ausgeschlossen`,
   ].join(' · ')
 }
 
