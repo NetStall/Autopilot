@@ -4,9 +4,14 @@ A personal tool for a structured job search in Germany: it fetches vacancies, ra
 recruitment agencies, drafts tailored cover letters with the Claude API and tracks every application.
 Nothing is ever sent without explicit human approval of that exact application.
 
-**Status:** step 02 of the [roadmap](docs/ROADMAP.md) — vacancies are imported from the Bundesagentur für Arbeit
-Jobsuche API on demand and shown in the list (step 01: solution, PostgreSQL, `/health`, vacancy API and page, CI).
+**Status:** step 03 of the [roadmap](docs/ROADMAP.md) — a usable vacancy list: import from the Bundesagentur für
+Arbeit with one click, filter (text, place, employer type, new/seen), open the original posting, mark postings as
+seen; filters live in the URL. Earlier steps: foundation (01), Arbeitsagentur import (02).
 Agent rules: [AGENTS.md](AGENTS.md).
+
+![Vacancy list with filters, "Neu" markers and employer type badges (demo data)](docs/img/vacancy-list.png)
+
+<sub>Demo data with fictional companies. Dark mode: [screenshot](docs/img/vacancy-list-dark.png).</sub>
 
 ## Stack
 
@@ -34,7 +39,8 @@ Dependencies point inwards: `Api → Infrastructure → Core`.
 Endpoints are **minimal APIs grouped per feature** (`Features/Vacancies/VacancyEndpoints.cs`) — less ceremony than
 controllers, with typed results that produce an accurate OpenAPI document.
 More background: [ADR 0001](docs/decisions/0001-foundation.md) (foundation),
-[ADR 0002](docs/decisions/0002-vacancy-import.md) (import), [Jobsuche API notes](docs/arbeitsagentur-api.md).
+[ADR 0002](docs/decisions/0002-vacancy-import.md) (import), [ADR 0003](docs/decisions/0003-vacancy-list-ui.md)
+(list UI), [Jobsuche API notes](docs/arbeitsagentur-api.md).
 
 ## Run locally (Windows, PowerShell)
 
@@ -90,10 +96,26 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 | Method | Path | |
 |---|---|---|
 | GET | `/health` | `{ "status": "ok", "checks": { "database": "Healthy" } }`, 503 if the DB is unreachable |
-| GET | `/api/vacancies?page=1&pageSize=20` | newest first, `pageSize` ≤ 100 |
-| GET | `/api/vacancies/{id}` | one vacancy |
-| POST | `/api/vacancies` | create a manual vacancy; validation errors as ProblemDetails |
-| POST | `/api/imports/arbeitsagentur` | import: empty body = configured searches, or one `{ keyword, location, radiusKm, publishedWithinDays }`; 502 if the API is unreachable |
+| GET | `/api/vacancies` | paged `{ items, page, pageSize, totalCount }`, filters below |
+| GET | `/api/vacancies/{id}` | one vacancy, 404 if unknown |
+| PATCH | `/api/vacancies/{id}` | `{ "isSeen": true \| false }` → 204; no other field is patchable |
+| POST | `/api/vacancies/seen` | `{ "ids": [...] }` (1–100) → 204, marks them as seen |
+| POST | `/api/vacancies` | create a manual vacancy |
+| POST | `/api/imports/arbeitsagentur` | import: empty body = configured searches, or one `{ keyword, location, radiusKm, publishedWithinDays }`; returns `{ fetched, added, updated, unchanged, durationMs }`, 502 if the API is unreachable |
+
+Query parameters of `GET /api/vacancies`:
+
+| Parameter | |
+|---|---|
+| `q` | text in title or company (case-insensitive, matched literally) |
+| `location` | text in the location |
+| `employerType` | `Direct`, `Agency`, `Temporary`, `Unknown` — repeatable |
+| `seen` | `true` / `false`; omitted = all |
+| `source` | `Arbeitsagentur` / `Manual` |
+| `sort` | `published` (default, newest first, without date last) or `fetched` |
+| `page`, `pageSize` | default 1 / 20, `pageSize` ≤ 100 |
+
+Invalid values return `400` ProblemDetails naming the parameter.
 
 ### Database migrations
 
@@ -107,15 +129,15 @@ dotnet ef migrations add <DescriptiveName> --project backend/src/JobAutopilot.In
 
 ```powershell
 dotnet test backend/JobAutopilot.sln           # unit + integration tests
-cd frontend; npm test; npm run typecheck
+cd frontend; npm test; npm run typecheck      # Vitest: URL filters, dates, URL safety, list states
 ```
 
 Integration tests run the real API in memory (`WebApplicationFactory`) against **real PostgreSQL started by
 Testcontainers**, so constraints, enum mapping and migrations are tested exactly as they run in production.
 External services are never called from tests: the Arbeitsagentur client is tested with a fake
 `HttpMessageHandler` and hand-written fixtures (`tests/JobAutopilot.Tests/Fixtures/arbeitsagentur/`), the endpoint
-with a fake `IVacancySource`. Without Docker the integration tests are skipped locally (in CI they fail instead). To use an existing PostgreSQL server instead
-of a container — a temporary database is created and dropped on it:
+with a fake `IVacancySource`. Without Docker the integration tests are skipped locally (in CI they fail instead).
+To use an existing PostgreSQL server instead of a container — a temporary database is created and dropped on it:
 
 ```powershell
 $env:JOBAUTOPILOT_TEST_POSTGRES = "Host=localhost;Port=5432;Username=jobautopilot;Password=jobautopilot"
@@ -126,7 +148,8 @@ dotnet test backend/JobAutopilot.sln
 
 ```
 backend/   JobAutopilot.sln, src/{Api,Core,Infrastructure}, tests/JobAutopilot.Tests
-frontend/  Nuxt 4 app (app/pages, app/components, app/composables)
+frontend/  Nuxt 4 app: app/pages (list, detail), app/components, app/composables/useVacanciesApi.ts,
+           app/utils (URL filters, dates, URL safety — unit-tested in frontend/test)
 docs/      roadmap, architecture decisions, API notes
 prompts/   task prompts, one per roadmap step
 ```
