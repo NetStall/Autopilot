@@ -56,8 +56,11 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
         var response = await Client.PostAsync(Url, content: null, CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        _source.Searches.Should().HaveCount(4);
-        _source.Searches[0].Should().Be(new VacancySearch(".NET Entwickler", "Deggendorf", 50, 14));
+        _source.Searches.Should().HaveCount(14);
+        _source.Searches[0].Should().Be(new VacancySearch
+        {
+            Name = "region-softwareentwickler", Keyword = "Softwareentwickler", Location = "Deggendorf", RadiusKm = 70,
+        });
     }
 
     [Fact]
@@ -69,7 +72,7 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
         var response = await Client.PostAsync(Url, content, CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        _source.Searches.Should().HaveCount(4);
+        _source.Searches.Should().HaveCount(14);
     }
 
     [Fact]

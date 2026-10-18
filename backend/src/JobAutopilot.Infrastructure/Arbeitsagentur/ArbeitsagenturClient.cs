@@ -22,7 +22,7 @@ internal sealed partial class ArbeitsagenturClient(
     ILogger<ArbeitsagenturClient> logger) : IVacancySource
 {
     internal const string SearchPath = "pc/v6/jobs";
-    internal const string UserAgent = "job-autopilot/0.2 (+https://github.com/NetStall/Autopilot)";
+    internal const string UserAgent = "job-autopilot/0.3 (+https://github.com/NetStall/Autopilot)";
 
     /// <summary>1 = Arbeit (employment); excludes apprenticeships, internships and self-employment.</summary>
     private const string EmploymentOfferType = "1";
@@ -37,16 +37,18 @@ internal sealed partial class ArbeitsagenturClient(
     {
         ArgumentNullException.ThrowIfNull(search);
         var settings = options.Value;
+        var maxPages = search.MaxPages ?? settings.MaxPages;
         var skipped = 0;
 
-        for (var page = 1; page <= settings.MaxPages; page++)
+        for (var page = 1; page <= maxPages; page++)
         {
             if (page > 1 && settings.DelayBetweenPagesMs > 0)
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(settings.DelayBetweenPagesMs), timeProvider, cancellationToken);
             }
 
-            var response = await GetPageAsync(BuildSearchUri(search, page, settings.PageSize), page, cancellationToken);
+            var requestUri = BuildSearchUri(search, page, settings.PageSize, settings.RemoteHomeOfficeFilter);
+            var response = await GetPageAsync(requestUri, page, cancellationToken);
             var items = response.Ergebnisliste ?? [];
 
             foreach (var item in items)
@@ -62,19 +64,25 @@ internal sealed partial class ArbeitsagenturClient(
                 yield return candidate;
             }
 
-            if (items.Count == 0 || page * settings.PageSize >= response.MaxErgebnisse)
+            var reachedEnd = items.Count == 0 || page * settings.PageSize >= response.MaxErgebnisse;
+            if (reachedEnd)
             {
                 break;
+            }
+
+            if (page == maxPages)
+            {
+                LogPageLimitReached(logger, search.Name, maxPages, page * settings.PageSize, response.MaxErgebnisse);
             }
         }
 
         if (skipped > 0)
         {
-            LogEntriesSkipped(logger, skipped, search.Keyword);
+            LogEntriesSkipped(logger, skipped, search.Name);
         }
     }
 
-    internal static string BuildSearchUri(VacancySearch search, int page, int pageSize)
+    internal static string BuildSearchUri(VacancySearch search, int page, int pageSize, string remoteHomeOfficeFilter)
     {
         var query = new List<string>
         {
@@ -82,6 +90,7 @@ internal sealed partial class ArbeitsagenturClient(
             "angebotsart=" + EmploymentOfferType,
         };
 
+        // Without "wo" the Jobsuche searches all of Germany.
         if (!string.IsNullOrWhiteSpace(search.Location))
         {
             query.Add("wo=" + Uri.EscapeDataString(search.Location.Trim()));
@@ -91,11 +100,13 @@ internal sealed partial class ArbeitsagenturClient(
             }
         }
 
-        if (search.PublishedWithinDays is { } days)
+        // "arbeitszeit=ho" returns nothing in v6; home office is its own parameter (docs/arbeitsagentur-api.md).
+        if (search.RemoteOnly)
         {
-            query.Add("veroeffentlichtseit=" + days.ToString(CultureInfo.InvariantCulture));
+            query.Add("homeoffice=" + Uri.EscapeDataString(remoteHomeOfficeFilter));
         }
 
+        query.Add("veroeffentlichtseit=" + search.PublishedWithinDays.ToString(CultureInfo.InvariantCulture));
         query.Add("page=" + page.ToString(CultureInfo.InvariantCulture));
         query.Add("size=" + pageSize.ToString(CultureInfo.InvariantCulture));
 
@@ -127,8 +138,13 @@ internal sealed partial class ArbeitsagenturClient(
     [LoggerMessage(Level = LogLevel.Debug, Message = "Skipped a search result without reference number or title on page {Page}")]
     private static partial void LogEntrySkipped(ILogger logger, int page);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Skipped {Count} unusable search results for keyword {Keyword}")]
-    private static partial void LogEntriesSkipped(ILogger logger, int count, string keyword);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Skipped {Count} unusable search results in search {SearchName}")]
+    private static partial void LogEntriesSkipped(ILogger logger, int count, string searchName);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Search {SearchName} stopped at MaxPages {MaxPages} after {Requested} results although the API reports {Total}")]
+    private static partial void LogPageLimitReached(ILogger logger, string searchName, int maxPages, int requested, int total);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Arbeitsagentur request for page {Page} failed")]
     private static partial void LogRequestFailed(ILogger logger, Exception exception, int page);

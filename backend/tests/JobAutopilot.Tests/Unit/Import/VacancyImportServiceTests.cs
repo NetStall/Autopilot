@@ -8,8 +8,14 @@ namespace JobAutopilot.Tests.Unit.Import;
 
 public class VacancyImportServiceTests
 {
-    private static readonly VacancySearch DotNet = new(".NET Entwickler", "Deggendorf", 50, 14);
-    private static readonly VacancySearch CSharp = new("C# Entwickler", "Regensburg", 30, 14);
+    private static readonly VacancySearch DotNet = new()
+    {
+        Name = "region-dotnet", Keyword = ".NET Entwickler", Location = "Deggendorf", RadiusKm = 50, PublishedWithinDays = 14,
+    };
+    private static readonly VacancySearch CSharp = new()
+    {
+        Name = "region-csharp", Keyword = "C# Entwickler", Location = "Regensburg", RadiusKm = 30, PublishedWithinDays = 14,
+    };
 
     private readonly FakeVacancySource _source = new();
     private readonly InMemoryVacancyStore _store = new();

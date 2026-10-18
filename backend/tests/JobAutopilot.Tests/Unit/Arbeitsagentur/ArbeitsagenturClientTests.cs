@@ -15,7 +15,10 @@ namespace JobAutopilot.Tests.Unit.Arbeitsagentur;
 /// </summary>
 public sealed class ArbeitsagenturClientTests : IDisposable
 {
-    private static readonly VacancySearch Search = new(".NET Entwickler", "Deggendorf", 50, 14);
+    private static readonly VacancySearch Search = new()
+    {
+        Name = "region-dotnet", Keyword = ".NET Entwickler", Location = "Deggendorf", RadiusKm = 50, PublishedWithinDays = 14,
+    };
 
     private readonly FakeJobsucheHandler _handler = new();
     private ServiceProvider? _services;
@@ -40,9 +43,9 @@ public sealed class ArbeitsagenturClientTests : IDisposable
     {
         _handler.Pages[1] = "empty.json";
 
-        await SearchAsync(new VacancySearch("C#", null, 30, null));
+        await SearchAsync(new VacancySearch { Name = "remote-csharp", Keyword = "C#", PublishedWithinDays = 30 });
 
-        _handler.Requests.Single().Uri.Should().EndWith("pc/v6/jobs?was=C%23&angebotsart=1&page=1&size=2");
+        _handler.Requests.Single().Uri.Should().EndWith("pc/v6/jobs?was=C%23&angebotsart=1&veroeffentlichtseit=30&page=1&size=2");
     }
 
     [Fact]
