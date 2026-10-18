@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using JobAutopilot.Core.Import;
 using JobAutopilot.Core.Vacancies;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,6 +13,7 @@ public sealed class VacancyListQuery : IValidatableObject
 {
     public const int DefaultPageSize = 20;
     public const int MaxPageSize = 100;
+    public const int MaxSearchNames = 20;
 
     /// <summary>Text in title or company.</summary>
     [FromQuery(Name = "q")]
@@ -31,6 +33,15 @@ public sealed class VacancyListQuery : IValidatableObject
 
     [FromQuery(Name = "source")]
     public string? Source { get; init; }
+
+    /// <summary>Only vacancies found by a remote-only search (<c>true</c>) or only the others (<c>false</c>).</summary>
+    [FromQuery(Name = "remote")]
+    public bool? Remote { get; init; }
+
+    /// <summary>Repeatable search name: vacancies found by any of them.</summary>
+    [FromQuery(Name = "search")]
+    [MaxLength(MaxSearchNames)]
+    public string[]? Search { get; init; }
 
     /// <summary><c>published</c> (default) or <c>fetched</c>.</summary>
     [FromQuery(Name = "sort")]
@@ -67,6 +78,13 @@ public sealed class VacancyListQuery : IValidatableObject
                 [nameof(Source)]);
         }
 
+        if (Search?.Any(name => string.IsNullOrWhiteSpace(name) || name.Length > VacancySearchRules.NameMaxLength) == true)
+        {
+            yield return new ValidationResult(
+                $"Search names must not be empty and at most {VacancySearchRules.NameMaxLength} characters.",
+                [nameof(Search)]);
+        }
+
         if (Sort is not null && !TryParseEnum<VacancySort>(Sort, out _))
         {
             yield return new ValidationResult("Sort must be 'published' or 'fetched'.", [nameof(Sort)]);
@@ -82,7 +100,9 @@ public sealed class VacancyListQuery : IValidatableObject
             : null,
         Seen,
         Source is null ? null : Parse<VacancySource>(Source),
-        Sort is null ? VacancySort.Published : Parse<VacancySort>(Sort));
+        Sort is null ? VacancySort.Published : Parse<VacancySort>(Sort),
+        Remote,
+        Search is { Length: > 0 } ? Search.Select(n => n.Trim()).Distinct(StringComparer.Ordinal).ToList() : null);
 
     private static T Parse<T>(string value)
         where T : struct, Enum =>

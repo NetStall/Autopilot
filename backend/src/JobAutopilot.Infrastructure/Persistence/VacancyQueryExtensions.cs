@@ -40,6 +40,18 @@ public static class VacancyQueryExtensions
             query = query.Where(v => v.Source == source);
         }
 
+        if (filter.IsRemote is { } isRemote)
+        {
+            query = query.Where(v => v.IsRemote == isRemote);
+        }
+
+        if (filter.MatchedSearches is { Count: > 0 } searches)
+        {
+            // Array overlap (&&): found by at least one of the given searches.
+            var names = searches.ToList();
+            query = query.Where(v => v.MatchedSearches.Any(name => names.Contains(name)));
+        }
+
         return query;
     }
 

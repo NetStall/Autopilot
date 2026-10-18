@@ -14,6 +14,7 @@ public static partial class ImportEndpoints
         var group = app.MapGroup("/api/imports").WithTags("Imports");
 
         group.MapPost("/arbeitsagentur", ImportFromArbeitsagentur).WithName(nameof(ImportFromArbeitsagentur));
+        group.MapGet("/searches", ListSearches).WithName(nameof(ListSearches));
 
         return app;
     }
@@ -66,8 +67,19 @@ public static partial class ImportEndpoints
         }
 
         var duration = (long)timeProvider.GetElapsedTime(started).TotalMilliseconds;
-        return TypedResults.Ok(new ImportResultDto(result.Fetched, result.Added, result.Updated, result.Unchanged, result.Excluded, duration));
+        return TypedResults.Ok(new ImportResultDto(
+            result.Fetched,
+            result.Added,
+            result.Updated,
+            result.Unchanged,
+            result.Excluded,
+            duration,
+            [.. result.Searches.Select(SearchImportResultDto.From)]));
     }
+
+    /// <summary>The configured searches (Import:Searches), e.g. for the UI's search filter.</summary>
+    private static Ok<List<ConfiguredSearchDto>> ListSearches(IOptions<ImportOptions> importOptions) =>
+        TypedResults.Ok(importOptions.Value.Searches.ConvertAll(ConfiguredSearchDto.From));
 
     [LoggerMessage(
         Level = LogLevel.Information,

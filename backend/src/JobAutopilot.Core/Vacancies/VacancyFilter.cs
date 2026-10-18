@@ -1,13 +1,18 @@
 namespace JobAutopilot.Core.Vacancies;
 
-/// <summary>Criteria for browsing vacancies. <c>null</c> means "no restriction".</summary>
+/// <summary>
+/// Criteria for browsing vacancies. <c>null</c> means "no restriction". <see cref="MatchedSearches"/> matches
+/// vacancies found by any of the given searches.
+/// </summary>
 public sealed record VacancyFilter(
     string? Text = null,
     string? Location = null,
     IReadOnlyCollection<EmployerType>? EmployerTypes = null,
     bool? IsSeen = null,
     VacancySource? Source = null,
-    VacancySort Sort = VacancySort.Published);
+    VacancySort Sort = VacancySort.Published,
+    bool? IsRemote = null,
+    IReadOnlyCollection<string>? MatchedSearches = null);
 
 public enum VacancySort
 {
