@@ -260,7 +260,7 @@ try {
         if (-not $ready -and (Get-Date) -ge $nextHealthCheck) {
             $nextHealthCheck = (Get-Date).AddSeconds(2)
             try {
-                $response = Invoke-WebRequest -Uri "$apiUrl/health" -UseBasicParsing -TimeoutSec 1
+                $response = Invoke-WebRequest -Uri "$apiUrl/health/ready" -UseBasicParsing -TimeoutSec 1
                 if ($response.StatusCode -eq 200 -and (Test-PortInUse $WebPort)) {
                     $ready = $true
                     Write-Status "Ready: $webUrl  (API $apiUrl)" Green

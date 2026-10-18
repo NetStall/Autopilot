@@ -14,6 +14,7 @@ public sealed class VacancyListQuery : IValidatableObject
     public const int DefaultPageSize = 20;
     public const int MaxPageSize = 100;
     public const int MaxSearchNames = 20;
+    public const int MaxEmployerTypes = 10;
 
     /// <summary>Text in title or company.</summary>
     [FromQuery(Name = "q")]
@@ -26,6 +27,7 @@ public sealed class VacancyListQuery : IValidatableObject
 
     /// <summary>Repeatable: <c>?employerType=Direct&amp;employerType=Unknown</c>.</summary>
     [FromQuery(Name = "employerType")]
+    [MaxLength(MaxEmployerTypes)]
     public string[]? EmployerType { get; init; }
 
     [FromQuery(Name = "seen")]

@@ -70,7 +70,8 @@ jobs:
 
       - name: Smoke test
         run: |
-          curl -fsS http://localhost:5080/health
+          curl -fsS http://localhost:5080/health/ready
+          curl -fsS http://localhost:5080/health/live
           curl -fsS -o /dev/null http://localhost:3000/
           curl -fsS "http://localhost:5080/api/vacancies?pageSize=1"
 

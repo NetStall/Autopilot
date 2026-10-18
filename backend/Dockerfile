@@ -31,6 +31,6 @@ USER $APP_UID
 
 # No curl in the image: bash's /dev/tcp is enough for a local health probe.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=5 \
-    CMD ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -n 1 <&3 | grep -q ' 200 '"]
+    CMD ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health/ready HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -n 1 <&3 | grep -q ' 200 '"]
 
 ENTRYPOINT ["dotnet", "JobAutopilot.Api.dll"]

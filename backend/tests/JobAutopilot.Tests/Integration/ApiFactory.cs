@@ -8,7 +8,10 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace JobAutopilot.Tests.Integration;
 
 /// <summary>Runs the real API in memory against the fixture's database and a controllable clock.</summary>
-public sealed class ApiFactory(PostgresFixture postgres, Action<IServiceCollection>? configureServices = null)
+public sealed class ApiFactory(
+    PostgresFixture postgres,
+    Action<IServiceCollection>? configureServices = null,
+    IReadOnlyDictionary<string, string?>? settings = null)
     : WebApplicationFactory<Program>
 {
     public TestTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
@@ -18,6 +21,10 @@ public sealed class ApiFactory(PostgresFixture postgres, Action<IServiceCollecti
         // "Testing" instead of "Development": the fixture applies migrations itself.
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", postgres.ConnectionString);
+        foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
+        {
+            builder.UseSetting(key, value);
+        }
 
         builder.ConfigureTestServices(services =>
         {

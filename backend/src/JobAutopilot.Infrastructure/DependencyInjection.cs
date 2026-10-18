@@ -14,6 +14,9 @@ public static class DependencyInjection
 {
     public const string ConnectionStringName = "Default";
 
+    /// <summary>Health checks with this tag decide readiness (<c>/health/ready</c>).</summary>
+    public const string ReadyTag = "ready";
+
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString(ConnectionStringName);
@@ -26,9 +29,14 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
 
-        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString, npgsql => npgsql
+            // Transient failures (DB restart, network blip) are retried; nothing here uses explicit transactions.
+            .EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorCodesToAdd: null)
+            .CommandTimeout(30)));
         services.AddHealthChecks()
-            .AddDbContextCheck<AppDbContext>("database");
+            .AddDbContextCheck<AppDbContext>("database", tags: [ReadyTag]);
+
+        services.AddSingleton<IImportLock>(new PostgresImportLock(connectionString));
 
         services.AddScoped<IVacancyStore, EfVacancyStore>();
         services.AddScoped<VacancyImportService>();

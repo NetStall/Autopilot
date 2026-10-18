@@ -1,3 +1,4 @@
+using JobAutopilot.Api.Common;
 using JobAutopilot.Core.Import;
 using JobAutopilot.Core.Vacancies;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -13,7 +14,9 @@ public static partial class ImportEndpoints
     {
         var group = app.MapGroup("/api/imports").WithTags("Imports");
 
-        group.MapPost("/arbeitsagentur", ImportFromArbeitsagentur).WithName(nameof(ImportFromArbeitsagentur));
+        group.MapPost("/arbeitsagentur", ImportFromArbeitsagentur)
+            .WithName(nameof(ImportFromArbeitsagentur))
+            .RequireRateLimiting(ApiSecurity.ImportRateLimitPolicy);
         group.MapGet("/searches", ListSearches).WithName(nameof(ListSearches));
 
         return app;
@@ -27,6 +30,7 @@ public static partial class ImportEndpoints
         ImportSearchRequest? request,
         IEnumerable<IVacancySource> sources,
         VacancyImportService importService,
+        IImportLock importLock,
         IOptions<ImportOptions> importOptions,
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory,
@@ -36,6 +40,15 @@ public static partial class ImportEndpoints
         IReadOnlyList<VacancySearch> searches = request is null ? importOptions.Value.Searches : [request.ToSearch()];
         var logger = loggerFactory.CreateLogger(LogCategory);
         var started = timeProvider.GetTimestamp();
+
+        await using var lockHandle = await importLock.TryAcquireAsync(cancellationToken);
+        if (lockHandle is null)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "An import is already running.",
+                detail: "Only one import can run at a time. Wait until it has finished and try again.");
+        }
 
         ImportResult result;
         try

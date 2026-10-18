@@ -25,9 +25,12 @@ public abstract class IntegrationTestBase(PostgresFixture postgres) : IAsyncLife
         Postgres.EnsureAvailable();
         await Postgres.ResetAsync(CancellationToken);
 
-        Factory = new ApiFactory(Postgres, ConfigureServices);
+        Factory = new ApiFactory(Postgres, ConfigureServices, Settings);
         Client = Factory.CreateClient();
     }
+
+    /// <summary>Override to set configuration values (e.g. CORS origins) for the tests of one class.</summary>
+    protected virtual IReadOnlyDictionary<string, string?> Settings { get; } = new Dictionary<string, string?>();
 
     /// <summary>Override to replace services (e.g. external sources) for the tests of one class.</summary>
     protected virtual void ConfigureServices(IServiceCollection services)

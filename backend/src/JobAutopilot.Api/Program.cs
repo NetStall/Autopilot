@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using JobAutopilot.Api.Common;
 using JobAutopilot.Api.Features.Health;
 using JobAutopilot.Api.Features.VacancyImports;
 using JobAutopilot.Api.Features.Vacancies;
@@ -6,8 +7,6 @@ using JobAutopilot.Infrastructure;
 using JobAutopilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-
-const string FrontendCorsPolicy = "Frontend";
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,13 +21,14 @@ builder.Services.AddValidation();
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddOpenApi();
+builder.AddApiSecurity();
 
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-builder.Services.AddCors(options => options.AddPolicy(FrontendCorsPolicy, policy =>
-    policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+// A running import gets this long to observe cancellation; it saves only at its very end, so nothing half-written.
+builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(30));
 
 var app = builder.Build();
 
+// ProblemDetails for every error; outside Development without exception details or stack traces.
 // Malformed request bodies (bad JSON, unknown enum value) are client errors, not 500s.
 app.UseExceptionHandler(new ExceptionHandlerOptions
 {
@@ -37,7 +37,10 @@ app.UseExceptionHandler(new ExceptionHandlerOptions
         : StatusCodes.Status500InternalServerError,
 });
 app.UseStatusCodePages();
-app.UseCors(FrontendCorsPolicy);
+app.UseApiSecurity();
+app.UseRouting();
+app.UseCors(ApiSecurity.FrontendCorsPolicy);
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {
