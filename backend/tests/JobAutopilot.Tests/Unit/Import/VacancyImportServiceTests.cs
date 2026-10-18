@@ -24,7 +24,7 @@ public class VacancyImportServiceTests
 
         var result = await ImportAsync(DotNet);
 
-        result.Should().BeEquivalentTo(new { Fetched = 2, Added = 2, Updated = 0 });
+        result.Should().BeEquivalentTo(new { Fetched = 2, Added = 2, Updated = 0, Unchanged = 0 });
         _store.Saved.Should().HaveCount(2).And.AllSatisfy(v =>
         {
             v.Id.Should().NotBeEmpty();
@@ -76,7 +76,7 @@ public class VacancyImportServiceTests
 
         var result = await ImportAsync(DotNet);
 
-        result.Should().BeEquivalentTo(new { Fetched = 2, Added = 1, Updated = 1 });
+        result.Should().BeEquivalentTo(new { Fetched = 2, Added = 1, Updated = 1, Unchanged = 0 });
         existing.Title.Should().Be("Neuer Titel");
         existing.Company.Should().Be("Beispiel GmbH");
         existing.Location.Should().Be("94469 Deggendorf");
@@ -86,6 +86,59 @@ public class VacancyImportServiceTests
         existing.EmployerType.Should().Be(EmployerType.Agency);
         existing.Description.Should().Be("Notiz");
         existing.FetchedAt.Should().Be(fetchedEarlier);
+    }
+
+    [Fact]
+    public async Task Identical_data_counts_as_unchanged_not_updated()
+    {
+        _source.Returns(DotNet.Keyword, Candidate("A"), Candidate("B"));
+        await ImportAsync(DotNet);
+
+        var second = await ImportAsync(DotNet);
+
+        second.Should().BeEquivalentTo(new { Fetched = 2, Added = 0, Updated = 0, Unchanged = 2 });
+        second.Searches.Single().Unchanged.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Same_instant_in_another_offset_is_unchanged()
+    {
+        // The database returns UTC, the source delivers midnight in Berlin time.
+        var stored = Candidate("A");
+        _source.Returns(DotNet.Keyword, stored);
+        await ImportAsync(DotNet);
+        _store.Saved[0].PublishedAt = stored.PublishedAt!.Value.ToUniversalTime();
+
+        var second = await ImportAsync(DotNet);
+
+        second.Unchanged.Should().Be(1);
+        second.Updated.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData("title")]
+    [InlineData("company")]
+    [InlineData("location")]
+    [InlineData("url")]
+    [InlineData("publishedAt")]
+    public async Task Any_changed_field_counts_as_updated(string field)
+    {
+        var original = Candidate("A");
+        _source.Returns(DotNet.Keyword, original);
+        await ImportAsync(DotNet);
+        var changed = field switch
+        {
+            "title" => original with { Title = "Neu" },
+            "company" => original with { Company = "Andere GmbH" },
+            "location" => original with { Location = null },
+            "url" => original with { Url = "https://example.de/other" },
+            _ => original with { PublishedAt = original.PublishedAt!.Value.AddDays(1) },
+        };
+        _source.Returns(DotNet.Keyword, changed);
+
+        var second = await ImportAsync(DotNet);
+
+        second.Should().BeEquivalentTo(new { Added = 0, Updated = 1, Unchanged = 0 });
     }
 
     [Fact]

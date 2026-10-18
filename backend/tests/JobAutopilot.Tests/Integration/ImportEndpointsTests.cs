@@ -26,7 +26,7 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
     }
 
     [Fact]
-    public async Task First_import_adds_and_second_import_only_updates()
+    public async Task First_import_adds_and_second_import_updates_only_what_changed()
     {
         _source.Returns(".NET Entwickler", Candidate("10000-1-S"), Candidate("10000-2-S"));
         var search = new { keyword = ".NET Entwickler", location = "Deggendorf", radiusKm = 50, publishedWithinDays = 14 };
@@ -36,8 +36,8 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
         _source.Returns(".NET Entwickler", Candidate("10000-1-S", title: "Geänderter Titel"), Candidate("10000-2-S"));
         var second = await PostAsync(search);
 
-        first.Should().BeEquivalentTo(new { Fetched = 2, Added = 2, Updated = 0 });
-        second.Should().BeEquivalentTo(new { Fetched = 2, Added = 0, Updated = 2 });
+        first.Should().BeEquivalentTo(new { Fetched = 2, Added = 2, Updated = 0, Unchanged = 0 });
+        second.Should().BeEquivalentTo(new { Fetched = 2, Added = 0, Updated = 1, Unchanged = 1 });
 
         await using var db = Postgres.CreateDbContext();
         var stored = await db.Vacancies.OrderBy(v => v.ExternalId).ToListAsync(CancellationToken);

@@ -53,18 +53,24 @@ public static partial class ImportEndpoints
         foreach (var search in result.Searches)
         {
             LogSearchImported(
-                logger, search.Search.Keyword, search.Search.Location, search.Fetched, search.Added, search.Updated);
+                logger,
+                search.Search.Keyword,
+                search.Search.Location,
+                search.Fetched,
+                search.Added,
+                search.Updated,
+                search.Unchanged);
         }
 
         var duration = (long)timeProvider.GetElapsedTime(started).TotalMilliseconds;
-        return TypedResults.Ok(new ImportResultDto(result.Fetched, result.Added, result.Updated, duration));
+        return TypedResults.Ok(new ImportResultDto(result.Fetched, result.Added, result.Updated, result.Unchanged, duration));
     }
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "Imported search {Keyword} in {Location}: fetched {Fetched}, added {Added}, updated {Updated}")]
+        Message = "Imported search {Keyword} in {Location}: fetched {Fetched}, added {Added}, updated {Updated}, unchanged {Unchanged}")]
     private static partial void LogSearchImported(
-        ILogger logger, string keyword, string? location, int fetched, int added, int updated);
+        ILogger logger, string keyword, string? location, int fetched, int added, int updated, int unchanged);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Arbeitsagentur import failed; nothing was saved")]
     private static partial void LogImportFailed(ILogger logger, Exception exception);

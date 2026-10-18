@@ -42,12 +42,19 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
 
             var added = 0;
             var updated = 0;
+            var unchanged = 0;
             foreach (var candidate in candidates)
             {
                 if (existing.TryGetValue(candidate.ExternalId, out var vacancy))
                 {
-                    Refresh(vacancy, candidate);
-                    updated++;
+                    if (Refresh(vacancy, candidate))
+                    {
+                        updated++;
+                    }
+                    else
+                    {
+                        unchanged++;
+                    }
                 }
                 else
                 {
@@ -56,7 +63,7 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
                 }
             }
 
-            results.Add(new SearchImportResult(search, fetched, added, updated));
+            results.Add(new SearchImportResult(search, fetched, added, updated, unchanged));
         }
 
         await store.SaveChangesAsync(cancellationToken);
@@ -65,6 +72,7 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
             results.Sum(r => r.Fetched),
             results.Sum(r => r.Added),
             results.Sum(r => r.Updated),
+            results.Sum(r => r.Unchanged),
             results);
     }
 
@@ -83,13 +91,28 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
         IsSeen = false,
     };
 
-    /// <summary>Only posting data changes; user state and <see cref="Vacancy.FetchedAt"/> stay as they are.</summary>
-    private static void Refresh(Vacancy vacancy, VacancyCandidate candidate)
+    /// <summary>
+    /// Copies posting data and returns whether anything changed. User state and <see cref="Vacancy.FetchedAt"/>
+    /// stay as they are. Dates compare as instants, so a UTC value from the database equals the same
+    /// moment in Berlin time from the source.
+    /// </summary>
+    private static bool Refresh(Vacancy vacancy, VacancyCandidate candidate)
     {
-        vacancy.Title = candidate.Title;
-        vacancy.Company = candidate.Company;
-        vacancy.Location = candidate.Location;
-        vacancy.Url = candidate.Url;
-        vacancy.PublishedAt = candidate.PublishedAt;
+        var changed = !string.Equals(vacancy.Title, candidate.Title, StringComparison.Ordinal)
+            || !string.Equals(vacancy.Company, candidate.Company, StringComparison.Ordinal)
+            || !string.Equals(vacancy.Location, candidate.Location, StringComparison.Ordinal)
+            || !string.Equals(vacancy.Url, candidate.Url, StringComparison.Ordinal)
+            || vacancy.PublishedAt != candidate.PublishedAt;
+
+        if (changed)
+        {
+            vacancy.Title = candidate.Title;
+            vacancy.Company = candidate.Company;
+            vacancy.Location = candidate.Location;
+            vacancy.Url = candidate.Url;
+            vacancy.PublishedAt = candidate.PublishedAt;
+        }
+
+        return changed;
     }
 }
