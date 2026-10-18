@@ -20,6 +20,20 @@ export default defineNuxtConfig({
     },
   },
 
+  // Static security headers for every response. The Content-Security-Policy depends on the runtime API URL and
+  // on the inline scripts of each page, so it is set by server/plugins/content-security-policy.ts.
+  routeRules: {
+    '/**': {
+      headers: {
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()',
+        'Cross-Origin-Opener-Policy': 'same-origin',
+      },
+    },
+  },
+
   typescript: {
     strict: true,
   },
