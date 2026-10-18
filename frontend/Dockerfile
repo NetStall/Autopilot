@@ -2,7 +2,7 @@
 # Build context: ./frontend
 
 # ---- build ----
-FROM node:24.22.0-alpine3.24 AS build
+FROM node:26.12.0-alpine3.24 AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build
 
 # ---- runtime: only the self-contained Nitro output ----
-FROM node:24.22.0-alpine3.24 AS runtime
+FROM node:26.12.0-alpine3.24 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
