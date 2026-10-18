@@ -16,6 +16,8 @@ public static partial class VacancyEndpoints
         group.MapGet("/", ListVacancies).WithName(nameof(ListVacancies));
         group.MapGet("/{id:guid}", GetVacancy).WithName(nameof(GetVacancy));
         group.MapPost("/", CreateVacancy).WithName(nameof(CreateVacancy));
+        group.MapPatch("/{id:guid}", UpdateVacancy).WithName(nameof(UpdateVacancy));
+        group.MapPost("/seen", MarkSeen).WithName(nameof(MarkSeen));
 
         return app;
     }
@@ -68,6 +70,35 @@ public static partial class VacancyEndpoints
         var logger = loggerFactory.CreateLogger(LogCategory);
         LogManualVacancyCreated(logger, vacancy.Id);
         return TypedResults.CreatedAtRoute(vacancy.ToDto(), nameof(GetVacancy), new { id = vacancy.Id });
+    }
+
+    /// <summary>Only <c>isSeen</c> is patchable in this step.</summary>
+    private static async Task<Results<NoContent, NotFound>> UpdateVacancy(
+        Guid id,
+        UpdateVacancyRequest request,
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var isSeen = request.IsSeen!.Value;
+        var updated = await db.Vacancies
+            .Where(v => v.Id == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(v => v.IsSeen, isSeen), cancellationToken);
+
+        return updated == 0 ? TypedResults.NotFound() : TypedResults.NoContent();
+    }
+
+    /// <summary>Marks up to <see cref="MarkSeenRequest.MaxIds"/> vacancies as seen in one statement.</summary>
+    private static async Task<NoContent> MarkSeen(
+        MarkSeenRequest request,
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var ids = request.Ids!.Distinct().ToList();
+        await db.Vacancies
+            .Where(v => ids.Contains(v.Id) && !v.IsSeen)
+            .ExecuteUpdateAsync(s => s.SetProperty(v => v.IsSeen, true), cancellationToken);
+
+        return TypedResults.NoContent();
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Created manual vacancy {VacancyId}")]
