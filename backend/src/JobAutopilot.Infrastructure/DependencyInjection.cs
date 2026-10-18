@@ -24,6 +24,7 @@ public static class DependencyInjection
         }
 
         services.TryAddSingleton(TimeProvider.System);
+        services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
 
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
         services.AddHealthChecks()

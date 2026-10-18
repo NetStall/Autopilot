@@ -1,13 +1,21 @@
+# "Use" mode:  docker compose up -d        → http://localhost:3000
+# "Dev" mode:  ./dev.ps1                    (starts only "db" from this file)
+#
+# All ports are bound to 127.0.0.1: nothing is reachable from the network (see docs/SECURITY.md).
+# Credentials and ports come from .env (copy .env.example).
+
+name: autopilot
+
 services:
   db:
-    image: postgres:17
+    image: postgres:17.11-trixie
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-jobautopilot}
       POSTGRES_USER: ${POSTGRES_USER:-jobautopilot}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env and set POSTGRES_PASSWORD}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,6 +23,39 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: job-autopilot-api:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB:-jobautopilot};Username=${POSTGRES_USER:-jobautopilot};Password=${POSTGRES_PASSWORD}"
+      Database__MigrateOnStartup: "true"
+      # The browser loads the UI from the web port and calls the API from there.
+      Cors__AllowedOrigins__0: "http://localhost:${WEB_PORT:-3000}"
+    ports:
+      - "127.0.0.1:${API_PORT:-5080}:8080"
+
+  web:
+    build:
+      context: ./frontend
+    image: job-autopilot-web:local
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      # Read at runtime. It is the URL the *browser* uses (all data is fetched client-side),
+      # so it is the API's published port on localhost, not the container name.
+      NUXT_PUBLIC_API_BASE: "http://localhost:${API_PORT:-5080}"
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
 
 volumes:
   pgdata:

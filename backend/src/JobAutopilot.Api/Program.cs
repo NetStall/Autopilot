@@ -42,7 +42,11 @@ app.UseCors(FrontendCorsPolicy);
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+}
 
+// Explicit flag instead of "IsDevelopment": compose runs Production and still migrates; tests migrate themselves.
+if (app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value.MigrateOnStartup)
+{
     await using var scope = app.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
 }

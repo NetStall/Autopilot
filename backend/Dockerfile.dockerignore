@@ -1,0 +1,8 @@
+# Used for backend/Dockerfile (context = repository root). Only what the API build needs.
+*
+!.editorconfig
+!backend/Directory.Build.props
+!backend/JobAutopilot.sln
+!backend/src/**
+**/bin/
+**/obj/
