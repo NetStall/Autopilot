@@ -20,6 +20,8 @@ const { data, status, error, refresh } = useAsyncData(
   { watch: [filters, importVersion], server: false, lazy: true },
 )
 
+const { data: searches } = useAsyncData('import-searches', () => api.searches(), { server: false, lazy: true })
+
 const vacancies = computed(() => data.value?.items ?? [])
 const totalCount = computed(() => data.value?.totalCount ?? 0)
 const listState = computed(() => resolveListState({
@@ -40,7 +42,7 @@ function changeFilters(next: VacancyFilters, options: { replace: boolean }) {
 }
 
 function resetFilters() {
-  changeFilters({ ...DEFAULT_FILTERS, employerTypes: [], sort: filters.value.sort }, { replace: false })
+  changeFilters({ ...DEFAULT_FILTERS, employerTypes: [], searches: [], sort: filters.value.sort }, { replace: false })
 }
 
 /** data is a shallow ref: replace the page object so the list re-renders. */
@@ -97,7 +99,7 @@ async function markPageSeen() {
       </p>
     </div>
 
-    <VacancyFilters :filters="filters" @change="changeFilters" />
+    <VacancyFilters :filters="filters" :searches="searches ?? []" @change="changeFilters" />
 
     <p v-if="actionError" class="page__action-error" role="alert">
       {{ actionError }}

@@ -12,6 +12,10 @@ export interface VacancyFilters {
   location: string
   employerTypes: EmployerType[]
   status: StatusFilter
+  /** „Nur Remote" */
+  remoteOnly: boolean
+  /** Names of configured searches; vacancies found by any of them. */
+  searches: string[]
   sort: VacancySort
   page: number
 }
@@ -21,6 +25,8 @@ export const DEFAULT_FILTERS: Readonly<VacancyFilters> = Object.freeze({
   location: '',
   employerTypes: [],
   status: 'all',
+  remoteOnly: false,
+  searches: [],
   sort: 'published',
   page: 1,
 })
@@ -52,6 +58,8 @@ export function filtersFromQuery(query: LocationQuery): VacancyFilters {
     location: firstValue(query.location).trim(),
     employerTypes: [...new Set(allValues(query.employerType).filter(isEmployerType))],
     status: status === 'new' || status === 'seen' ? status : 'all',
+    remoteOnly: firstValue(query.remote) === 'true',
+    searches: [...new Set(allValues(query.search).map(s => s.trim()).filter(s => s.length > 0))],
     sort: sort === 'fetched' ? 'fetched' : 'published',
     page: Number.isInteger(page) && page > 0 ? page : 1,
   }
@@ -74,6 +82,12 @@ export function filtersToQuery(filters: VacancyFilters): LocationQueryRaw {
   }
   if (filters.status !== 'all') {
     query.status = filters.status
+  }
+  if (filters.remoteOnly) {
+    query.remote = 'true'
+  }
+  if (filters.searches.length > 0) {
+    query.search = [...filters.searches]
   }
   if (filters.sort !== 'published') {
     query.sort = filters.sort
@@ -99,6 +113,12 @@ export function filtersToApiParams(filters: VacancyFilters, pageSize: number): V
   if (filters.status !== 'all') {
     params.seen = filters.status === 'seen'
   }
+  if (filters.remoteOnly) {
+    params.remote = true
+  }
+  if (filters.searches.length > 0) {
+    params.search = [...filters.searches]
+  }
   return params
 }
 
@@ -108,4 +128,6 @@ export function hasActiveFilters(filters: VacancyFilters): boolean {
     || filters.location.trim() !== ''
     || filters.employerTypes.length > 0
     || filters.status !== 'all'
+    || filters.remoteOnly
+    || filters.searches.length > 0
 }

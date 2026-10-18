@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import type { EmployerType, VacancySort } from '~/types/vacancy'
+import type { ConfiguredSearch, EmployerType, VacancySort } from '~/types/vacancy'
 import type { StatusFilter, VacancyFilters } from '~/utils/vacancyFilters'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   filters: VacancyFilters
-}>()
+  /** Configured searches for the „Suche" select; empty while loading. */
+  searches?: ConfiguredSearch[]
+}>(), { searches: () => [] })
 
 const emit = defineEmits<{
   /** `replace`: update the URL without a new history entry (used while typing). */
@@ -75,6 +77,35 @@ function onCheckboxChange(type: EmployerType, event: Event) {
   toggleEmployerType(type, (event.target as HTMLInputElement).checked)
 }
 
+function onSearchChange(event: Event) {
+  const value = (event.target as HTMLSelectElement).value
+  update({ searches: value ? [value] : [] })
+}
+
+function onRemoteChange(event: Event) {
+  update({ remoteOnly: (event.target as HTMLInputElement).checked })
+}
+
+/** A search name from the URL that is no longer configured still shows up, so the filter stays visible. */
+const searchOptions = computed(() => {
+  const names = new Set(props.searches.map(s => s.name))
+  const unknown = props.filters.searches.filter(name => !names.has(name))
+  return [
+    ...props.searches.map(s => ({ value: s.name, label: searchLabel(s) })),
+    ...unknown.map(name => ({ value: name, label: name })),
+  ]
+})
+
+function searchLabel(search: ConfiguredSearch): string {
+  if (search.remoteOnly) {
+    return `${search.name} (${search.keyword}, remote)`
+  }
+  const where = search.location
+    ? `${search.location}${search.radiusKm != null ? ` +${search.radiusKm} km` : ''}`
+    : 'Deutschland'
+  return `${search.name} (${search.keyword}, ${where})`
+}
+
 function onSortChange(event: Event) {
   const value = (event.target as HTMLSelectElement).value
   update({ sort: value === 'fetched' ? 'fetched' : 'published' })
@@ -84,7 +115,7 @@ function reset() {
   applyTextDebounced.cancel()
   q.value = ''
   location.value = ''
-  emit('change', { ...DEFAULT_FILTERS, employerTypes: [], sort: props.filters.sort }, { replace: false })
+  emit('change', { ...DEFAULT_FILTERS, employerTypes: [], searches: [], sort: props.filters.sort }, { replace: false })
 }
 
 const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim() !== '' || location.value.trim() !== '')
@@ -93,7 +124,7 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
 <template>
   <form class="filters" role="search" aria-label="Stellen filtern" @submit.prevent="submit">
     <div class="filters__field">
-      <label for="filter-q">Suche</label>
+      <label for="filter-q">Stichwort</label>
       <input
         id="filter-q"
         v-model="q"
@@ -125,6 +156,25 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
           {{ option.label }}
         </option>
       </select>
+    </div>
+
+    <div class="filters__field">
+      <label for="filter-search">Suche</label>
+      <select id="filter-search" class="input" :value="filters.searches[0] ?? ''" @change="onSearchChange">
+        <option value="">
+          Alle Suchen
+        </option>
+        <option v-for="option in searchOptions" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
+      </select>
+    </div>
+
+    <div class="filters__field filters__field--checkbox">
+      <label class="filters__choice">
+        <input type="checkbox" name="remote" :checked="filters.remoteOnly" @change="onRemoteChange">
+        Nur Remote
+      </label>
     </div>
 
     <fieldset class="filters__group">
@@ -182,6 +232,11 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
   &__field {
     display: grid;
     gap: var(--space-1);
+
+    &--checkbox {
+      align-content: end;
+      padding-bottom: var(--space-2);
+    }
   }
 
   &__group {

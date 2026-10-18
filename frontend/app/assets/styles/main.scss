@@ -13,6 +13,8 @@
   --color-warning-text: #7a4b00;
   --color-new-bg: #dff5e6;
   --color-new-text: #17643a;
+  --color-remote-bg: #ece4fd;
+  --color-remote-text: #5320a8;
   --color-error-text: #b42318;
   --color-skeleton: #e4e8ee;
   --color-focus: #2557d6;
@@ -45,6 +47,8 @@
     --color-warning-text: #f5cf85;
     --color-new-bg: #163826;
     --color-new-text: #8fe0b0;
+    --color-remote-bg: #33264f;
+    --color-remote-text: #d6c4ff;
     --color-error-text: #ff8a80;
     --color-skeleton: #2a313d;
     --color-focus: #7aa2ff;
@@ -171,6 +175,12 @@ a {
   &--new {
     background: var(--color-new-bg);
     color: var(--color-new-text);
+    font-weight: 600;
+  }
+
+  &--remote {
+    background: var(--color-remote-bg);
+    color: var(--color-remote-text);
     font-weight: 600;
   }
 }

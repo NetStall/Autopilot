@@ -15,6 +15,9 @@ const { data: vacancy, status, error, refresh } = useAsyncData(
 useHead({ title: () => (vacancy.value ? `${vacancy.value.title} · Job Autopilot` : 'Stelle · Job Autopilot') })
 
 const originalUrl = computed(() => safeExternalUrl(vacancy.value?.url))
+const badges = computed(() => (vacancy.value ? vacancyBadges(vacancy.value) : []))
+const statusBadges = computed(() => badges.value.filter(b => b.variant === 'new' || b.variant === 'remote'))
+const employerBadge = computed(() => badges.value.find(b => b.variant === 'employer' || b.variant === 'intermediary'))
 const notFound = computed(() => errorStatus(error.value) === 404)
 const saving = ref(false)
 const actionError = ref<string | null>(null)
@@ -71,13 +74,22 @@ function openedOriginal() {
     <article v-else-if="vacancy" class="detail__card">
       <header class="detail__header">
         <div>
-          <span v-if="!vacancy.isSeen" class="badge badge--new">Neu</span>
+          <span
+            v-for="badge in statusBadges"
+            :key="badge.variant"
+            class="badge detail__badge"
+            :class="`badge--${badge.variant}`"
+          >{{ badge.label }}</span>
           <h1>{{ vacancy.title }}</h1>
           <p class="detail__company">
             {{ vacancy.company }}<span v-if="vacancy.location"> · {{ vacancy.location }}</span>
           </p>
         </div>
-        <EmployerTypeBadge :type="vacancy.employerType" />
+        <span
+          v-if="employerBadge"
+          class="badge"
+          :class="{ 'badge--intermediary': employerBadge.variant === 'intermediary' }"
+        >{{ employerBadge.label }}</span>
       </header>
 
       <div class="detail__actions">
@@ -124,6 +136,21 @@ function openedOriginal() {
         <dt>Referenznummer</dt>
         <dd class="detail__mono">
           {{ vacancy.externalId }}
+        </dd>
+        <dt>Remote</dt>
+        <dd>{{ vacancy.isRemote ? 'Ja – über eine Remote-Suche gefunden' : 'Nein / nicht bekannt' }}</dd>
+        <dt>Gefunden durch</dt>
+        <dd>
+          <ul v-if="vacancy.matchedSearches.length > 0" class="detail__searches">
+            <li v-for="name in vacancy.matchedSearches" :key="name">
+              <NuxtLink :to="{ path: '/', query: { search: name } }">
+                {{ name }}
+              </NuxtLink>
+            </li>
+          </ul>
+          <template v-else>
+            –
+          </template>
         </dd>
         <dt>Status</dt>
         <dd>{{ vacancy.isSeen ? 'Gesehen' : 'Neu' }}</dd>
@@ -177,6 +204,19 @@ function openedOriginal() {
       font-size: 1.5rem;
       overflow-wrap: anywhere;
     }
+  }
+
+  &__badge + &__badge {
+    margin-left: var(--space-1);
+  }
+
+  &__searches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
   &__company {

@@ -1,4 +1,4 @@
-import type { ImportResult, PagedResponse, Vacancy, VacancyListParams } from '~/types/vacancy'
+import type { ConfiguredSearch, ImportResult, PagedResponse, Vacancy, VacancyListParams } from '~/types/vacancy'
 
 /** All calls to the backend API. Base URL from runtime config (NUXT_PUBLIC_API_BASE). */
 export function useVacanciesApi() {
@@ -26,6 +26,10 @@ export function useVacanciesApi() {
 
     runImport() {
       return api<ImportResult>('/api/imports/arbeitsagentur', { method: 'POST' })
+    },
+
+    searches() {
+      return api<ConfiguredSearch[]>('/api/imports/searches')
     },
   }
 }

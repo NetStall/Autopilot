@@ -19,6 +19,10 @@ export interface Vacancy {
   publishedAt: string | null
   fetchedAt: string
   isSeen: boolean
+  /** Found by at least one remote-only search. */
+  isRemote: boolean
+  /** Names of the searches that found this vacancy. */
+  matchedSearches: string[]
 }
 
 export interface PagedResponse<T> {
@@ -36,8 +40,22 @@ export interface VacancyListParams {
   seen?: boolean
   source?: VacancySource
   sort?: VacancySort
+  remote?: boolean
+  search?: string[]
   page?: number
   pageSize?: number
+}
+
+export interface SearchImportResult {
+  name: string
+  keyword: string
+  location: string | null
+  remoteOnly: boolean
+  fetched: number
+  added: number
+  updated: number
+  unchanged: number
+  excluded: number
 }
 
 export interface ImportResult {
@@ -45,7 +63,19 @@ export interface ImportResult {
   added: number
   updated: number
   unchanged: number
+  excluded: number
   durationMs: number
+  searches: SearchImportResult[]
+}
+
+/** A search from Import:Searches (GET /api/imports/searches). */
+export interface ConfiguredSearch {
+  name: string
+  keyword: string
+  location: string | null
+  radiusKm: number | null
+  publishedWithinDays: number
+  remoteOnly: boolean
 }
 
 /** RFC 9457 problem details as returned by the API on errors. */

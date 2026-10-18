@@ -14,6 +14,9 @@ const emit = defineEmits<{
 }>()
 
 const originalUrl = computed(() => safeExternalUrl(props.vacancy.url))
+const badges = computed(() => vacancyBadges(props.vacancy))
+const statusBadges = computed(() => badges.value.filter(b => b.variant === 'new' || b.variant === 'remote'))
+const employerBadge = computed(() => badges.value.find(b => b.variant === 'employer' || b.variant === 'intermediary'))
 const dateLabel = computed(() => props.vacancy.publishedAt
   ? `Veröffentlicht ${formatRelativeDate(props.vacancy.publishedAt)}`
   : `Importiert ${formatRelativeDate(props.vacancy.fetchedAt)}`)
@@ -24,7 +27,9 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
   <article class="card" :class="{ 'card--seen': vacancy.isSeen }" :aria-labelledby="`vacancy-${vacancy.id}`">
     <div class="card__main">
       <div class="card__heading">
-        <span v-if="!vacancy.isSeen" class="badge badge--new">Neu</span>
+        <span v-for="badge in statusBadges" :key="badge.variant" class="badge" :class="`badge--${badge.variant}`">
+          {{ badge.label }}
+        </span>
         <h2 :id="`vacancy-${vacancy.id}`" class="card__title">
           <NuxtLink :to="{ path: `/vacancies/${vacancy.id}`, query: listQuery }">
             {{ vacancy.title }}
@@ -41,7 +46,11 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
     </div>
 
     <div class="card__side">
-      <EmployerTypeBadge :type="vacancy.employerType" />
+      <span
+        v-if="employerBadge"
+        class="badge"
+        :class="{ 'badge--intermediary': employerBadge.variant === 'intermediary' }"
+      >{{ employerBadge.label }}</span>
       <div class="card__actions">
         <a
           v-if="originalUrl"
@@ -83,6 +92,7 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
 
   &__heading {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     gap: var(--space-2);
   }

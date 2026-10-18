@@ -1,10 +1,27 @@
-import type { ImportResult } from '../types/vacancy'
+import type { ImportResult, SearchImportResult } from '../types/vacancy'
 
-/** „12 neu · 3 aktualisiert · 40 unverändert" */
-export function formatImportSummary(result: ImportResult): string {
+interface Counts {
+  added: number
+  updated: number
+  unchanged: number
+  excluded: number
+}
+
+function formatCounts(counts: Counts): string {
   return [
-    `${result.added} neu`,
-    `${result.updated} aktualisiert`,
-    `${result.unchanged} unverändert`,
+    `${counts.added} neu`,
+    `${counts.updated} aktualisiert`,
+    `${counts.unchanged} unverändert`,
+    `${counts.excluded} ausgeschlossen`,
   ].join(' · ')
+}
+
+/** „85 neu · 12 aktualisiert · 140 unverändert · 23 ausgeschlossen" */
+export function formatImportSummary(result: ImportResult): string {
+  return formatCounts(result)
+}
+
+/** One line of the per-search breakdown, e.g. „remote-dotnet: 3 gefunden — 1 neu · 0 aktualisiert · …" */
+export function formatSearchSummary(search: SearchImportResult): string {
+  return `${search.name}: ${search.fetched} gefunden — ${formatCounts(search)}`
 }
