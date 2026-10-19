@@ -13,7 +13,7 @@ Status: 2026-10-18 (task 03c, part B). Re-check before anything is reachable fro
 | Component | Where | Reachable from | Data |
 |---|---|---|---|
 | PostgreSQL 17 (`db`) | Docker, volume `pgdata` | `127.0.0.1:5432` | vacancies (public job postings), seen/interest state; later: candidate profile, letters (personal data) |
-| API (`api`, ASP.NET Core) | Docker or `dotnet watch` | `127.0.0.1:5080` | reads/writes the DB; calls the Bundesagentur für Arbeit Jobsuche API (outbound HTTPS) |
+| API (`api`, ASP.NET Core) | Docker or `dotnet watch` | `127.0.0.1:5080` | reads/writes the DB; calls the Bundesagentur für Arbeit Jobsuche API and the Himalayas jobs API (outbound HTTPS, read-only, no credentials; an optional Himalayas key only via user-secrets/environment) |
 | Frontend (`web`, Nuxt/Nitro) | Docker or `nuxt dev` | `127.0.0.1:3000` | no data of its own; the browser calls the API directly |
 | Backups | `./backups/*.sql` | local disk, git-ignored | full DB dump |
 
@@ -27,7 +27,7 @@ answer on the machine's LAN address). Containers run as non-root users (`app`, U
 | Another device on the network reads or changes data | Ports bound to `127.0.0.1` only |
 | A malicious website in the user's browser calls the local API (CSRF / cross-origin reads) | CORS allows exactly the configured frontend origin (no wildcard, validated at start); JSON bodies require `Content-Type: application/json`, which triggers a preflight |
 | DNS rebinding (attacker domain resolving to 127.0.0.1) | Host filtering: `AllowedHosts = localhost;127.0.0.1;[::1]` → other `Host` headers get 400 |
-| XSS through vacancy data (titles, URLs come from an external API) | Vue escapes all text, no `v-html`; links only for absolute `http(s)` URLs with `rel="noopener noreferrer"`; CSP without `unsafe-inline` for scripts (hash-based), `connect-src` limited to the API origin, `frame-ancestors 'none'` |
+| XSS through vacancy data (titles, URLs, descriptions come from external APIs) | Himalayas HTML descriptions are converted to plain text before storing (tags removed, entities decoded, tested with `<script>`/`onerror`); Arbeitsagentur descriptions are plain text; Vue escapes all text, no `v-html`; links only for absolute `http(s)` URLs with `rel="noopener noreferrer"`; CSP without `unsafe-inline` for scripts (hash-based), `connect-src` limited to the API origin, `frame-ancestors 'none'` |
 | Clickjacking | `X-Frame-Options: DENY`, `frame-ancestors 'none'` (frontend and API) |
 | Abuse of the import (floods the public Arbeitsagentur API, DB contention) | Only one import at a time (unique active run + advisory lock → 409), rate limit 6 starts/min (429), sequential paging with delay; the daily schedule only *fetches* and never sends anything |
 | Oversized or malformed input | Validation with limits on every parameter (text ≤ 200, page ≤ 1 000 000, pageSize ≤ 100, lists bounded), request bodies ≤ 64 KB (413), malformed JSON → 400 ProblemDetails |

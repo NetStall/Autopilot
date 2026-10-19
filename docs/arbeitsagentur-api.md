@@ -217,3 +217,24 @@ If the endpoint becomes unavailable (after the standard retries), the pass stops
   with 502 — nothing is saved.
 - Per-posting details: see *Job details* below.
 - No rate limit headers were returned; none are documented.
+
+## After step 04 (real imports on 2026-10-19, empty database)
+
+20 configured searches (15 Arbeitsagentur, 5 Himalayas), remote searches with `prozentual_0;nv_true`.
+
+| | Step 03b (before) | Step 04, 1st import | after 4 imports (all descriptions) |
+|---|---|---|---|
+| Results fetched / distinct vacancies | 183 / 117 | 1840 / 1206 (1026 Arbeitsagentur, 163 Himalayas after merging 17 duplicates) | same |
+| Duration | ~10 s | 131 s (incl. 300 descriptions) | 74–131 s per run |
+| Remote (full or hybrid) | 40 (only `prozentual_100`) | 1142 (234 voll remote, 908 hybrid) | 1149 (253 voll remote, 896 hybrid) |
+| Default list (Passt + Vielleicht) | — (no scoring) | 487 | 427 |
+| … of it voll remote | — | 112, 111 outside Lower Bavaria | 118, 117 outside Lower Bavaria |
+| Levels Passt / Vielleicht / Passt nicht | — | 123 / 364 / 702 | 192 / 235 / 762 |
+| Employer Direct / Agency / Temporary / Unknown | — | 123 / 32 / 12 / 1022 | 448 / 84 / 40 / 617 |
+
+- **Remote only in the description:** of 297 Arbeitsagentur postings with a description after the first import, 28
+  are fully remote only because the text says so („100 % remote", „deutschlandweit", „ortsunabhängig"); 28 others
+  because `homeofficeprozent` = 100. Five vacancies found only by region searches are hybrid only by their text.
+- In the default list after 4 imports only 4 titles mention Java/Python/C++/Go — all of them together with C#/.NET
+  („Softwareentwickler C++, C#, .NET, SQL", „Fullstack … C# / Golang & Angular").
+- Descriptions arrive Markdown-escaped (`C\#`); the mapper removes the escapes.
