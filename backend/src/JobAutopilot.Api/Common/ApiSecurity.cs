@@ -22,7 +22,7 @@ public static class ApiSecurity
         ValidateOrigins(origins);
         builder.Services.AddCors(options => options.AddPolicy(FrontendCorsPolicy, policy => policy
             .WithOrigins(origins)
-            .WithMethods(HttpMethods.Get, HttpMethods.Post, HttpMethods.Patch)
+            .WithMethods(HttpMethods.Get, HttpMethods.Post, HttpMethods.Patch, HttpMethods.Delete)
             .WithHeaders("Content-Type")));
 
         var importsPerMinute = builder.Configuration.GetValue("RateLimiting:ImportsPerMinute", 6);

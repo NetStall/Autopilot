@@ -12,7 +12,7 @@ Status: 2026-10-18 (task 03c, part B). Re-check before anything is reachable fro
 
 | Component | Where | Reachable from | Data |
 |---|---|---|---|
-| PostgreSQL 17 (`db`) | Docker, volume `pgdata` | `127.0.0.1:5432` | vacancies (public job postings), seen/interest state; later: candidate profile, letters (personal data) |
+| PostgreSQL 17 (`db`) | Docker, volume `pgdata` | `127.0.0.1:5432` | vacancies (public job postings), seen/interest state, **applications** (personal data: contacts, notes, salary); later: letters |
 | API (`api`, ASP.NET Core) | Docker or `dotnet watch` | `127.0.0.1:5080` | reads/writes the DB; calls the Bundesagentur für Arbeit Jobsuche API and the Himalayas jobs API (outbound HTTPS, read-only, no credentials; an optional Himalayas key only via user-secrets/environment) |
 | Frontend (`web`, Nuxt/Nitro) | Docker or `nuxt dev` | `127.0.0.1:3000` | no data of its own; the browser calls the API directly |
 | Backups | `./backups/*.sql` | local disk, git-ignored | full DB dump |
@@ -32,7 +32,8 @@ answer on the machine's LAN address). Containers run as non-root users (`app`, U
 | Abuse of the import (floods the public Arbeitsagentur API, DB contention) | Only one import at a time (unique active run + advisory lock → 409), rate limit 6 starts/min (429), sequential paging with delay; the daily schedule only *fetches* and never sends anything |
 | Oversized or malformed input | Validation with limits on every parameter (text ≤ 200, page ≤ 1 000 000, pageSize ≤ 100, lists bounded), request bodies ≤ 64 KB (413), malformed JSON → 400 ProblemDetails |
 | Information leakage in errors | ProblemDetails everywhere; outside Development no exception messages or stack traces (tested) |
-| Secrets / personal data in git | `.env`, `appsettings.*.local.json`, `backups/`, `data/` git-ignored; history checked (see findings) |
+| Secrets / personal data in git | `.env`, `appsettings.*.local.json`, `backups/`, `data/` (profile, tracker export) git-ignored; history checked (see findings) |
+| Personal data in logs or external calls (step 05) | Profile and applications are never logged — only file name, status, counts and ids; no external call uses them in this step; `./data` is mounted read-only into the API container; profile/application endpoints are localhost-only like everything else |
 | Vulnerable dependencies / insecure code | CI fails on high/critical (NuGet + npm, documented exceptions), Dependabot weekly, CodeQL (fails on findings with security-severity >= 7; results go to the Security tab once code scanning is available — public repository or GitHub Code Security — otherwise they are kept as a SARIF artifact) |
 
 Not in scope while localhost-only: authentication, TLS, encryption at rest (the Docker volume is protected by the
@@ -64,7 +65,7 @@ OS user account), multi-user separation.
 | 6 | Two imports at the same time could fail on the unique index (500) or double the load | medium | **fixed** — PostgreSQL advisory lock, 409 |
 | 7 | Import could be triggered without limit (outbound requests to a public API) | medium | **fixed** — rate limit 6/min, 429 with `Retry-After` |
 | 8 | No security headers / CSP on frontend and API | medium | **fixed** — headers on both, hash-based CSP (verified in the browser without violations) |
-| 9 | CORS allowed any header and method; a wildcard origin in config would have been accepted | low | **fixed** — GET/POST/PATCH, `Content-Type`, origins validated at start |
+| 9 | CORS allowed any header and method; a wildcard origin in config would have been accepted | low | **fixed** — GET/POST/PATCH (+ DELETE since step 05 for deleting an application), `Content-Type`, origins validated at start |
 | 10 | Default request body limit 30 MB | low | **fixed** — 64 KB, 413 ProblemDetails |
 | 11 | `employerType` list unbounded | low | **fixed** — max 10 values |
 | 12 | Migrations bound to the environment name | low | **fixed** — `Database:MigrateOnStartup` |

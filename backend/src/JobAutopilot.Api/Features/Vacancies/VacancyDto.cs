@@ -23,7 +23,11 @@ public sealed record VacancyDto(
     RelevanceLevel? RelevanceLevel,
     IReadOnlyList<string> RelevanceReasons,
     DateTimeOffset? DetailsFetchedAt,
-    IReadOnlyList<VacancyLinkDto> AlsoFoundAt);
+    IReadOnlyList<VacancyLinkDto> AlsoFoundAt,
+    AppliedDto? Applied);
+
+/// <summary>I already applied — to this vacancy, or to the same company with a similar title („Beworben").</summary>
+public sealed record AppliedDto(Guid ApplicationId, Core.Applications.ApplicationStatus Status, string StatusLabel, DateTimeOffset AppliedAt);
 
 /// <summary>The same job in another place (other source or a repost), see <c>DuplicateKey</c>.</summary>
 public sealed record VacancyLinkDto(Guid Id, VacancySource Source, string? Url);

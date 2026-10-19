@@ -50,7 +50,9 @@ public static partial class VacancyEndpoints
 
         // The list does not need the (long) descriptions; the detail endpoint returns them.
         var duplicates = await DuplicatesOfAsync(db, vacancies, cancellationToken);
-        var items = vacancies.ConvertAll(v => v.ToDto(includeDescription: false, AlsoFoundAt(v, duplicates)));
+        var applications = await db.Applications.AsNoTracking().ToListAsync(cancellationToken);
+        var items = vacancies.ConvertAll(v =>
+            v.ToDto(includeDescription: false, AlsoFoundAt(v, duplicates), AppliedTo(v, duplicates, applications)));
         return TypedResults.Ok(new PagedResponse<VacancyDto>(items, page, pageSize, totalCount));
     }
 
@@ -67,7 +69,28 @@ public static partial class VacancyEndpoints
         }
 
         var duplicates = await DuplicatesOfAsync(db, [vacancy], cancellationToken);
-        return TypedResults.Ok(vacancy.ToDto(alsoFoundAt: AlsoFoundAt(vacancy, duplicates)));
+        var applications = await db.Applications.AsNoTracking().ToListAsync(cancellationToken);
+        return TypedResults.Ok(vacancy.ToDto(
+            alsoFoundAt: AlsoFoundAt(vacancy, duplicates), applied: AppliedTo(vacancy, duplicates, applications)));
+    }
+
+    /// <summary>
+    /// The application for this vacancy, one of its duplicates, or the same company with a similar title — newest
+    /// first. Few applications exist, so this is matched in memory.
+    /// </summary>
+    private static AppliedDto? AppliedTo(
+        Core.Vacancies.Vacancy vacancy,
+        ILookup<string, Core.Vacancies.Vacancy> duplicates,
+        IReadOnlyList<Core.Applications.Application> applications)
+    {
+        var others = vacancy.DuplicateKey is null ? [] : duplicates[vacancy.DuplicateKey].ToList();
+        var match = applications
+            .Where(a => Core.Applications.ApplicationMatcher.Matches(a, vacancy) || others.Any(o => a.VacancyId == o.Id))
+            .OrderByDescending(a => a.AppliedAt)
+            .FirstOrDefault();
+        return match is null
+            ? null
+            : new AppliedDto(match.Id, match.Status, Core.Applications.ApplicationStatuses.Label(match.Status), match.AppliedAt);
     }
 
     /// <summary>„Passt zu mir?" — the fit check of one vacancy against the current profile (computed, not stored).</summary>

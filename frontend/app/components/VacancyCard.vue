@@ -52,6 +52,14 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
         <span class="score" :class="`score--${score.level.toLowerCase()}`" :title="score.description">
           {{ score.text }}<span class="visually-hidden"> – {{ score.description }}</span>
         </span>
+        <NuxtLink
+          v-if="vacancy.applied"
+          to="/bewerbungen"
+          class="status status--open"
+          :title="`Beworben am ${formatDate(vacancy.applied.appliedAt)} – ${vacancy.applied.statusLabel}`"
+        >
+          Beworben · {{ vacancy.applied.statusLabel }}
+        </NuxtLink>
         <span v-for="badge in statusBadges" :key="badge.variant" class="badge" :class="`badge--${badge.variant}`">
           {{ badge.label }}
         </span>

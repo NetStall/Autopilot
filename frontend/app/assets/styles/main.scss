@@ -207,6 +207,38 @@ a {
   }
 }
 
+/* Application status badges. */
+.status {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &--open {
+    background: var(--color-badge);
+    color: var(--color-badge-text);
+  }
+
+  &--progress,
+  &--positive {
+    background: var(--color-new-bg);
+    color: var(--color-new-text);
+  }
+
+  &--closed {
+    background: var(--color-surface-muted);
+    color: var(--color-muted);
+  }
+
+  &--due {
+    margin-left: var(--space-1);
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
+  }
+}
+
 /* Relevance score 0–100 in front of the title. */
 .score {
   display: inline-block;

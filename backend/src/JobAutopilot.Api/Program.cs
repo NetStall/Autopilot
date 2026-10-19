@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using JobAutopilot.Api.Common;
+using JobAutopilot.Api.Features.Applications;
 using JobAutopilot.Api.Features.Health;
 using JobAutopilot.Api.Features.Profile;
 using JobAutopilot.Api.Features.Scoring;
@@ -8,6 +9,7 @@ using JobAutopilot.Api.Features.VacancyImports;
 using JobAutopilot.Api.Features.Vacancies;
 using JobAutopilot.Infrastructure;
 using JobAutopilot.Core.Profile;
+using JobAutopilot.Infrastructure.Applications;
 using JobAutopilot.Infrastructure.Persistence;
 using JobAutopilot.Infrastructure.Profile;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +27,10 @@ builder.Services.Configure<UiOptions>(builder.Configuration.GetSection(UiOptions
 // The candidate profile (personal data, git-ignored file); re-read when it changes.
 var profilePath = Path.GetFullPath(
     builder.Configuration.GetSection(ProfileOptions.SectionName).Get<ProfileOptions>()?.Path ?? new ProfileOptions().Path,
+    builder.Environment.ContentRootPath);
+var trackerImportPath = Path.GetFullPath(
+    builder.Configuration.GetSection(ApplicationOptions.SectionName).Get<ApplicationOptions>()?.TrackerImportPath
+        ?? new ApplicationOptions().TrackerImportPath,
     builder.Environment.ContentRootPath);
 builder.Services.AddSingleton<ICandidateProfileSource>(sp => new FileCandidateProfileSource(
     profilePath, sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<ILogger<FileCandidateProfileSource>>()));
@@ -82,5 +88,6 @@ app.MapVacancyEndpoints();
 app.MapImportEndpoints();
 app.MapUiSettingsEndpoints();
 app.MapProfileEndpoints();
+app.MapApplicationEndpoints(trackerImportPath);
 
 await app.RunAsync();

@@ -7,7 +7,8 @@ public static class VacancyMappings
     public static VacancyDto ToDto(
         this Vacancy vacancy,
         bool includeDescription = true,
-        IReadOnlyList<VacancyLinkDto>? alsoFoundAt = null) => new(
+        IReadOnlyList<VacancyLinkDto>? alsoFoundAt = null,
+        AppliedDto? applied = null) => new(
         vacancy.Id,
         vacancy.Source,
         vacancy.ExternalId,
@@ -28,7 +29,8 @@ public static class VacancyMappings
         vacancy.RelevanceLevel,
         [.. vacancy.RelevanceReasons],
         vacancy.DetailsFetchedAt,
-        alsoFoundAt ?? []);
+        alsoFoundAt ?? [],
+        applied);
 
     public static Vacancy ToManualVacancy(this CreateVacancyRequest request, DateTimeOffset now) =>
         Vacancy.CreateManual(

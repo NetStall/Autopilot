@@ -250,6 +250,32 @@ Shortcuts are off while an input has focus. Changes appear immediately and are r
 API refuses. Keywords from `Ui:HighlightKeywords` are highlighted in titles (visual cue only). The last used filters
 are remembered per browser.
 
+### Bewerbungen
+
+The page **Bewerbungen** lists every application with its status (*Gesendet*, *Eingangsbestätigung*, *Interview*,
+*Absage* …), channel, date and follow-up date (last action + 7 days while *Gesendet* / *Eingangsbestätigung* /
+*Rückmeldung*); rows with a due follow-up are highlighted. Filters (status, channel, „Nur Follow-up fällig") live in
+the URL; „Details" opens the history, notes and a status change (each change is stored with date and note and
+moves the follow-up date). On a vacancy, **Als beworben markieren** records an application pre-filled from it. The
+list shows **Beworben** on every vacancy you applied to — also on the same job from another source or a repost with a
+similar title at the same company — so you do not apply twice. The tool only *records* applications; it never sends
+anything (AGENTS.md).
+
+Import your existing tracker (personal data — `data/` is git-ignored):
+
+```powershell
+New-Item -ItemType Directory -Force data/import | Out-Null
+# put the export there as data/import/bewerbungen-export.json, then click "Tracker importieren" or:
+Invoke-RestMethod -Method Post http://localhost:5080/api/applications/import-tracker
+# → { total, imported, updated, unchanged, linkedToVacancy, warnings }
+```
+
+The export is `{ "applications": [ { "id", "datum", "firma", "position", "ort", "kanal", "typ", "status", "gehalt",
+"kontakt", "kontaktEmail", "link", "letzteAktion", "naechsterSchritt", "notizen", "unterlagen", "sprache" } ] }` with
+German status labels. Re-running is safe: rows are matched by `id` and updated, never duplicated; a status you changed
+in the tool after the export was made is kept. Unknown status or channel values, or an hourly wage in `gehalt`, end up
+in the notes and in the report's `warnings`. Imported applications are linked to stored vacancies by company + title.
+
 ### Create a vacancy by hand
 
 ```powershell
@@ -273,6 +299,14 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 | GET | `/api/vacancies` | paged `{ items, page, pageSize, totalCount }`, filters below |
 | GET | `/api/vacancies/{id}` | one vacancy, 404 if unknown |
 | GET | `/api/vacancies/{id}/fit` | „Passt zu mir?": `{ profileStatus, hasDescription, requirements: [{ name, coverage: Covered\|Partial\|Gap, optional, note }], warnings: [{ text, penalty }], requiredGerman, requiredYears, penalty }` |
+| GET | `/api/applications?status=&channel=&followUpDue=true` | applications, newest first, with `statusLabel`, `followUpAt`, `isFollowUpDue` |
+| GET | `/api/applications/{id}` | one application with its status history (`events`) |
+| POST | `/api/applications` | record an application by hand → 201 (status *Gesendet*) |
+| PATCH | `/api/applications/{id}` | edit fields (not the status) |
+| DELETE | `/api/applications/{id}` | delete → 204 |
+| POST | `/api/applications/{id}/status` | `{ status, note?, at? }` → history event, last action = now |
+| POST | `/api/vacancies/{id}/apply` | „Als beworben markieren" → 201, or 200 with the existing application |
+| POST | `/api/applications/import-tracker` | import `data/import/bewerbungen-export.json` (idempotent) → report; 400 if the file is missing/invalid |
 | GET | `/api/profile` | `{ status: Loaded\|Missing\|Invalid, fileName, errors, warnings, experienceYears, profile }` |
 | PATCH | `/api/vacancies/{id}` | `{ "isSeen": bool, "interest": "None" \| "Starred" \| "Dismissed" }` (either or both) → 204; nothing else is patchable |
 | POST | `/api/vacancies/seen` | `{ "ids": [...] }` (1–100) → 204, marks them as seen |

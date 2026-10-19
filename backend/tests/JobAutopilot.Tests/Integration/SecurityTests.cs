@@ -120,15 +120,16 @@ public class SecurityTests(PostgresFixture postgres) : IntegrationTestBase(postg
     }
 
     [Fact]
-    public async Task Cors_does_not_allow_delete()
+    public async Task Cors_allows_only_the_methods_the_api_uses()
     {
         var response = await PreflightAsync(AllowedOrigin, "DELETE");
 
-        // The middleware lists the policy's methods; the browser then refuses DELETE itself.
+        // The middleware lists the policy's methods; the browser refuses everything else itself.
+        // DELETE since step 05 (deleting an application); PUT is not used.
         var allowed = response.Headers.TryGetValues("Access-Control-Allow-Methods", out var values)
             ? string.Join(',', values)
             : string.Empty;
-        allowed.Should().NotContain("DELETE").And.NotContain("PUT");
+        allowed.Split(',').Should().BeEquivalentTo("GET", "POST", "PATCH", "DELETE");
     }
 
     [Fact]

@@ -47,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<VacancyImportService>();
         services.AddScoped<VacancyDetailsService>();
         services.AddScoped<VacancyRescoreService>();
+        services.AddScoped<Applications.TrackerImporter>();
 
         services.AddScoring(configuration);
         services.AddArbeitsagentur(configuration);

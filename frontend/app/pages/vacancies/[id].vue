@@ -25,6 +25,28 @@ const attribution = computed(() => (vacancy.value ? sourceAttribution(vacancy.va
 const employerBadge = computed(() => badges.value.find(b => b.variant === 'employer' || b.variant === 'intermediary'))
 const notFound = computed(() => errorStatus(error.value) === 404)
 const saving = ref(false)
+const applying = ref(false)
+
+async function markApplied() {
+  if (!vacancy.value) {
+    return
+  }
+  applying.value = true
+  actionError.value = null
+  try {
+    const application = await api.markApplied(vacancy.value.id)
+    vacancy.value = {
+      ...vacancy.value,
+      applied: { applicationId: application.id, status: application.status, statusLabel: application.statusLabel, appliedAt: application.appliedAt },
+    }
+  }
+  catch (e: unknown) {
+    actionError.value = `Konnte nicht als beworben markiert werden: ${describeApiError(e)}`
+  }
+  finally {
+    applying.value = false
+  }
+}
 const actionError = ref<string | null>(null)
 
 async function setSeen(isSeen: boolean) {
@@ -135,6 +157,12 @@ function openedOriginal() {
         >
           Originalanzeige öffnen<span class="visually-hidden"> (neuer Tab)</span>
         </a>
+        <button v-if="!vacancy.applied" type="button" class="button" :disabled="applying" @click="markApplied">
+          Als beworben markieren
+        </button>
+        <NuxtLink v-else to="/bewerbungen" class="status status--open detail__applied">
+          Beworben am {{ formatDate(vacancy.applied.appliedAt) }} · {{ vacancy.applied.statusLabel }}
+        </NuxtLink>
         <button type="button" class="button button--secondary" :disabled="saving" @click="setSeen(!vacancy.isSeen)">
           {{ vacancy.isSeen ? 'Als neu markieren' : 'Als gesehen markieren' }}
         </button>
@@ -360,6 +388,11 @@ function openedOriginal() {
 
   &__text {
     white-space: pre-line;
+  }
+
+  &__applied {
+    align-self: center;
+    text-decoration: none;
   }
 
   &__score-line {

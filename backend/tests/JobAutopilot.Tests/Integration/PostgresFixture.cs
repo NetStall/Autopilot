@@ -90,6 +90,7 @@ public sealed class PostgresFixture : IAsyncLifetime
     public async Task ResetAsync(CancellationToken cancellationToken)
     {
         await using var db = CreateDbContext();
+        await db.Applications.ExecuteDeleteAsync(cancellationToken);
         await db.Vacancies.ExecuteDeleteAsync(cancellationToken);
         await db.ImportRuns.ExecuteDeleteAsync(cancellationToken);
     }

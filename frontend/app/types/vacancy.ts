@@ -1,5 +1,7 @@
 // Mirrors the backend DTOs in JobAutopilot.Api/Features.
 
+import type { AppliedInfo } from './application'
+
 export type EmployerType = 'Unknown' | 'Direct' | 'Agency' | 'Temporary'
 
 export type VacancySource = 'Arbeitsagentur' | 'Himalayas' | 'Manual'
@@ -47,6 +49,8 @@ export interface Vacancy {
   relevanceReasons: string[]
   detailsFetchedAt: string | null
   alsoFoundAt: VacancyLink[]
+  /** „Beworben": an application exists for this job (or the same company with a similar title). */
+  applied: AppliedInfo | null
 }
 
 export interface PagedResponse<T> {

@@ -11,6 +11,7 @@ import type {
   VacancyListParams,
 } from '~/types/vacancy'
 import type { ProfileResponse } from '~/types/profile'
+import type { Application, ApplicationStatus, TrackerImportReport } from '~/types/application'
 
 /** All calls to the backend API. Base URL from runtime config (NUXT_PUBLIC_API_BASE). */
 export function useVacanciesApi() {
@@ -69,6 +70,31 @@ export function useVacanciesApi() {
 
     searches() {
       return api<ConfiguredSearch[]>('/api/imports/searches')
+    },
+
+    listApplications(params: { status?: ApplicationStatus, channel?: string, followUpDue?: boolean }) {
+      return api<Application[]>('/api/applications', { query: { ...params } })
+    },
+
+    getApplication(id: string) {
+      return api<Application>(`/api/applications/${encodeURIComponent(id)}`)
+    },
+
+    changeApplicationStatus(id: string, status: ApplicationStatus, note?: string) {
+      return api<Application>(`/api/applications/${encodeURIComponent(id)}/status`, {
+        method: 'POST',
+        body: { status, note: note?.trim() || undefined },
+      })
+    },
+
+    /** „Als beworben markieren" — returns the existing application if there is one. */
+    markApplied(vacancyId: string) {
+      return api<Application>(`/api/vacancies/${encodeURIComponent(vacancyId)}/apply`, { method: 'POST' })
+    },
+
+    /** Imports data/import/bewerbungen-export.json (idempotent). */
+    importTracker() {
+      return api<TrackerImportReport>('/api/applications/import-tracker', { method: 'POST' })
     },
 
     /** The loaded candidate profile with its validation problems. */
