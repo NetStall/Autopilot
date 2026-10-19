@@ -30,6 +30,8 @@ services:
       dockerfile: backend/Dockerfile
     image: job-autopilot-api:local
     restart: unless-stopped
+    # Matches the API shutdown timeout: a running import is cancelled cleanly (nothing half-written).
+    stop_grace_period: 30s
     depends_on:
       db:
         condition: service_healthy
