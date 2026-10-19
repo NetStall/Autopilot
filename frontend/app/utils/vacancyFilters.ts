@@ -1,10 +1,28 @@
 import type { LocationQuery, LocationQueryRaw, LocationQueryValue } from 'vue-router'
-import type { EmployerType, VacancyListParams, VacancySort } from '../types/vacancy'
+import type {
+  EmployerType,
+  RelevanceLevel,
+  RemoteLevel,
+  VacancyListParams,
+  VacancySort,
+  VacancySource,
+} from '../types/vacancy'
 
 export const EMPLOYER_TYPES: readonly EmployerType[] = ['Direct', 'Agency', 'Temporary', 'Unknown']
 
+/** Display and URL order. */
+export const RELEVANCE_LEVELS: readonly RelevanceLevel[] = ['Relevant', 'Maybe', 'Irrelevant']
+
+/** The default list: everything except „Irrelevant". */
+export const DEFAULT_RELEVANCE: readonly RelevanceLevel[] = ['Relevant', 'Maybe']
+
+export const VACANCY_SOURCES: readonly VacancySource[] = ['Arbeitsagentur', 'Manual']
+
 /** Alle / Neu / Gesehen */
 export type StatusFilter = 'all' | 'new' | 'seen'
+
+/** Arbeitsort: alle / remote oder hybrid / nur voll remote */
+export type RemoteFilter = 'any' | 'remote' | 'full'
 
 /** The list filters as they live in the URL query. */
 export interface VacancyFilters {
@@ -12,8 +30,11 @@ export interface VacancyFilters {
   location: string
   employerTypes: EmployerType[]
   status: StatusFilter
-  /** „Nur Remote" */
-  remoteOnly: boolean
+  remote: RemoteFilter
+  /** Relevance levels shown; never empty (an empty selection means the default). */
+  relevance: RelevanceLevel[]
+  /** One source or '' for all. */
+  source: VacancySource | ''
   /** Names of configured searches; vacancies found by any of them. */
   searches: string[]
   /** „Gemerkt" — only starred vacancies. */
@@ -31,14 +52,21 @@ export const DEFAULT_FILTERS: Readonly<VacancyFilters> = Object.freeze({
   location: '',
   employerTypes: [],
   status: 'all',
-  remoteOnly: false,
+  remote: 'any',
+  relevance: [...DEFAULT_RELEVANCE],
+  source: '',
   searches: [],
   starredOnly: false,
   showDismissed: false,
   since: '',
-  sort: 'published',
+  sort: 'relevance',
   page: 1,
 })
+
+/** Fresh defaults (the frozen object shares its arrays). */
+export function defaultFilters(): VacancyFilters {
+  return { ...DEFAULT_FILTERS, employerTypes: [], relevance: [...DEFAULT_RELEVANCE], searches: [] }
+}
 
 type QueryValue = LocationQueryValue | LocationQueryValue[] | undefined
 
@@ -56,27 +84,46 @@ function isIsoTimestamp(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}T[\d:.]+(Z|[+-]\d{2}:\d{2})$/.test(value) && !Number.isNaN(Date.parse(value))
 }
 
-function isEmployerType(value: string): value is EmployerType {
-  return (EMPLOYER_TYPES as readonly string[]).includes(value)
+function oneOf<T extends string>(allowed: readonly T[], value: string): value is T {
+  return (allowed as readonly string[]).includes(value)
+}
+
+function parseRemote(value: string): RemoteFilter {
+  if (value === 'full' || value === 'remote') {
+    return value
+  }
+  // „Nur Remote" of step 03 (remote=true) in old links and remembered filters.
+  return value === 'true' ? 'remote' : 'any'
+}
+
+function parseSort(value: string): VacancySort {
+  return value === 'published' || value === 'fetched' ? value : 'relevance'
+}
+
+function sameLevels(a: readonly RelevanceLevel[], b: readonly RelevanceLevel[]): boolean {
+  return a.length === b.length && a.every(level => b.includes(level))
 }
 
 /** Reads filters from the URL; unknown or malformed values fall back to the defaults. */
 export function filtersFromQuery(query: LocationQuery): VacancyFilters {
   const status = firstValue(query.status)
-  const sort = firstValue(query.sort)
+  const source = firstValue(query.source)
   const page = Number.parseInt(firstValue(query.page), 10)
+  const relevance = RELEVANCE_LEVELS.filter(level => allValues(query.relevance).includes(level))
 
   return {
     q: firstValue(query.q).trim(),
     location: firstValue(query.location).trim(),
-    employerTypes: [...new Set(allValues(query.employerType).filter(isEmployerType))],
+    employerTypes: [...new Set(allValues(query.employerType).filter(t => oneOf(EMPLOYER_TYPES, t)))],
     status: status === 'new' || status === 'seen' ? status : 'all',
-    remoteOnly: firstValue(query.remote) === 'true',
+    remote: parseRemote(firstValue(query.remote)),
+    relevance: relevance.length > 0 ? relevance : [...DEFAULT_RELEVANCE],
+    source: oneOf(VACANCY_SOURCES, source) ? source : '',
     starredOnly: firstValue(query.starred) === 'true',
     showDismissed: firstValue(query.dismissed) === 'show',
     since: isIsoTimestamp(firstValue(query.since)) ? firstValue(query.since) : '',
     searches: [...new Set(allValues(query.search).map(s => s.trim()).filter(s => s.length > 0))],
-    sort: sort === 'fetched' ? 'fetched' : 'published',
+    sort: parseSort(firstValue(query.sort)),
     page: Number.isInteger(page) && page > 0 ? page : 1,
   }
 }
@@ -99,8 +146,14 @@ export function filtersToQuery(filters: VacancyFilters): LocationQueryRaw {
   if (filters.status !== 'all') {
     query.status = filters.status
   }
-  if (filters.remoteOnly) {
-    query.remote = 'true'
+  if (filters.remote !== 'any') {
+    query.remote = filters.remote
+  }
+  if (filters.relevance.length > 0 && !sameLevels(filters.relevance, DEFAULT_RELEVANCE)) {
+    query.relevance = RELEVANCE_LEVELS.filter(level => filters.relevance.includes(level))
+  }
+  if (filters.source) {
+    query.source = filters.source
   }
   if (filters.searches.length > 0) {
     query.search = [...filters.searches]
@@ -114,13 +167,18 @@ export function filtersToQuery(filters: VacancyFilters): LocationQueryRaw {
   if (filters.since) {
     query.since = filters.since
   }
-  if (filters.sort !== 'published') {
+  if (filters.sort !== 'relevance') {
     query.sort = filters.sort
   }
   if (filters.page > 1) {
     query.page = String(filters.page)
   }
   return query
+}
+
+const remoteLevels: Record<Exclude<RemoteFilter, 'any'>, RemoteLevel[]> = {
+  remote: ['FullRemote', 'Hybrid'],
+  full: ['FullRemote'],
 }
 
 /** Maps the UI filters to the API's query parameters. */
@@ -138,8 +196,15 @@ export function filtersToApiParams(filters: VacancyFilters, pageSize: number): V
   if (filters.status !== 'all') {
     params.seen = filters.status === 'seen'
   }
-  if (filters.remoteOnly) {
-    params.remote = true
+  if (filters.remote !== 'any') {
+    params.remote = [...remoteLevels[filters.remote]]
+  }
+  // All three levels = no restriction.
+  if (filters.relevance.length > 0 && filters.relevance.length < RELEVANCE_LEVELS.length) {
+    params.relevance = RELEVANCE_LEVELS.filter(level => filters.relevance.includes(level))
+  }
+  if (filters.source) {
+    params.source = filters.source
   }
   if (filters.searches.length > 0) {
     params.search = [...filters.searches]
@@ -156,13 +221,15 @@ export function filtersToApiParams(filters: VacancyFilters, pageSize: number): V
   return params
 }
 
-/** True if anything other than sorting and paging narrows the list. */
+/** True if anything other than sorting, paging and the default relevance narrows the list. */
 export function hasActiveFilters(filters: VacancyFilters): boolean {
   return filters.q.trim() !== ''
     || filters.location.trim() !== ''
     || filters.employerTypes.length > 0
     || filters.status !== 'all'
-    || filters.remoteOnly
+    || filters.remote !== 'any'
+    || !sameLevels(filters.relevance, DEFAULT_RELEVANCE)
+    || filters.source !== ''
     || filters.searches.length > 0
     || filters.starredOnly
     || filters.showDismissed

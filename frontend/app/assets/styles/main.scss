@@ -190,6 +190,11 @@ a {
     font-weight: 600;
   }
 
+  &--hybrid {
+    background: var(--color-remote-bg);
+    color: var(--color-remote-text);
+  }
+
   &--starred {
     background: var(--color-star-bg);
     color: var(--color-star-text);
@@ -199,6 +204,36 @@ a {
   &--dismissed {
     background: var(--color-surface-muted);
     color: var(--color-muted);
+  }
+}
+
+/* Relevance score 0–100 in front of the title. */
+.score {
+  display: inline-block;
+  min-width: 2.4rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+
+  &--relevant {
+    background: var(--color-new-bg);
+    color: var(--color-new-text);
+    border-color: transparent;
+  }
+
+  &--maybe {
+    background: var(--color-badge);
+    color: var(--color-badge-text);
+    border-color: transparent;
+  }
+
+  &--irrelevant {
+    background: var(--color-surface-muted);
   }
 }
 

@@ -1,4 +1,5 @@
 using JobAutopilot.Api.Common;
+using JobAutopilot.Api.Features.Scoring;
 using JobAutopilot.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,10 @@ public static partial class VacancyEndpoints
         group.MapPost("/", CreateVacancy).WithName(nameof(CreateVacancy));
         group.MapPatch("/{id:guid}", UpdateVacancy).WithName(nameof(UpdateVacancy));
         group.MapPost("/seen", MarkSeen).WithName(nameof(MarkSeen));
+        group.MapPost("/rescore", StartRescore)
+            .WithName(nameof(StartRescore))
+            .RequireRateLimiting(ApiSecurity.ImportRateLimitPolicy);
+        group.MapGet("/rescore", GetRescoreStatus).WithName(nameof(GetRescoreStatus));
 
         return app;
     }
@@ -40,7 +45,8 @@ public static partial class VacancyEndpoints
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        var items = vacancies.ConvertAll(v => v.ToDto());
+        // The list does not need the (long) descriptions; the detail endpoint returns them.
+        var items = vacancies.ConvertAll(v => v.ToDto(includeDescription: false));
         return TypedResults.Ok(new PagedResponse<VacancyDto>(items, page, pageSize, totalCount));
     }
 
@@ -98,6 +104,13 @@ public static partial class VacancyEndpoints
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
+
+    /// <summary>Queues re-scoring of all vacancies with the current configuration → 202 with the status.</summary>
+    private static Accepted<RescoreStatus> StartRescore(RescoreCoordinator coordinator) =>
+        TypedResults.Accepted("/api/vacancies/rescore", coordinator.Request());
+
+    private static Ok<RescoreStatus> GetRescoreStatus(RescoreCoordinator coordinator) =>
+        TypedResults.Ok(coordinator.Status);
 
     /// <summary>Marks up to <see cref="MarkSeenRequest.MaxIds"/> vacancies as seen in one statement.</summary>
     private static async Task<NoContent> MarkSeen(

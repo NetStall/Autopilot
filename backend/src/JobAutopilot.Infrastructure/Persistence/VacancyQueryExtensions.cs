@@ -40,9 +40,17 @@ public static class VacancyQueryExtensions
             query = query.Where(v => v.Source == source);
         }
 
-        if (filter.IsRemote is { } isRemote)
+        if (filter.RemoteLevels is { Count: > 0 } remoteLevels)
         {
-            query = query.Where(v => v.IsRemote == isRemote);
+            query = query.Where(v => remoteLevels.Contains(v.RemoteLevel));
+        }
+
+        if (filter.RelevanceLevels is { Count: > 0 } relevanceLevels)
+        {
+            // Not scored yet = "Maybe": nothing is hidden only because scoring has not run.
+            var includeUnscored = relevanceLevels.Contains(RelevanceLevel.Maybe);
+            var levels = relevanceLevels.Cast<RelevanceLevel?>().ToList();
+            query = query.Where(v => levels.Contains(v.RelevanceLevel) || (includeUnscored && v.RelevanceLevel == null));
         }
 
         if (filter.Interests is { Count: > 0 } interests)
@@ -73,6 +81,18 @@ public static class VacancyQueryExtensions
     /// <summary>Stable ordering for paging; ties are broken by import time and id.</summary>
     public static IOrderedQueryable<Vacancy> ApplySort(this IQueryable<Vacancy> query, VacancySort sort) => sort switch
     {
+        // Direct employers before unknown ones before agencies / temporary work, at the same score.
+        VacancySort.Relevance => query
+            .OrderBy(v => v.RelevanceScore == null)
+            .ThenByDescending(v => v.RelevanceScore)
+            .ThenBy(v => v.EmployerType == EmployerType.Direct ? 0
+                : v.EmployerType == EmployerType.Unknown ? 1
+                : v.EmployerType == EmployerType.Agency ? 2
+                : 3)
+            .ThenBy(v => v.PublishedAt == null)
+            .ThenByDescending(v => v.PublishedAt)
+            .ThenByDescending(v => v.FetchedAt)
+            .ThenByDescending(v => v.Id),
         VacancySort.Fetched => query
             .OrderByDescending(v => v.FetchedAt)
             .ThenByDescending(v => v.Id),

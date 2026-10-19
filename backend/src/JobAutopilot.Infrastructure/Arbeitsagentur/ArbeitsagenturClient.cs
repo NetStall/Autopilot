@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using JobAutopilot.Core.Import;
 using JobAutopilot.Core.Vacancies;
@@ -12,17 +14,18 @@ using Polly.Timeout;
 namespace JobAutopilot.Infrastructure.Arbeitsagentur;
 
 /// <summary>
-/// Searches the Bundesagentur für Arbeit Jobsuche API (typed <see cref="HttpClient"/>, see
-/// <see cref="DependencyInjection"/>). Pages are requested one after another with a pause in between.
+/// Searches the Bundesagentur für Arbeit Jobsuche API and fetches posting details (typed <see cref="HttpClient"/>,
+/// see <see cref="DependencyInjection"/>). Pages are requested one after another with a pause in between.
 /// </summary>
 internal sealed partial class ArbeitsagenturClient(
     HttpClient httpClient,
     IOptions<ArbeitsagenturOptions> options,
     TimeProvider timeProvider,
-    ILogger<ArbeitsagenturClient> logger) : IVacancySource
+    ILogger<ArbeitsagenturClient> logger) : IVacancySource, IVacancyDetailsSource
 {
     internal const string SearchPath = "pc/v6/jobs";
-    internal const string UserAgent = "job-autopilot/0.3 (+https://github.com/NetStall/Autopilot)";
+    internal const string DetailsPath = "pc/v4/jobdetails/";
+    internal const string UserAgent = "job-autopilot/0.4 (+https://github.com/NetStall/Autopilot)";
 
     /// <summary>1 = Arbeit (employment); excludes apprenticeships, internships and self-employment.</summary>
     private const string EmploymentOfferType = "1";
@@ -113,6 +116,34 @@ internal sealed partial class ArbeitsagenturClient(
         return SearchPath + "?" + string.Join('&', query);
     }
 
+    public async Task<VacancyDetails?> GetDetailsAsync(string externalId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(externalId);
+        try
+        {
+            using var response = await httpClient.GetAsync(BuildDetailsUri(externalId), cancellationToken);
+            if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone)
+            {
+                return null; // the posting was taken offline
+            }
+
+            response.EnsureSuccessStatusCode();
+            var details = await response.Content.ReadFromJsonAsync<JobDetailsResponse>(JsonOptions, cancellationToken)
+                ?? throw new JsonException("The response body was empty.");
+            return ArbeitsagenturMapper.ToDetails(details);
+        }
+        catch (Exception ex) when (IsSourceFailure(ex, cancellationToken))
+        {
+            LogDetailsFailed(logger, ex, externalId);
+            throw new VacancySourceUnavailableException(
+                $"The Arbeitsagentur details for {externalId} could not be fetched: {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>The details endpoint takes the reference number Base64-encoded (verified 2026-10-19).</summary>
+    internal static string BuildDetailsUri(string externalId) =>
+        DetailsPath + Uri.EscapeDataString(Convert.ToBase64String(Encoding.UTF8.GetBytes(externalId.Trim())));
+
     private async Task<JobSearchResponse> GetPageAsync(string requestUri, int page, CancellationToken cancellationToken)
     {
         try
@@ -145,6 +176,9 @@ internal sealed partial class ArbeitsagenturClient(
         Level = LogLevel.Warning,
         Message = "Search {SearchName} stopped at MaxPages {MaxPages} after {Requested} results although the API reports {Total}")]
     private static partial void LogPageLimitReached(ILogger logger, string searchName, int maxPages, int requested, int total);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Arbeitsagentur details request for {ExternalId} failed")]
+    private static partial void LogDetailsFailed(ILogger logger, Exception exception, string externalId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Arbeitsagentur request for page {Page} failed")]
     private static partial void LogRequestFailed(ILogger logger, Exception exception, int page);

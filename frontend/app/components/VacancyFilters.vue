@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { ConfiguredSearch, EmployerType, VacancySort } from '~/types/vacancy'
-import type { StatusFilter, VacancyFilters } from '~/utils/vacancyFilters'
+import type { ConfiguredSearch, EmployerType, RelevanceLevel, VacancySort, VacancySource } from '~/types/vacancy'
+import type { RemoteFilter, StatusFilter, VacancyFilters } from '~/utils/vacancyFilters'
 
 const props = withDefaults(defineProps<{
   filters: VacancyFilters
@@ -22,8 +22,15 @@ const statusOptions: { value: StatusFilter, label: string }[] = [
 ]
 
 const sortOptions: { value: VacancySort, label: string }[] = [
+  { value: 'relevance', label: 'Relevanz' },
   { value: 'published', label: 'Neueste Veröffentlichung' },
   { value: 'fetched', label: 'Zuletzt importiert' },
+]
+
+const remoteOptions: { value: RemoteFilter, label: string }[] = [
+  { value: 'any', label: 'Alle' },
+  { value: 'remote', label: 'Remote oder hybrid' },
+  { value: 'full', label: 'Nur voll remote' },
 ]
 
 // Text fields are edited locally and pushed to the URL debounced.
@@ -87,7 +94,30 @@ function onFlagChange(flag: 'starredOnly' | 'showDismissed', event: Event) {
 }
 
 function onRemoteChange(event: Event) {
-  update({ remoteOnly: (event.target as HTMLInputElement).checked })
+  const value = (event.target as HTMLSelectElement).value
+  update({ remote: value === 'full' || value === 'remote' ? value : 'any' })
+}
+
+/** At least one level stays selected: unticking the last one is ignored. */
+function onRelevanceChange(level: RelevanceLevel, event: Event) {
+  const input = event.target as HTMLInputElement
+  const selected = new Set(props.filters.relevance)
+  if (input.checked) {
+    selected.add(level)
+  }
+  else {
+    selected.delete(level)
+  }
+  if (selected.size === 0) {
+    input.checked = true
+    return
+  }
+  update({ relevance: RELEVANCE_LEVELS.filter(l => selected.has(l)) })
+}
+
+function onSourceChange(event: Event) {
+  const value = (event.target as HTMLSelectElement).value
+  update({ source: (VACANCY_SOURCES as readonly string[]).includes(value) ? value as VacancySource : '' })
 }
 
 /** A search name from the URL that is no longer configured still shows up, so the filter stays visible. */
@@ -112,14 +142,14 @@ function searchLabel(search: ConfiguredSearch): string {
 
 function onSortChange(event: Event) {
   const value = (event.target as HTMLSelectElement).value
-  update({ sort: value === 'fetched' ? 'fetched' : 'published' })
+  update({ sort: value === 'fetched' || value === 'published' ? value : 'relevance' })
 }
 
 function reset() {
   applyTextDebounced.cancel()
   q.value = ''
   location.value = ''
-  emit('change', { ...DEFAULT_FILTERS, employerTypes: [], searches: [], sort: props.filters.sort }, { replace: false })
+  emit('change', { ...defaultFilters(), sort: props.filters.sort }, { replace: false })
 }
 
 const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim() !== '' || location.value.trim() !== '')
@@ -174,12 +204,40 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
       </select>
     </div>
 
-    <div class="filters__field filters__field--checkbox">
-      <label class="filters__choice">
-        <input type="checkbox" name="remote" :checked="filters.remoteOnly" @change="onRemoteChange">
-        Nur Remote
-      </label>
+    <div class="filters__field">
+      <label for="filter-remote">Arbeitsort</label>
+      <select id="filter-remote" class="input" :value="filters.remote" @change="onRemoteChange">
+        <option v-for="option in remoteOptions" :key="option.value" :value="option.value">
+          {{ option.label }}
+        </option>
+      </select>
     </div>
+
+    <div class="filters__field">
+      <label for="filter-source">Quelle</label>
+      <select id="filter-source" class="input" :value="filters.source" @change="onSourceChange">
+        <option value="">
+          Alle Quellen
+        </option>
+        <option v-for="source in VACANCY_SOURCES" :key="source" :value="source">
+          {{ sourceLabel(source) }}
+        </option>
+      </select>
+    </div>
+
+    <fieldset class="filters__group filters__group--inline">
+      <legend>Relevanz</legend>
+      <label v-for="level in RELEVANCE_LEVELS" :key="level" class="filters__choice">
+        <input
+          type="checkbox"
+          name="relevance"
+          :value="level"
+          :checked="filters.relevance.includes(level)"
+          @change="onRelevanceChange(level, $event)"
+        >
+        {{ relevanceLabel(level) }}
+      </label>
+    </fieldset>
 
     <fieldset class="filters__group">
       <legend>Arbeitgeber</legend>
@@ -275,6 +333,10 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
     padding: 0;
     border: 0;
     grid-column: span 3;
+
+    &--inline {
+      grid-column: span 2;
+    }
 
     legend {
       width: 100%;

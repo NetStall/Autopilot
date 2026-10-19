@@ -23,6 +23,22 @@ public sealed class InMemoryVacancyStore : IVacancyStore
         return Task.FromResult(found);
     }
 
+    public Task<IReadOnlyList<Vacancy>> FindWithoutDetailsAsync(VacancySource source, int max, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<Vacancy> found = Saved
+            .Where(v => v.Source == source && v.DetailsFetchedAt is null)
+            .OrderByDescending(v => v.FetchedAt)
+            .Take(max)
+            .ToList();
+        return Task.FromResult(found);
+    }
+
+    public Task<IReadOnlyList<Vacancy>> ListPageAsync(int skip, int take, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<Vacancy> page = Saved.OrderBy(v => v.Id).Skip(skip).Take(take).ToList();
+        return Task.FromResult(page);
+    }
+
     public void Add(Vacancy vacancy) => _pending.Add(vacancy);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)

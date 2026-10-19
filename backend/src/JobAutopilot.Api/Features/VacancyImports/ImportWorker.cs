@@ -2,18 +2,22 @@ using JobAutopilot.Core.Import;
 using JobAutopilot.Core.Vacancies;
 using JobAutopilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace JobAutopilot.Api.Features.VacancyImports;
 
 /// <summary>
 /// Runs queued imports one after another in the background and records status and progress in <c>ImportRuns</c>.
 /// On shutdown a running import is cancelled; it writes vacancies only at its very end (one transaction), so a
-/// cancelled run leaves nothing half-written and is marked <see cref="ImportRunStatus.Cancelled"/>.
+/// cancelled run leaves nothing half-written and is marked <see cref="ImportRunStatus.Cancelled"/>. After the search
+/// the descriptions of new or changed vacancies are fetched (<see cref="VacancyDetailsService"/>, capped per run and
+/// resumable: an interrupted details pass keeps what it fetched and the run still counts as succeeded).
 /// </summary>
 public sealed partial class ImportWorker(
     ImportJobChannel channel,
     IServiceScopeFactory scopes,
     IImportLock importLock,
+    IOptions<ImportOptions> importOptions,
     TimeProvider timeProvider,
     ILogger<ImportWorker> logger) : BackgroundService
 {
@@ -77,12 +81,14 @@ public sealed partial class ImportWorker(
                     await runs.SaveChangesAsync(ct);
                 });
 
-            run.Succeed(result, timeProvider.GetUtcNow());
             foreach (var search in result.Searches)
             {
                 LogSearchImported(logger, search.Search.Name, search.Fetched, search.Added, search.Updated,
                     search.Unchanged, search.Excluded);
             }
+
+            await FetchDetailsAsync(services, run, runs, stoppingToken);
+            run.Succeed(result, timeProvider.GetUtcNow());
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -106,6 +112,35 @@ public sealed partial class ImportWorker(
         {
             await runs.SaveChangesAsync(CancellationToken.None);
             LogFinished(logger, run.Id, run.Status, run.Added, run.Updated, run.Unchanged, run.Excluded);
+        }
+    }
+
+    private async Task FetchDetailsAsync(IServiceProvider services, ImportRun run, AppDbContext runs, CancellationToken stoppingToken)
+    {
+        var options = importOptions.Value.Details;
+        if (!options.Enabled || options.MaxPerRun == 0)
+        {
+            return;
+        }
+
+        var details = services.GetRequiredService<VacancyDetailsService>();
+        foreach (var source in services.GetServices<IVacancyDetailsSource>())
+        {
+            try
+            {
+                var result = await details.FetchAsync(source, options, stoppingToken, async (done, total, ct) =>
+                {
+                    run.ReportProgress(new ImportProgress(run.SearchesTotal, run.SearchesTotal, $"Beschreibungen {done}/{total}"));
+                    await runs.SaveChangesAsync(ct);
+                });
+                LogDetailsFetched(logger, source.Source, result.Requested, result.Fetched, result.NotFound, result.Stopped);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                // The search results are saved; the remaining descriptions follow with the next import.
+                LogDetailsInterrupted(logger, run.Id);
+                return;
+            }
         }
     }
 
@@ -147,6 +182,15 @@ public sealed partial class ImportWorker(
         Message = "Import {RunId} finished: {Status}, added {Added}, updated {Updated}, unchanged {Unchanged}, excluded {Excluded}")]
     private static partial void LogFinished(
         ILogger logger, Guid runId, ImportRunStatus status, int added, int updated, int unchanged, int excluded);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Details from {Source}: requested {Requested}, fetched {Fetched}, gone {NotFound}, stopped early {Stopped}")]
+    private static partial void LogDetailsFetched(
+        ILogger logger, VacancySource source, int requested, int fetched, int notFound, bool stopped);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Import {RunId}: fetching details was interrupted by the shutdown")]
+    private static partial void LogDetailsInterrupted(ILogger logger, Guid runId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Import {RunId} was cancelled because the API is shutting down")]
     private static partial void LogCancelled(ILogger logger, Guid runId);

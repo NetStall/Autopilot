@@ -42,7 +42,23 @@ internal sealed class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
             .HasDefaultValue(VacancyInterest.None)
             .HasSentinel(VacancyInterest.None);
 
-        builder.HasIndex(v => v.IsRemote);
+        builder.Property(v => v.RemoteLevel)
+            .HasConversion<string>()
+            .HasMaxLength(EnumMaxLength)
+            .HasDefaultValue(RemoteLevel.Unknown)
+            .HasSentinel(RemoteLevel.Unknown);
+
+        builder.Property(v => v.RelevanceLevel)
+            .HasConversion<string>()
+            .HasMaxLength(EnumMaxLength);
+
+        builder.Property(v => v.RelevanceReasons)
+            .HasColumnType("text[]")
+            .HasDefaultValueSql("'{}'::text[]")
+            .IsRequired();
+
+        builder.HasIndex(v => v.RemoteLevel);
+        builder.HasIndex(v => v.RelevanceLevel);
         builder.HasIndex(v => v.Interest);
         builder.HasIndex(v => v.FetchedAt);
     }

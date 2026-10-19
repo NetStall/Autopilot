@@ -4,7 +4,7 @@ namespace JobAutopilot.Api.Features.Vacancies;
 
 public static class VacancyMappings
 {
-    public static VacancyDto ToDto(this Vacancy vacancy) => new(
+    public static VacancyDto ToDto(this Vacancy vacancy, bool includeDescription = true) => new(
         vacancy.Id,
         vacancy.Source,
         vacancy.ExternalId,
@@ -12,14 +12,18 @@ public static class VacancyMappings
         vacancy.Company,
         vacancy.Location,
         vacancy.Url,
-        vacancy.Description,
+        includeDescription ? vacancy.Description : null,
         vacancy.EmployerType,
         vacancy.PublishedAt,
         vacancy.FetchedAt,
         vacancy.IsSeen,
-        vacancy.IsRemote,
+        vacancy.RemoteLevel,
         [.. vacancy.MatchedSearches],
-        vacancy.Interest);
+        vacancy.Interest,
+        vacancy.RelevanceScore,
+        vacancy.RelevanceLevel,
+        [.. vacancy.RelevanceReasons],
+        vacancy.DetailsFetchedAt);
 
     public static Vacancy ToManualVacancy(this CreateVacancyRequest request, DateTimeOffset now) =>
         Vacancy.CreateManual(

@@ -1,3 +1,4 @@
+using JobAutopilot.Core.Scoring;
 using JobAutopilot.Core.Vacancies;
 
 namespace JobAutopilot.Core.Import;
@@ -5,11 +6,12 @@ namespace JobAutopilot.Core.Import;
 /// <summary>
 /// Runs searches against a source and upserts the results by <c>Source + ExternalId</c>:
 /// new vacancies are added, known ones get fresh posting data but keep everything the user did with them
-/// (<see cref="Vacancy.IsSeen"/>, <see cref="Vacancy.EmployerType"/>). Every vacancy remembers which searches found
-/// it, and a vacancy found by a remote-only search stays marked as remote. Titles matching the exclusion filter are
-/// not stored. Everything is saved at once at the end, so a failing source leaves the database untouched.
+/// (<see cref="Vacancy.IsSeen"/>, <see cref="Vacancy.Interest"/>). Every vacancy remembers which searches found
+/// it; a remote-only search makes it at least <see cref="RemoteLevel.Hybrid"/>, and the level is never lowered.
+/// New and changed vacancies are scored right away (<see cref="VacancyEnricher"/>). Titles matching the exclusion
+/// filter are not stored. Everything is saved at once at the end, so a failing source leaves the database untouched.
 /// </summary>
-public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeProvider)
+public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeProvider, VacancyEnricher? enricher = null)
 {
     public async Task<ImportResult> ImportAsync(
         IVacancySource source,
@@ -47,7 +49,10 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
                 if (tracked.TryGetValue(id, out var known))
                 {
                     // Already handled by an earlier search of this run: only remember this search too.
-                    known.Vacancy.MarkFoundBy(search.Name, search.RemoteOnly);
+                    if (known.Vacancy.MarkFoundBy(search.Name, search.RemoteOnly))
+                    {
+                        enricher?.Apply(known.Vacancy, candidate.RemoteHint);
+                    }
                 }
                 else if (excludedInRun.Contains(id) || fresh.ContainsKey(id))
                 {
@@ -86,6 +91,15 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
                 }
 
                 vacancy.MarkFoundBy(search.Name, search.RemoteOnly);
+                if (enricher is null)
+                {
+                    vacancy.RaiseRemoteLevel(candidate.RemoteHint);
+                }
+                else
+                {
+                    enricher.Apply(vacancy, candidate.RemoteHint);
+                }
+
                 tracked.Add(id, entry);
             }
         }
@@ -133,18 +147,34 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
         Location = candidate.Location,
         Url = candidate.Url,
         PublishedAt = candidate.PublishedAt,
+        Description = candidate.Description,
+        DetailsFetchedAt = candidate.Description is null ? null : now,
         EmployerType = EmployerType.Unknown,
         FetchedAt = now,
         IsSeen = false,
     };
 
     /// <summary>
-    /// Copies posting data that differs. User state, <see cref="Vacancy.FetchedAt"/> and
-    /// <see cref="Vacancy.IsRemote"/> stay as they are. Dates compare as instants, so a UTC value from the database
-    /// equals the same moment in Berlin time from the source.
+    /// Copies posting data that differs. User state and <see cref="Vacancy.FetchedAt"/> stay as they are. Dates compare
+    /// as instants, so a UTC value from the database equals the same moment in Berlin time from the source. A posting
+    /// changed at the source after its details were fetched gets its details fetched again.
     /// </summary>
-    private static void Refresh(Vacancy vacancy, VacancyCandidate candidate)
+    private void Refresh(Vacancy vacancy, VacancyCandidate candidate)
     {
+        if (candidate.Description is not null)
+        {
+            if (!string.Equals(vacancy.Description, candidate.Description, StringComparison.Ordinal))
+            {
+                vacancy.Description = candidate.Description;
+            }
+
+            vacancy.DetailsFetchedAt ??= timeProvider.GetUtcNow();
+        }
+        else if (candidate.ChangedAt is { } changedAt && vacancy.DetailsFetchedAt is { } detailsAt && changedAt > detailsAt)
+        {
+            vacancy.DetailsFetchedAt = null;
+        }
+
         if (!string.Equals(vacancy.Title, candidate.Title, StringComparison.Ordinal))
         {
             vacancy.Title = candidate.Title;
@@ -178,11 +208,13 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
         string? Location,
         string? Url,
         DateTimeOffset? PublishedAt,
-        bool IsRemote,
+        string? Description,
+        RemoteLevel RemoteLevel,
         string MatchedSearches)
     {
         public static Snapshot Of(Vacancy v) => new(
-            v.Title, v.Company, v.Location, v.Url, v.PublishedAt, v.IsRemote, string.Join('\n', v.MatchedSearches));
+            v.Title, v.Company, v.Location, v.Url, v.PublishedAt, v.Description, v.RemoteLevel,
+            string.Join('\n', v.MatchedSearches));
     }
 
     private sealed record TrackedVacancy(Vacancy Vacancy, int FirstSearchIndex, Snapshot? Original);

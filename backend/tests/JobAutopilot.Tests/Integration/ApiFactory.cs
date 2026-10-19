@@ -1,3 +1,4 @@
+using JobAutopilot.Core.Import;
 using JobAutopilot.Tests.Fakes;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -16,11 +17,17 @@ public sealed class ApiFactory(
 {
     public TestTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 10, 1, 8, 0, 0, TimeSpan.Zero));
 
+    public FakeDetailsSource DetailsSource { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // "Testing" instead of "Development": the fixture applies migrations itself.
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", postgres.ConnectionString);
+
+        // Deterministic defaults; a test can override them with its settings.
+        builder.UseSetting("Relevance:RescoreOnStartup", "false");
+        builder.UseSetting("Import:Details:DelayBetweenRequestsMs", "0");
         foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
         {
             builder.UseSetting(key, value);
@@ -30,6 +37,10 @@ public sealed class ApiFactory(
         {
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Clock);
+
+            // Never the real Arbeitsagentur details endpoint; tests that need details register their own fake.
+            services.RemoveAll<IVacancyDetailsSource>();
+            services.AddSingleton<IVacancyDetailsSource>(DetailsSource);
             configureServices?.Invoke(services);
         });
     }

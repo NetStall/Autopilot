@@ -23,12 +23,19 @@ export function emptyStateFor(filters: VacancyFilters): EmptyState {
       canReset: true,
     }
   }
+  if (filters.relevance.length === 1 && filters.relevance[0] === 'Relevant') {
+    return {
+      title: 'Keine passenden Stellen.',
+      hint: 'Nimm „Vielleicht" dazu oder setze die Filter zurück.',
+      canReset: true,
+    }
+  }
   if (hasActiveFilters(filters)) {
     return { title: 'Keine Stellen gefunden.', hint: 'Passe die Filter an oder setze sie zurück.', canReset: true }
   }
   return {
-    title: 'Keine Stellen gefunden.',
-    hint: 'Starte oben einen Import, um Stellen der Bundesagentur für Arbeit zu laden.',
+    title: 'Keine passenden Stellen gefunden.',
+    hint: 'Starte oben einen Import. Als „Passt nicht" bewertete Stellen siehst du mit dem Filter Relevanz.',
     canReset: false,
   }
 }

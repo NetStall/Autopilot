@@ -22,6 +22,9 @@ const emit = defineEmits<{
 
 const originalUrl = computed(() => safeExternalUrl(props.vacancy.url))
 const badges = computed(() => vacancyBadges(props.vacancy))
+const score = computed(() => scoreBadge(props.vacancy))
+const reasonsOpen = ref(false)
+const reasonsId = computed(() => `reasons-${props.vacancy.id}`)
 const statusBadges = computed(() => badges.value.filter(b => b.variant !== 'employer' && b.variant !== 'intermediary'))
 const employerBadge = computed(() => badges.value.find(b => b.variant === 'employer' || b.variant === 'intermediary'))
 const starred = computed(() => props.vacancy.interest === 'Starred')
@@ -44,6 +47,9 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
   >
     <div class="card__main">
       <div class="card__heading">
+        <span class="score" :class="`score--${score.level.toLowerCase()}`" :title="score.description">
+          {{ score.text }}<span class="visually-hidden"> – {{ score.description }}</span>
+        </span>
         <span v-for="badge in statusBadges" :key="badge.variant" class="badge" :class="`badge--${badge.variant}`">
           {{ badge.label }}
         </span>
@@ -59,7 +65,19 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
       </p>
       <p class="card__date">
         <time :datetime="vacancy.publishedAt ?? vacancy.fetchedAt" :title="dateTitle">{{ dateLabel }}</time>
+        <button
+          type="button"
+          class="card__why"
+          :aria-expanded="reasonsOpen"
+          :aria-controls="reasonsId"
+          @click="reasonsOpen = !reasonsOpen"
+        >
+          Warum?
+        </button>
       </p>
+      <div v-if="reasonsOpen" :id="reasonsId" class="card__reasons">
+        <VacancyReasons :reasons="vacancy.relevanceReasons" />
+      </div>
     </div>
 
     <div class="card__side">
@@ -162,9 +180,30 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
   }
 
   &__date {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-3);
     margin: var(--space-1) 0 0;
     font-size: 0.85rem;
     color: var(--color-muted);
+  }
+
+  &__why {
+    font: inherit;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-accent);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  &__reasons {
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-surface-muted);
+    border-radius: var(--radius);
   }
 
   &__side {

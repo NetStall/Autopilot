@@ -3,6 +3,7 @@ import type {
   ImportRun,
   ImportStarted,
   PagedResponse,
+  RescoreStatus,
   UiSettings,
   Vacancy,
   VacancyInterest,
@@ -35,6 +36,15 @@ export function useVacanciesApi() {
       if (ids.length > 0) {
         await api('/api/vacancies/seen', { method: 'POST', body: { ids } })
       }
+    },
+
+    /** Queues re-scoring of all vacancies with the current rules („Neu bewerten"). */
+    startRescore() {
+      return api<RescoreStatus>('/api/vacancies/rescore', { method: 'POST' })
+    },
+
+    rescoreStatus() {
+      return api<RescoreStatus>('/api/vacancies/rescore')
     },
 
     /** Queues an import of the configured searches; 409 while one is queued or running. */

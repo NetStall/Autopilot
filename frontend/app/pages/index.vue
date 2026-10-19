@@ -47,7 +47,7 @@ function changeFilters(next: VacancyFilters, options: { replace: boolean }) {
 }
 
 function resetFilters() {
-  changeFilters({ ...DEFAULT_FILTERS, employerTypes: [], searches: [], sort: filters.value.sort }, { replace: false })
+  changeFilters({ ...defaultFilters(), sort: filters.value.sort }, { replace: false })
 }
 
 // First restore (only when / is opened without filters), then remember every state from now on — including the
@@ -197,6 +197,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       <h1>Stellen</h1>
       <p class="page__meta">
         <span v-if="data" aria-live="polite">{{ totalCount }} {{ totalCount === 1 ? 'Stelle' : 'Stellen' }}</span>
+        <RescoreButton @finished="refresh()" />
         <button type="button" class="page__help" @click="helpOpen = true">
           Tastenkürzel <kbd>?</kbd>
         </button>

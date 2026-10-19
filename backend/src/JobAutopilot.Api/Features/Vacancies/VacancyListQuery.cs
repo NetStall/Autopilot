@@ -15,6 +15,7 @@ public sealed class VacancyListQuery : IValidatableObject
     public const int MaxPageSize = 100;
     public const int MaxSearchNames = 20;
     public const int MaxEmployerTypes = 10;
+    public const int MaxEnumValues = 10;
 
     /// <summary>Text in title or company.</summary>
     [FromQuery(Name = "q")]
@@ -36,9 +37,15 @@ public sealed class VacancyListQuery : IValidatableObject
     [FromQuery(Name = "source")]
     public string? Source { get; init; }
 
-    /// <summary>Only vacancies found by a remote-only search (<c>true</c>) or only the others (<c>false</c>).</summary>
+    /// <summary>Repeatable remote level: <c>FullRemote</c>, <c>Hybrid</c>, <c>OnSite</c>, <c>Unknown</c>.</summary>
     [FromQuery(Name = "remote")]
-    public bool? Remote { get; init; }
+    [MaxLength(MaxEnumValues)]
+    public string[]? Remote { get; init; }
+
+    /// <summary>Repeatable: <c>Relevant</c>, <c>Maybe</c>, <c>Irrelevant</c>. Unscored vacancies count as Maybe.</summary>
+    [FromQuery(Name = "relevance")]
+    [MaxLength(MaxEnumValues)]
+    public string[]? Relevance { get; init; }
 
     /// <summary>Repeatable search name: vacancies found by any of them.</summary>
     [FromQuery(Name = "search")]
@@ -58,7 +65,7 @@ public sealed class VacancyListQuery : IValidatableObject
     [FromQuery(Name = "fetchedSince")]
     public DateTimeOffset? FetchedSince { get; init; }
 
-    /// <summary><c>published</c> (default) or <c>fetched</c>.</summary>
+    /// <summary><c>relevance</c> (default), <c>published</c> or <c>fetched</c>.</summary>
     [FromQuery(Name = "sort")]
     public string? Sort { get; init; }
 
@@ -93,6 +100,26 @@ public sealed class VacancyListQuery : IValidatableObject
                 [nameof(Source)]);
         }
 
+        foreach (var value in Remote ?? [])
+        {
+            if (!TryParseEnum<RemoteLevel>(value, out _))
+            {
+                yield return new ValidationResult(
+                    $"'{value}' is not a remote level. Allowed: {string.Join(", ", Enum.GetNames<RemoteLevel>())}.",
+                    [nameof(Remote)]);
+            }
+        }
+
+        foreach (var value in Relevance ?? [])
+        {
+            if (!TryParseEnum<RelevanceLevel>(value, out _))
+            {
+                yield return new ValidationResult(
+                    $"'{value}' is not a relevance level. Allowed: {string.Join(", ", Enum.GetNames<RelevanceLevel>())}.",
+                    [nameof(Relevance)]);
+            }
+        }
+
         foreach (var value in Interest ?? [])
         {
             if (!TryParseEnum<VacancyInterest>(value, out _))
@@ -112,7 +139,7 @@ public sealed class VacancyListQuery : IValidatableObject
 
         if (Sort is not null && !TryParseEnum<VacancySort>(Sort, out _))
         {
-            yield return new ValidationResult("Sort must be 'published' or 'fetched'.", [nameof(Sort)]);
+            yield return new ValidationResult("Sort must be 'relevance', 'published' or 'fetched'.", [nameof(Sort)]);
         }
     }
 
@@ -125,12 +152,13 @@ public sealed class VacancyListQuery : IValidatableObject
             : null,
         Seen,
         Source is null ? null : Parse<VacancySource>(Source),
-        Sort is null ? VacancySort.Published : Parse<VacancySort>(Sort),
-        Remote,
+        Sort is null ? VacancySort.Relevance : Parse<VacancySort>(Sort),
+        Remote is { Length: > 0 } ? Remote.Select(Parse<RemoteLevel>).Distinct().ToList() : null,
         Search is { Length: > 0 } ? Search.Select(n => n.Trim()).Distinct(StringComparer.Ordinal).ToList() : null,
         Interest is { Length: > 0 } ? Interest.Select(Parse<VacancyInterest>).Distinct().ToList() : null,
         IncludeDismissed ?? false,
-        FetchedSince);
+        FetchedSince,
+        Relevance is { Length: > 0 } ? Relevance.Select(Parse<RelevanceLevel>).Distinct().ToList() : null);
 
     private static T Parse<T>(string value)
         where T : struct, Enum =>

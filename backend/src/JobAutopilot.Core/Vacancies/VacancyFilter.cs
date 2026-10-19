@@ -3,7 +3,8 @@ namespace JobAutopilot.Core.Vacancies;
 /// <summary>
 /// Criteria for browsing vacancies. <c>null</c> means "no restriction". <see cref="MatchedSearches"/> matches
 /// vacancies found by any of the given searches. Dismissed vacancies are left out unless
-/// <see cref="IncludeDismissed"/> is set or <see cref="Interests"/> asks for them explicitly.
+/// <see cref="IncludeDismissed"/> is set or <see cref="Interests"/> asks for them explicitly. Vacancies that are not
+/// scored yet count as <see cref="RelevanceLevel.Maybe"/>.
 /// </summary>
 public sealed record VacancyFilter(
     string? Text = null,
@@ -11,15 +12,19 @@ public sealed record VacancyFilter(
     IReadOnlyCollection<EmployerType>? EmployerTypes = null,
     bool? IsSeen = null,
     VacancySource? Source = null,
-    VacancySort Sort = VacancySort.Published,
-    bool? IsRemote = null,
+    VacancySort Sort = VacancySort.Relevance,
+    IReadOnlyCollection<RemoteLevel>? RemoteLevels = null,
     IReadOnlyCollection<string>? MatchedSearches = null,
     IReadOnlyCollection<VacancyInterest>? Interests = null,
     bool IncludeDismissed = false,
-    DateTimeOffset? FetchedSince = null);
+    DateTimeOffset? FetchedSince = null,
+    IReadOnlyCollection<RelevanceLevel>? RelevanceLevels = null);
 
 public enum VacancySort
 {
+    /// <summary>Highest relevance score first; at the same score direct employers before agencies, then newest.</summary>
+    Relevance,
+
     /// <summary>Newest publication first; vacancies without a publication date last.</summary>
     Published,
 

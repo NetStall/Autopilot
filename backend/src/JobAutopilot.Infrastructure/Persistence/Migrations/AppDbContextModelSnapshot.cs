@@ -105,6 +105,9 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20000)
                         .HasColumnType("character varying(20000)");
 
+                    b.Property<DateTimeOffset?>("DetailsFetchedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("EmployerType")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -125,9 +128,6 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(32)")
                         .HasDefaultValue("None");
 
-                    b.Property<bool>("IsRemote")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("IsSeen")
                         .HasColumnType("boolean");
 
@@ -143,6 +143,26 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset?>("PublishedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RelevanceLevel")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.PrimitiveCollection<List<string>>("RelevanceReasons")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasDefaultValueSql("'{}'::text[]");
+
+                    b.Property<int?>("RelevanceScore")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RemoteLevel")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Unknown");
 
                     b.Property<string>("Source")
                         .IsRequired()
@@ -164,7 +184,9 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Interest");
 
-                    b.HasIndex("IsRemote");
+                    b.HasIndex("RelevanceLevel");
+
+                    b.HasIndex("RemoteLevel");
 
                     b.HasIndex("Source", "ExternalId")
                         .IsUnique();

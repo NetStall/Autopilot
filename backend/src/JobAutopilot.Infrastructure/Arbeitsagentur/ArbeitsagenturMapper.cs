@@ -34,7 +34,54 @@ internal static class ArbeitsagenturMapper
             Truncate(string.IsNullOrEmpty(company) ? UnknownCompany : company, VacancyLimits.CompanyMaxLength),
             MapLocation(item.Stellenlokationen),
             MapUrl(item.ExterneUrl, externalId),
-            ParsePublishedAt(item.Veroeffentlichungszeitraum?.Von ?? item.DatumErsteVeroeffentlichung));
+            ParsePublishedAt(item.Veroeffentlichungszeitraum?.Von ?? item.DatumErsteVeroeffentlichung),
+            RemoteHint: MapRemote(item.Homeofficemoeglich, item.Homeofficeprozent),
+            ChangedAt: ParseChangedAt(item.Aenderungsdatum));
+    }
+
+    public static VacancyDetails ToDetails(JobDetailsResponse details)
+    {
+        ArgumentNullException.ThrowIfNull(details);
+        var employer = details.IstArbeitnehmerUeberlassung == true ? EmployerType.Temporary
+            : details.IstPrivateArbeitsvermittlung == true ? EmployerType.Agency
+            // Both flags present and false: posted as the employer itself — a weak signal, see EmployerClassifier.
+            : details.IstArbeitnehmerUeberlassung == false && details.IstPrivateArbeitsvermittlung == false ? EmployerType.Direct
+            : EmployerType.Unknown;
+
+        return new VacancyDetails(
+            NormalizeDescription(details.StellenangebotsBeschreibung),
+            MapRemote(details.Homeofficemoeglich, details.Homeofficeprozent),
+            employer);
+    }
+
+    /// <summary>100 % stated → full remote; any home office (incl. "nach Vereinbarung") → hybrid.</summary>
+    internal static RemoteLevel MapRemote(bool? homeOfficePossible, double? homeOfficePercent) =>
+        homeOfficePercent >= 100 ? RemoteLevel.FullRemote
+        : homeOfficePossible == true || homeOfficePercent > 0 ? RemoteLevel.Hybrid
+        : RemoteLevel.Unknown;
+
+    /// <summary>The description is plain text; only line endings and surrounding whitespace are normalized.</summary>
+    internal static string? NormalizeDescription(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Trim();
+        return Truncate(normalized, VacancyLimits.DescriptionMaxLength);
+    }
+
+    /// <summary><c>aenderungsdatum</c> is German local time without offset, e.g. <c>2026-10-13T09:04:40.708</c>.</summary>
+    internal static DateTimeOffset? ParseChangedAt(string? value)
+    {
+        if (!DateTime.TryParse(value?.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var local))
+        {
+            return null;
+        }
+
+        var unspecified = DateTime.SpecifyKind(local, DateTimeKind.Unspecified);
+        return new DateTimeOffset(unspecified, Berlin.GetUtcOffset(unspecified));
     }
 
     /// <summary>"{plz} {ort}" of the first location, or <c>null</c> when both are empty.</summary>
@@ -70,6 +117,5 @@ internal static class ArbeitsagenturMapper
         return new DateTimeOffset(midnight, Berlin.GetUtcOffset(midnight));
     }
 
-    private static string Truncate(string value, int maxLength) =>
-        value.Length <= maxLength ? value : value[..maxLength].TrimEnd();
+    private static string Truncate(string value, int maxLength) => TextLimits.Truncate(value, maxLength);
 }

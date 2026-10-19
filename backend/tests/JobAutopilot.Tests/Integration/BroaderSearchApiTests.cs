@@ -37,15 +37,19 @@ public class BroaderSearchApiTests(PostgresFixture postgres) : IntegrationTestBa
     }
 
     [Fact]
-    public async Task Remote_filter_returns_only_remote_or_only_other_vacancies()
+    public async Task Remote_filter_matches_any_of_the_given_levels()
     {
         await SeedAsync(
-            Make(title: "Remote", isRemote: true, matchedSearches: ["remote-dotnet"]),
-            Make(title: "Region", isRemote: false, matchedSearches: ["region-dotnet"]));
+            Make(title: "Voll", remoteLevel: RemoteLevel.FullRemote, matchedSearches: ["remote-dotnet"]),
+            Make(title: "Hybrid", remoteLevel: RemoteLevel.Hybrid, matchedSearches: ["remote-dotnet"]),
+            Make(title: "Region", matchedSearches: ["region-dotnet"]));
 
-        (await GetAsync("?remote=true")).Items.Select(v => v.Title).Should().Equal("Remote");
-        (await GetAsync("?remote=false")).Items.Select(v => v.Title).Should().Equal("Region");
-        (await GetAsync(string.Empty)).TotalCount.Should().Be(2);
+        (await GetAsync("?remote=FullRemote")).Items.Select(v => v.Title).Should().Equal("Voll");
+        (await GetAsync("?remote=fullremote&remote=Hybrid")).Items.Select(v => v.Title).Should().BeEquivalentTo("Voll", "Hybrid");
+        (await GetAsync("?remote=Unknown")).Items.Select(v => v.Title).Should().Equal("Region");
+        (await GetAsync(string.Empty)).TotalCount.Should().Be(3);
+        (await Client.GetAsync("/api/vacancies?remote=true", CancellationToken)).StatusCode
+            .Should().Be(HttpStatusCode.BadRequest, "the old boolean form is replaced by levels");
     }
 
     [Fact]
@@ -60,17 +64,17 @@ public class BroaderSearchApiTests(PostgresFixture postgres) : IntegrationTestBa
         (await GetAsync("?search=region-vue&search=region-csharp")).Items.Select(v => v.Title)
             .Should().BeEquivalentTo("A", "B");
         (await GetAsync("?search=unknown")).Items.Should().BeEmpty();
-        (await GetAsync("?search=region-csharp&remote=true")).Items.Should().BeEmpty();
+        (await GetAsync("?search=region-csharp&remote=FullRemote")).Items.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task Vacancy_dto_contains_remote_flag_and_matched_searches()
+    public async Task Vacancy_dto_contains_remote_level_and_matched_searches()
     {
-        await SeedAsync(Make(title: "A", isRemote: true, matchedSearches: ["remote-csharp", "region-csharp"]));
+        await SeedAsync(Make(title: "A", remoteLevel: RemoteLevel.Hybrid, matchedSearches: ["remote-csharp", "region-csharp"]));
 
         var dto = (await GetAsync(string.Empty)).Items.Single();
 
-        dto.IsRemote.Should().BeTrue();
+        dto.RemoteLevel.Should().Be(RemoteLevel.Hybrid);
         dto.MatchedSearches.Should().Equal("remote-csharp", "region-csharp");
     }
 
@@ -130,7 +134,7 @@ public class BroaderSearchApiTests(PostgresFixture postgres) : IntegrationTestBa
         await using var db = Postgres.CreateDbContext();
         var stored = await db.Vacancies.OrderBy(v => v.ExternalId).ToListAsync(CancellationToken);
         stored.Select(v => v.ExternalId).Should().Equal("B-1", "R-1");
-        stored[0].IsRemote.Should().BeTrue("found by the remote search first; the region search must not reset it");
+        stored[0].RemoteLevel.Should().Be(RemoteLevel.Hybrid, "found by the remote search first; the region search must not lower it");
         stored[0].MatchedSearches.Should().Equal("remote-test", "region-test");
         stored[1].MatchedSearches.Should().Equal("remote-test");
     }

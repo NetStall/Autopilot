@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using JobAutopilot.Api.Common;
 using JobAutopilot.Api.Features.Health;
+using JobAutopilot.Api.Features.Scoring;
 using JobAutopilot.Api.Features.Settings;
 using JobAutopilot.Api.Features.VacancyImports;
 using JobAutopilot.Api.Features.Vacancies;
@@ -23,6 +24,10 @@ builder.Services.AddSingleton<ImportJobChannel>();
 builder.Services.AddSingleton<ImportCoordinator>();
 builder.Services.AddHostedService<ImportWorker>();
 builder.Services.AddHostedService<ImportScheduler>();
+
+// Re-scoring all vacancies in the background (UI „Neu bewerten", start-up).
+builder.Services.AddSingleton<RescoreCoordinator>();
+builder.Services.AddHostedService<RescoreWorker>();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddValidation();

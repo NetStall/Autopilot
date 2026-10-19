@@ -32,8 +32,22 @@ public class Vacancy
     /// <summary>„Merken" / „Ausblenden" — user triage, never touched by imports.</summary>
     public VacancyInterest Interest { get; set; }
 
-    /// <summary>Found by at least one remote-only search. Once true, imports never reset it.</summary>
-    public bool IsRemote { get; set; }
+    /// <summary>
+    /// How remote the job is: the highest level any signal gave so far (remote-only search → at least
+    /// <see cref="RemoteLevel.Hybrid"/>, the source's home-office data, phrases in title/description). Never lowered.
+    /// </summary>
+    public RemoteLevel RemoteLevel { get; set; }
+
+    /// <summary>When the description and details were last fetched from the source; <c>null</c> = still to fetch.</summary>
+    public DateTimeOffset? DetailsFetchedAt { get; set; }
+
+    /// <summary>0–100 from the relevance scorer; <c>null</c> until scored.</summary>
+    public int? RelevanceScore { get; set; }
+
+    public RelevanceLevel? RelevanceLevel { get; set; }
+
+    /// <summary>Why the vacancy got its score, remote level and employer type (German, shown in the UI).</summary>
+    public List<string> RelevanceReasons { get; set; } = [];
 
     /// <summary>Names of all searches that have found this vacancy (no duplicates). Empty for manual vacancies.</summary>
     public List<string> MatchedSearches { get; set; } = [];
@@ -50,13 +64,24 @@ public class Vacancy
             changed = true;
         }
 
-        if (remoteOnly && !IsRemote)
+        if (remoteOnly)
         {
-            IsRemote = true;
-            changed = true;
+            changed |= RaiseRemoteLevel(RemoteLevel.Hybrid);
         }
 
         return changed;
+    }
+
+    /// <summary>Sets <see cref="RemoteLevel"/> to <paramref name="level"/> if that is higher; returns whether it changed.</summary>
+    public bool RaiseRemoteLevel(RemoteLevel level)
+    {
+        if (level <= RemoteLevel)
+        {
+            return false;
+        }
+
+        RemoteLevel = level;
+        return true;
     }
 
     /// <summary>

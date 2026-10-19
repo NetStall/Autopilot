@@ -17,7 +17,18 @@ internal sealed record JobSearchItem(
     [property: JsonPropertyName("stellenlokationen")] IReadOnlyList<JobLocation>? Stellenlokationen,
     [property: JsonPropertyName("veroeffentlichungszeitraum")] JobPeriod? Veroeffentlichungszeitraum,
     [property: JsonPropertyName("datumErsteVeroeffentlichung")] string? DatumErsteVeroeffentlichung,
-    [property: JsonPropertyName("externeURL")] string? ExterneUrl);
+    [property: JsonPropertyName("externeURL")] string? ExterneUrl,
+    [property: JsonPropertyName("aenderungsdatum")] string? Aenderungsdatum = null,
+    [property: JsonPropertyName("homeofficemoeglich")] bool? Homeofficemoeglich = null,
+    [property: JsonPropertyName("homeofficeprozent")] double? Homeofficeprozent = null);
+
+// Response of GET pc/v4/jobdetails/{base64(referenznummer)} — only the fields we use.
+internal sealed record JobDetailsResponse(
+    [property: JsonPropertyName("stellenangebotsBeschreibung")] string? StellenangebotsBeschreibung,
+    [property: JsonPropertyName("istArbeitnehmerUeberlassung")] bool? IstArbeitnehmerUeberlassung,
+    [property: JsonPropertyName("istPrivateArbeitsvermittlung")] bool? IstPrivateArbeitsvermittlung,
+    [property: JsonPropertyName("homeofficemoeglich")] bool? Homeofficemoeglich,
+    [property: JsonPropertyName("homeofficeprozent")] double? Homeofficeprozent);
 
 internal sealed record JobLocation(
     [property: JsonPropertyName("adresse")] JobAddress? Adresse);

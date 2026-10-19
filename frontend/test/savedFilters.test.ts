@@ -16,10 +16,16 @@ describe('saved list filters', () => {
   it('remembers the filters but not the page or the one-off since filter', () => {
     const storage = memoryStorage()
 
-    saveFilters(storage, { q: 'vue', remote: 'true', page: '3', since: '2026-10-19T05:00:00Z' })
+    saveFilters(storage, { q: 'vue', remote: 'full', page: '3', since: '2026-10-19T05:00:00Z' })
 
-    expect(JSON.parse(storage.data[SAVED_FILTERS_KEY]!)).toEqual({ q: 'vue', remote: 'true' })
-    expect(loadSavedFilters(storage)).toEqual({ q: 'vue', remote: 'true' })
+    expect(JSON.parse(storage.data[SAVED_FILTERS_KEY]!)).toEqual({ q: 'vue', remote: 'full' })
+    expect(loadSavedFilters(storage)).toEqual({ q: 'vue', remote: 'full' })
+  })
+
+  it('upgrades remembered filters of step 03 (remote=true)', () => {
+    const storage = memoryStorage({ [SAVED_FILTERS_KEY]: JSON.stringify({ remote: 'true', sort: 'published' }) })
+
+    expect(loadSavedFilters(storage)).toEqual({ remote: 'remote', sort: 'published' })
   })
 
   it('returns null when nothing useful is stored', () => {

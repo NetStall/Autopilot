@@ -1,0 +1,14 @@
+{
+  "stellenangebotsart": "ARBEIT",
+  "stellenangebotsTitel": "C# Softwareentwickler (m/w/d)",
+  "stellenangebotsBeschreibung": "Für unseren Kunden suchen wir dich als C# Softwareentwickler.\r\n\r\nDeine Aufgaben:\r\n- Entwicklung mit .NET und ASP.NET Core\r\n- REST-Schnittstellen\r\n\r\nHomeoffice nach Absprache möglich.  ",
+  "istPrivateArbeitsvermittlung": false,
+  "istArbeitnehmerUeberlassung": true,
+  "stellenlokationen": [ { "adresse": { "plz": "18057", "ort": "Rostock", "region": "MECKLENBURG_VORPOMMERN", "land": "DEUTSCHLAND" } } ],
+  "veroeffentlichungszeitraum": { "von": "2026-10-19" },
+  "aenderungsdatum": "2026-10-19T07:58:55.467",
+  "firma": "Beispiel Engineering GmbH Niederlassung Rostock",
+  "allianzpartnerName": "Beispiel Engineering GmbH",
+  "allianzpartnerUrl": "www.beispiel-engineering.de",
+  "referenznummer": "12265-349789_JB5275760-S"
+}

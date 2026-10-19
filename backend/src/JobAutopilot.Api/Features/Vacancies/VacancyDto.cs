@@ -15,6 +15,10 @@ public sealed record VacancyDto(
     DateTimeOffset? PublishedAt,
     DateTimeOffset FetchedAt,
     bool IsSeen,
-    bool IsRemote,
+    RemoteLevel RemoteLevel,
     IReadOnlyList<string> MatchedSearches,
-    VacancyInterest Interest);
+    VacancyInterest Interest,
+    int? RelevanceScore,
+    RelevanceLevel? RelevanceLevel,
+    IReadOnlyList<string> RelevanceReasons,
+    DateTimeOffset? DetailsFetchedAt);

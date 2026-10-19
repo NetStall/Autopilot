@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using JobAutopilot.Core.Import;
+using JobAutopilot.Core.Scoring;
 using JobAutopilot.Infrastructure.Arbeitsagentur;
 using JobAutopilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -40,10 +41,27 @@ public static class DependencyInjection
 
         services.AddScoped<IVacancyStore, EfVacancyStore>();
         services.AddScoped<VacancyImportService>();
+        services.AddScoped<VacancyDetailsService>();
+        services.AddScoped<VacancyRescoreService>();
 
+        services.AddScoring(configuration);
         services.AddArbeitsagentur(configuration);
 
         return services;
+    }
+
+    /// <summary>Relevance, remote and employer rules from configuration; invalid rules stop the start.</summary>
+    private static void AddScoring(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<RelevanceOptions>()
+            .Bind(configuration.GetSection(RelevanceOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<RelevanceOptions>, RelevanceOptionsValidator>();
+        services.AddOptions<RemoteOptions>().Bind(configuration.GetSection(RemoteOptions.SectionName));
+
+        services.AddSingleton(sp => new RelevanceScorer(sp.GetRequiredService<IOptions<RelevanceOptions>>().Value));
+        services.AddSingleton(sp => new RemoteClassifier(sp.GetRequiredService<IOptions<RemoteOptions>>().Value));
+        services.AddSingleton<VacancyEnricher>();
     }
 
     private static void AddArbeitsagentur(this IServiceCollection services, IConfiguration configuration)
@@ -66,5 +84,6 @@ public static class DependencyInjection
             .AddStandardResilienceHandler();
 
         services.AddTransient<IVacancySource>(sp => sp.GetRequiredService<ArbeitsagenturClient>());
+        services.AddTransient<IVacancyDetailsSource>(sp => sp.GetRequiredService<ArbeitsagenturClient>());
     }
 }

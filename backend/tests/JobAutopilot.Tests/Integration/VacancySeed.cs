@@ -17,7 +17,7 @@ public static class VacancySeed
         bool isSeen = false,
         DateTimeOffset? publishedAt = null,
         int fetchedMinutesAfterBase = 0,
-        bool isRemote = false,
+        RemoteLevel remoteLevel = RemoteLevel.Unknown,
         string[]? matchedSearches = null)
     {
         var n = Interlocked.Increment(ref _counter);
@@ -35,7 +35,7 @@ public static class VacancySeed
             PublishedAt = publishedAt,
             FetchedAt = fetchedAt,
             IsSeen = isSeen,
-            IsRemote = isRemote,
+            RemoteLevel = remoteLevel,
             MatchedSearches = [.. matchedSearches ?? []],
         };
     }

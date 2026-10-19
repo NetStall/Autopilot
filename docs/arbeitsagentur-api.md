@@ -170,6 +170,29 @@ Dropped: `Webentwickler` (region: 1 result, already found by other searches); ba
   `entfernung`, `chiffrenummer`, `arbeitgeberKundennummerHash`, …) are ignored for now.
 - Text is UTF-8 (umlauts arrive correctly).
 
+## Job details (verified 2026-10-19, step 04)
+
+```
+GET https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobdetails/{base64(referenznummer)}
+X-API-Key: jobboerse-jobsuche
+```
+
+- The reference number is Base64-encoded (UTF-8). Padding may be sent raw (`==`), URL-encoded (`%3D%3D`) or
+  left out — all three return the same posting; the client URL-encodes it.
+- `pc/v4/jobdetails` is the only version that answers: `pc/v6/jobdetails`, `pc/v3/…`, `pc/v2/…` return **403**.
+- An unknown or withdrawn reference number returns **404** → the vacancy is marked as fetched and not requested again.
+- Fields we use: `stellenangebotsBeschreibung` (plain text with `\r\n`, about 1–8 KB), `istArbeitnehmerUeberlassung`
+  (Zeitarbeit), `istPrivateArbeitsvermittlung` (private placement agency), `homeofficemoeglich`, `homeofficeprozent`.
+  Also present: `allianzpartnerName/Url` (the partner job board that forwarded the posting — **not** an agency),
+  `gehaltsspanneVon/Bis`, `eintrittszeitraum`, `chiffrenummer`, `aenderungsdatum`, `hauptberuf`.
+- The search results carry `aenderungsdatum` (German local time, no offset). A posting whose `aenderungsdatum` is newer
+  than our `DetailsFetchedAt` gets its details fetched again; otherwise they are cached.
+
+Etiquette (`Import:Details`): after the searches of an import, at most `MaxPerRun` (default 300) details, one request
+at a time with `DelayBetweenRequestsMs` (300 ms) in between, newest vacancies first. Progress is saved every
+`SaveEvery` (20) vacancies, so an interrupted pass loses almost nothing and the next import continues with the rest.
+If the endpoint becomes unavailable (after the standard retries), the pass stops and the import still succeeds.
+
 ## Differences from the task description / older documentation
 
 | Expected (prompt 02, bundesAPI examples) | Reality on 2026-10-16 |

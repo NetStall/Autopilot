@@ -15,6 +15,9 @@ public sealed class ImportOptions
     public List<string> ExcludeTitleTerms { get; init; } = [];
 
     public ImportScheduleOptions Schedule { get; init; } = new();
+
+    /// <summary><c>Import:Details</c> — descriptions fetched after the search, per vacancy.</summary>
+    public VacancyDetailsOptions Details { get; init; } = new();
 }
 
 /// <summary><c>Import:Schedule</c> — the daily automatic import (fetching only, never sending anything).</summary>
@@ -54,6 +57,21 @@ internal sealed class ImportOptionsValidator : IValidateOptions<ImportOptions>
         if (string.IsNullOrWhiteSpace(options.Schedule.TimeZone) || !TimeZones.TryFind(options.Schedule.TimeZone, out _))
         {
             errors.Add($"Schedule:TimeZone '{options.Schedule.TimeZone}' is not a known time zone.");
+        }
+
+        if (options.Details.MaxPerRun is < 0 or > 5000)
+        {
+            errors.Add("Details:MaxPerRun must be between 0 and 5000.");
+        }
+
+        if (options.Details.DelayBetweenRequestsMs is < 0 or > 10_000)
+        {
+            errors.Add("Details:DelayBetweenRequestsMs must be between 0 and 10000.");
+        }
+
+        if (options.Details.SaveEvery is < 1 or > 1000)
+        {
+            errors.Add("Details:SaveEvery must be between 1 and 1000.");
         }
 
         return errors.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(errors);

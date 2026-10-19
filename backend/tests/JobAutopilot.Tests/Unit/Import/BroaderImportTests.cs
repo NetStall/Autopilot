@@ -30,7 +30,7 @@ public class BroaderImportTests
     private static CancellationToken CancellationToken => TestContext.Current.CancellationToken;
 
     [Fact]
-    public void MarkFoundBy_adds_each_name_once_and_never_resets_remote()
+    public void MarkFoundBy_adds_each_name_once_and_never_lowers_the_remote_level()
     {
         var vacancy = Vacancy.CreateManual("Dev", "Firma", _clock.GetUtcNow());
 
@@ -39,7 +39,7 @@ public class BroaderImportTests
         vacancy.MarkFoundBy("region-csharp", remoteOnly: false).Should().BeTrue();
 
         vacancy.MatchedSearches.Should().Equal("remote-csharp", "region-csharp");
-        vacancy.IsRemote.Should().BeTrue();
+        vacancy.RemoteLevel.Should().Be(RemoteLevel.Hybrid);
     }
 
     [Fact]
@@ -82,9 +82,9 @@ public class BroaderImportTests
 
         var a = _store.Saved.Single(v => v.ExternalId == "A");
         var b = _store.Saved.Single(v => v.ExternalId == "B");
-        a.IsRemote.Should().BeTrue("a later non-remote search must not reset the flag");
+        a.RemoteLevel.Should().Be(RemoteLevel.Hybrid, "a later non-remote search must not lower the level");
         a.MatchedSearches.Should().Equal("remote-csharp", "region-csharp");
-        b.IsRemote.Should().BeFalse();
+        b.RemoteLevel.Should().Be(RemoteLevel.Unknown);
         b.MatchedSearches.Should().Equal("region-csharp");
     }
 
@@ -100,7 +100,7 @@ public class BroaderImportTests
 
         var vacancy = _store.Saved.Single();
         vacancy.MatchedSearches.Should().Equal("region-csharp", "remote-csharp", "region-dotnet");
-        vacancy.IsRemote.Should().BeTrue();
+        vacancy.RemoteLevel.Should().Be(RemoteLevel.Hybrid);
         result.Added.Should().Be(1);
         result.Searches.Select(s => s.Added).Should().Equal(1, 0, 0, 0);
         result.Fetched.Should().Be(6);
@@ -128,7 +128,7 @@ public class BroaderImportTests
 
         second.Should().BeEquivalentTo(new { Added = 0, Updated = 1, Unchanged = 0 });
         second.Searches[0].Updated.Should().Be(1, "the vacancy is counted for the first search that found it");
-        _store.Saved.Single().IsRemote.Should().BeTrue();
+        _store.Saved.Single().RemoteLevel.Should().Be(RemoteLevel.Hybrid);
     }
 
     [Fact]

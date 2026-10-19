@@ -4,7 +4,11 @@ export type EmployerType = 'Unknown' | 'Direct' | 'Agency' | 'Temporary'
 
 export type VacancySource = 'Arbeitsagentur' | 'Manual'
 
-export type VacancySort = 'published' | 'fetched'
+export type VacancySort = 'relevance' | 'published' | 'fetched'
+
+export type RemoteLevel = 'FullRemote' | 'Hybrid' | 'OnSite' | 'Unknown'
+
+export type RelevanceLevel = 'Relevant' | 'Maybe' | 'Irrelevant'
 
 /** „Merken" / „Ausblenden" */
 export type VacancyInterest = 'None' | 'Starred' | 'Dismissed'
@@ -17,16 +21,22 @@ export interface Vacancy {
   company: string
   location: string | null
   url: string | null
+  /** Plain text; only in the detail response (the list leaves it out). Never render as HTML. */
   description: string | null
   employerType: EmployerType
   publishedAt: string | null
   fetchedAt: string
   isSeen: boolean
-  /** Found by at least one remote-only search. */
-  isRemote: boolean
+  remoteLevel: RemoteLevel
   /** Names of the searches that found this vacancy. */
   matchedSearches: string[]
   interest: VacancyInterest
+  /** 0–100; null until scored. */
+  relevanceScore: number | null
+  relevanceLevel: RelevanceLevel | null
+  /** Why: „C# im Titel ✓ (+50)", „Java als Hauptsprache ✗ (-60)", remote and employer notes. */
+  relevanceReasons: string[]
+  detailsFetchedAt: string | null
 }
 
 export interface PagedResponse<T> {
@@ -44,7 +54,8 @@ export interface VacancyListParams {
   seen?: boolean
   source?: VacancySource
   sort?: VacancySort
-  remote?: boolean
+  remote?: RemoteLevel[]
+  relevance?: RelevanceLevel[]
   search?: string[]
   interest?: VacancyInterest[]
   includeDismissed?: boolean
@@ -95,6 +106,15 @@ export interface ImportRun extends ImportCounts {
 /** POST /api/imports → 202 */
 export interface ImportStarted {
   importId: string
+}
+
+/** GET/POST /api/vacancies/rescore */
+export interface RescoreStatus {
+  state: 'Idle' | 'Queued' | 'Running'
+  lastStartedAt: string | null
+  lastFinishedAt: string | null
+  lastScored: number | null
+  lastError: string | null
 }
 
 /** GET /api/settings/ui */

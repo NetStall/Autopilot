@@ -18,7 +18,8 @@ useHead({ title: () => (vacancy.value ? `${vacancy.value.title} · Job Autopilot
 
 const originalUrl = computed(() => safeExternalUrl(vacancy.value?.url))
 const badges = computed(() => (vacancy.value ? vacancyBadges(vacancy.value) : []))
-const statusBadges = computed(() => badges.value.filter(b => b.variant === 'new' || b.variant === 'remote'))
+const statusBadges = computed(() => badges.value.filter(b => b.variant === 'new' || b.variant === 'remote' || b.variant === 'hybrid'))
+const score = computed(() => (vacancy.value ? scoreBadge(vacancy.value) : null))
 const employerBadge = computed(() => badges.value.find(b => b.variant === 'employer' || b.variant === 'intermediary'))
 const notFound = computed(() => errorStatus(error.value) === 404)
 const saving = ref(false)
@@ -102,6 +103,12 @@ function openedOriginal() {
             class="badge detail__badge"
             :class="`badge--${badge.variant}`"
           >{{ badge.label }}</span>
+          <span
+            v-if="score"
+            class="score detail__badge"
+            :class="`score--${score.level.toLowerCase()}`"
+            :title="score.description"
+          >{{ score.text }}<span class="visually-hidden"> – {{ score.description }}</span></span>
           <h1>{{ vacancy.title }}</h1>
           <p class="detail__company">
             {{ vacancy.company }}<span v-if="vacancy.location"> · {{ vacancy.location }}</span>
@@ -178,7 +185,9 @@ function openedOriginal() {
           {{ vacancy.externalId }}
         </dd>
         <dt>Remote</dt>
-        <dd>{{ vacancy.isRemote ? 'Ja – über eine Remote-Suche gefunden' : 'Nein / nicht bekannt' }}</dd>
+        <dd>{{ remoteLevelLabel(vacancy.remoteLevel) }}</dd>
+        <dt>Relevanz</dt>
+        <dd>{{ score?.description }}</dd>
         <dt>Gefunden durch</dt>
         <dd>
           <ul v-if="vacancy.matchedSearches.length > 0" class="detail__searches">
@@ -198,6 +207,13 @@ function openedOriginal() {
         <dd>{{ interestLabels[vacancy.interest] ?? '–' }}</dd>
       </dl>
 
+      <section class="detail__reasons" aria-labelledby="reasons-heading">
+        <h2 id="reasons-heading">
+          Warum diese Bewertung?
+        </h2>
+        <VacancyReasons :reasons="vacancy.relevanceReasons" />
+      </section>
+
       <section class="detail__description" aria-labelledby="description-heading">
         <h2 id="description-heading">
           Beschreibung
@@ -206,8 +222,9 @@ function openedOriginal() {
           {{ vacancy.description }}
         </p>
         <p v-else-if="vacancy.source === 'Arbeitsagentur'" class="detail__note">
-          Die Stellenbeschreibung wird beim Import noch nicht geladen. Den vollständigen Text findest du in der
-          Originalanzeige.
+          {{ vacancy.detailsFetchedAt
+            ? 'Die Arbeitsagentur liefert für diese Stelle keine Beschreibung mehr. Den Text findest du in der Originalanzeige.'
+            : 'Die Beschreibung wird beim nächsten Import geladen. Den vollständigen Text findest du in der Originalanzeige.' }}
         </p>
         <p v-else class="detail__note">
           Keine Beschreibung hinterlegt.
@@ -298,6 +315,7 @@ function openedOriginal() {
     font-size: 0.9rem;
   }
 
+  &__reasons,
   &__description {
     margin-top: var(--space-5);
     padding-top: var(--space-4);
