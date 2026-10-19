@@ -3,13 +3,17 @@ using System.Net.Http.Json;
 using System.Text;
 using FluentAssertions;
 using JobAutopilot.Api.Common;
+using JobAutopilot.Api.Features.Settings;
 using JobAutopilot.Api.Features.Vacancies;
 using JobAutopilot.Core.Import;
 using JobAutopilot.Core.Vacancies;
+using JobAutopilot.Infrastructure.Persistence;
 using JobAutopilot.Tests.Fakes;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace JobAutopilot.Tests.Integration;
 
@@ -26,10 +30,20 @@ public class SecurityTests(PostgresFixture postgres) : IntegrationTestBase(postg
         ["RateLimiting:ImportsPerMinute"] = "2",
     };
 
+    private bool _failUiSettings;
+
     protected override void ConfigureServices(IServiceCollection services)
     {
         services.RemoveAll<IVacancySource>();
         services.AddSingleton<IVacancySource>(_source);
+        services.AddSingleton<IOptions<UiOptions>>(_ => _failUiSettings
+            ? new ThrowingOptions()
+            : Options.Create(new UiOptions()));
+    }
+
+    private sealed class ThrowingOptions : IOptions<UiOptions>
+    {
+        public UiOptions Value => throw new InvalidOperationException("Sensitive internal detail: Password=hunter2");
     }
 
     [Theory]
@@ -144,9 +158,11 @@ public class SecurityTests(PostgresFixture postgres) : IntegrationTestBase(postg
     [Fact]
     public async Task Unexpected_errors_return_problem_details_without_internals()
     {
-        _source.Exception = new InvalidOperationException("Sensitive internal detail: Password=hunter2");
+        // GET /api/settings/ui reads IOptions<UiOptions>; a failing options source produces a 500.
+        _failUiSettings = true;
+        _ = Factory.Services; // build the host with the throwing options
 
-        var response = await Client.PostAsync("/api/imports/arbeitsagentur", content: null, CancellationToken);
+        var response = await Client.GetAsync("/api/settings/ui", CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
         response.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
@@ -156,31 +172,63 @@ public class SecurityTests(PostgresFixture postgres) : IntegrationTestBase(postg
     }
 
     [Fact]
-    public async Task A_second_import_while_one_is_running_gets_409()
+    public async Task Unexpected_errors_during_an_import_are_recorded_without_internals()
     {
-        var importLock = Factory.Services.GetRequiredService<IImportLock>();
-        await using (var running = await importLock.TryAcquireAsync(CancellationToken))
+        _source.Exception = new InvalidOperationException("Sensitive internal detail: Password=hunter2");
+
+        var run = await RunImportAsync();
+
+        run.Status.Should().Be(ImportRunStatus.Failed);
+        run.Error.Should().Be("Unexpected error. Nothing was imported; see the API log.");
+    }
+
+    [Fact]
+    public async Task A_second_import_while_one_is_active_gets_409()
+    {
+        await using (var db = Postgres.CreateDbContext())
         {
-            running.Should().NotBeNull();
-
-            var blocked = await Client.PostAsync("/api/imports/arbeitsagentur", content: null, CancellationToken);
-
-            blocked.StatusCode.Should().Be(HttpStatusCode.Conflict);
-            var problem = await blocked.Content.ReadFromJsonAsync<ProblemDetails>(CancellationToken);
-            problem!.Title.Should().Be("An import is already running.");
+            db.ImportRuns.Add(ImportRun.Queue(ImportTrigger.Scheduled, 1, DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync(CancellationToken);
         }
 
-        var afterwards = await Client.PostAsync("/api/imports/arbeitsagentur", content: null, CancellationToken);
-        afterwards.StatusCode.Should().Be(HttpStatusCode.OK, "the lock is released when the first import ends");
+        var blocked = await PostImportAsync();
+
+        blocked.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var problem = await blocked.Content.ReadFromJsonAsync<ProblemDetails>(CancellationToken);
+        problem!.Title.Should().Be("An import is already running.");
+    }
+
+    [Fact]
+    public async Task Database_allows_only_one_active_run()
+    {
+        await using var db = Postgres.CreateDbContext();
+        db.ImportRuns.Add(ImportRun.Queue(ImportTrigger.Manual, 1, DateTimeOffset.UtcNow));
+        db.ImportRuns.Add(ImportRun.Queue(ImportTrigger.Scheduled, 1, DateTimeOffset.UtcNow));
+
+        var act = () => db.SaveChangesAsync(CancellationToken);
+
+        (await act.Should().ThrowAsync<DbUpdateException>()).Which.Should().Match<DbUpdateException>(e => DbErrors.IsUniqueViolation(e));
+    }
+
+    [Fact]
+    public async Task Run_fails_cleanly_when_another_process_holds_the_import_lock()
+    {
+        var importLock = Factory.Services.GetRequiredService<IImportLock>();
+        await using var otherProcess = await importLock.TryAcquireAsync(CancellationToken);
+
+        var run = await RunImportAsync();
+
+        run.Status.Should().Be(ImportRunStatus.Failed);
+        run.Error.Should().Be("Another import is running against the same database.");
     }
 
     [Fact]
     public async Task Import_endpoint_is_rate_limited()
     {
-        await Client.PostAsync("/api/imports/arbeitsagentur", content: null, CancellationToken);
-        await Client.PostAsync("/api/imports/arbeitsagentur", content: null, CancellationToken);
+        await RunImportAsync();
+        await RunImportAsync();
 
-        var third = await Client.PostAsync("/api/imports/arbeitsagentur", content: null, CancellationToken);
+        var third = await PostImportAsync();
 
         third.StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
         third.Headers.Contains("Retry-After").Should().BeTrue();

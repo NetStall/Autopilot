@@ -115,8 +115,8 @@ public class BroaderSearchApiTests(PostgresFixture postgres) : IntegrationTestBa
             .Returns("remote-test", Candidate("R-1"), Candidate("B-1"))
             .Returns("region-test", Candidate("B-1"), Candidate("A-1", "Ausbildung Fachinformatiker"));
 
-        var remote = await PostSearchAsync("""{ "name": "remote-test", "keyword": "C#", "remoteOnly": true }""");
-        var region = await PostSearchAsync(
+        var remote = await RunImportAsync("""{ "name": "remote-test", "keyword": "C#", "remoteOnly": true }""");
+        var region = await RunImportAsync(
             """{ "name": "region-test", "keyword": "C#", "location": "Deggendorf", "radiusKm": 70 }""");
 
         remote.Should().BeEquivalentTo(new { Fetched = 2, Added = 2, Excluded = 0 });
@@ -138,7 +138,7 @@ public class BroaderSearchApiTests(PostgresFixture postgres) : IntegrationTestBa
     [Fact]
     public async Task Ad_hoc_search_defaults_its_name_and_published_days()
     {
-        await PostSearchAsync("""{ "keyword": "Vue" }""");
+        await RunImportAsync("""{ "keyword": "Vue" }""");
 
         _source.Searches.Single().Should().Be(new VacancySearch { Name = "ad-hoc", Keyword = "Vue", PublishedWithinDays = 30 });
     }
@@ -149,22 +149,12 @@ public class BroaderSearchApiTests(PostgresFixture postgres) : IntegrationTestBa
     [InlineData("""{ "keyword": "C#", "maxPages": 0 }""", "MaxPages")]
     public async Task Invalid_ad_hoc_search_is_a_validation_problem(string body, string field)
     {
-        using var content = new StringContent(body, Encoding.UTF8, "application/json");
-
-        var response = await Client.PostAsync("/api/imports/arbeitsagentur", content, CancellationToken);
+        var response = await PostImportAsync(body);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(CancellationToken);
         problem!.Errors.Keys.Should().Equal(field);
         _source.Searches.Should().BeEmpty();
-    }
-
-    private async Task<ImportResultDto> PostSearchAsync(string json)
-    {
-        using var content = new StringContent(json, Encoding.UTF8, "application/json");
-        var response = await Client.PostAsync("/api/imports/arbeitsagentur", content, CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        return (await response.Content.ReadFromJsonAsync<ImportResultDto>(CancellationToken))!;
     }
 
     private async Task SeedAsync(params Vacancy[] vacancies)

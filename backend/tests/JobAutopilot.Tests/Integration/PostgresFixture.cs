@@ -91,5 +91,6 @@ public sealed class PostgresFixture : IAsyncLifetime
     {
         await using var db = CreateDbContext();
         await db.Vacancies.ExecuteDeleteAsync(cancellationToken);
+        await db.ImportRuns.ExecuteDeleteAsync(cancellationToken);
     }
 }

@@ -13,6 +13,12 @@ public sealed class FakeVacancySource : IVacancySource
 
     public List<VacancySearch> Searches { get; } = [];
 
+    /// <summary>When set, each search waits for it before returning results (to observe a running import).</summary>
+    public TaskCompletionSource? Gate { get; set; }
+
+    /// <summary>Completed when the first search has started.</summary>
+    public TaskCompletionSource FirstSearchStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     /// <summary>When set, every search fails with <see cref="VacancySourceUnavailableException"/>.</summary>
     public bool IsUnavailable { get; set; }
 
@@ -28,7 +34,13 @@ public sealed class FakeVacancySource : IVacancySource
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         Searches.Add(search);
+        FirstSearchStarted.TrySetResult();
         await Task.Yield();
+
+        if (Gate is not null)
+        {
+            await Gate.Task.WaitAsync(cancellationToken);
+        }
 
         if (IsUnavailable)
         {

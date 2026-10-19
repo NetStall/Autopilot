@@ -65,7 +65,7 @@ public class VacancySeenTests(PostgresFixture postgres) : IntegrationTestBase(po
     }
 
     [Fact]
-    public async Task Patch_without_is_seen_is_a_validation_problem()
+    public async Task Patch_without_any_field_is_a_validation_problem()
     {
         var vacancy = Make();
         await SeedAsync(vacancy);
@@ -74,7 +74,7 @@ public class VacancySeenTests(PostgresFixture postgres) : IntegrationTestBase(po
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(CancellationToken);
-        problem!.Errors.Keys.Should().Equal("IsSeen");
+        problem!.Errors.Keys.Should().BeEquivalentTo("IsSeen", "Interest");
     }
 
     [Fact]

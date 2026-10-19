@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using FluentAssertions;
 using JobAutopilot.Api.Features.VacancyImports;
 using JobAutopilot.Core.Import;
@@ -14,10 +15,9 @@ using static JobAutopilot.Tests.Fakes.FakeVacancySource;
 
 namespace JobAutopilot.Tests.Integration;
 
+/// <summary>POST /api/imports (background run) with a fake source: request handling, results, failures.</summary>
 public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBase(postgres)
 {
-    private const string Url = "/api/imports/arbeitsagentur";
-
     private readonly FakeVacancySource _source = new();
 
     private int ConfiguredSearchCount =>
@@ -33,15 +33,15 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
     public async Task First_import_adds_and_second_import_updates_only_what_changed()
     {
         _source.Returns(".NET Entwickler", Candidate("10000-1-S"), Candidate("10000-2-S"));
-        var search = new { keyword = ".NET Entwickler", location = "Deggendorf", radiusKm = 50, publishedWithinDays = 14 };
+        const string search = """{ "keyword": ".NET Entwickler", "location": "Deggendorf", "radiusKm": 50, "publishedWithinDays": 14 }""";
 
-        var first = await PostAsync(search);
+        var first = await RunImportAsync(search);
         await MarkAllSeenAsync();
         _source.Returns(".NET Entwickler", Candidate("10000-1-S", title: "Geänderter Titel"), Candidate("10000-2-S"));
-        var second = await PostAsync(search);
+        var second = await RunImportAsync(search);
 
-        first.Should().BeEquivalentTo(new { Fetched = 2, Added = 2, Updated = 0, Unchanged = 0 });
-        second.Should().BeEquivalentTo(new { Fetched = 2, Added = 0, Updated = 1, Unchanged = 1 });
+        first.Should().BeEquivalentTo(new { Status = ImportRunStatus.Succeeded, Fetched = 2, Added = 2, Updated = 0, Unchanged = 0 });
+        second.Should().BeEquivalentTo(new { Status = ImportRunStatus.Succeeded, Fetched = 2, Added = 0, Updated = 1, Unchanged = 1 });
 
         await using var db = Postgres.CreateDbContext();
         var stored = await db.Vacancies.OrderBy(v => v.ExternalId).ToListAsync(CancellationToken);
@@ -57,9 +57,14 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
     [Fact]
     public async Task Empty_body_runs_all_configured_searches()
     {
-        var response = await Client.PostAsync(Url, content: null, CancellationToken);
+        var run = await RunImportAsync();
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        run.Status.Should().Be(ImportRunStatus.Succeeded);
+        run.Trigger.Should().Be(ImportTrigger.Manual);
+        run.SearchesTotal.Should().Be(ConfiguredSearchCount);
+        run.SearchesDone.Should().Be(ConfiguredSearchCount);
+        run.Searches.Should().HaveCount(ConfiguredSearchCount);
+        run.DurationMs.Should().NotBeNull();
         _source.Searches.Should().HaveCount(ConfiguredSearchCount);
         _source.Searches[0].Should().Be(new VacancySearch
         {
@@ -71,20 +76,21 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
     public async Task Empty_form_post_like_windows_powershell_runs_all_configured_searches()
     {
         // Invoke-RestMethod -Method Post (Windows PowerShell 5.1) sends this content type with an empty body.
-        using var content = new StringContent(string.Empty, System.Text.Encoding.UTF8, "application/x-www-form-urlencoded");
+        using var content = new StringContent(string.Empty, Encoding.UTF8, "application/x-www-form-urlencoded");
 
-        var response = await Client.PostAsync(Url, content, CancellationToken);
+        var response = await Client.PostAsync("/api/imports", content, CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        _source.Searches.Should().HaveCount(ConfiguredSearchCount);
+        response.StatusCode.Should().Be(HttpStatusCode.Accepted);
+        var started = (await response.Content.ReadFromJsonAsync<ImportStartedDto>(ApiJson, CancellationToken))!;
+        (await WaitForImportAsync(started.ImportId)).SearchesTotal.Should().Be(ConfiguredSearchCount);
     }
 
     [Fact]
     public async Task Non_json_body_returns_415()
     {
-        using var content = new StringContent("keyword=Dev", System.Text.Encoding.UTF8, "application/x-www-form-urlencoded");
+        using var content = new StringContent("keyword=Dev", Encoding.UTF8, "application/x-www-form-urlencoded");
 
-        var response = await Client.PostAsync(Url, content, CancellationToken);
+        var response = await Client.PostAsync("/api/imports", content, CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.UnsupportedMediaType);
         _source.Searches.Should().BeEmpty();
@@ -93,9 +99,7 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
     [Fact]
     public async Task Malformed_json_returns_400()
     {
-        using var content = new StringContent("{ keyword: ", System.Text.Encoding.UTF8, "application/json");
-
-        var response = await Client.PostAsync(Url, content, CancellationToken);
+        var response = await PostImportAsync("{ keyword: ");
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         _source.Searches.Should().BeEmpty();
@@ -103,14 +107,12 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
 
     [Theory]
     [InlineData("""{ "keyword": "" }""", "Keyword")]
-    [InlineData("""{ "keyword": "Dev", "radiusKm": 201 }""", "RadiusKm")]
-    [InlineData("""{ "keyword": "Dev", "radiusKm": -1 }""", "RadiusKm")]
+    [InlineData("""{ "keyword": "Dev", "location": "Passau", "radiusKm": 201 }""", "RadiusKm")]
+    [InlineData("""{ "keyword": "Dev", "location": "Passau", "radiusKm": -1 }""", "RadiusKm")]
     [InlineData("""{ "keyword": "Dev", "publishedWithinDays": 101 }""", "PublishedWithinDays")]
     public async Task Invalid_search_returns_validation_problem(string body, string expectedField)
     {
-        using var content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
-
-        var response = await Client.PostAsync(Url, content, CancellationToken);
+        var response = await PostImportAsync(body);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(CancellationToken);
@@ -119,24 +121,43 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
     }
 
     [Fact]
-    public async Task Unreachable_source_returns_502_and_saves_nothing()
+    public async Task Unreachable_source_fails_the_run_and_saves_nothing()
     {
         _source.Returns(".NET Entwickler", Candidate("10000-1-S"));
         _source.IsUnavailable = true;
 
-        var response = await Client.PostAsync(Url, content: null, CancellationToken);
+        var run = await RunImportAsync();
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
-        response.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
+        run.Status.Should().Be(ImportRunStatus.Failed);
+        run.Error.Should().StartWith("The Arbeitsagentur Jobsuche API is not reachable. Nothing was imported.");
+        run.FinishedAt.Should().NotBeNull();
         await using var db = Postgres.CreateDbContext();
         (await db.Vacancies.CountAsync(CancellationToken)).Should().Be(0);
+        (await db.ImportRuns.SingleAsync(CancellationToken)).IsActive.Should().BeFalse();
     }
 
-    private async Task<ImportResultDto> PostAsync(object search)
+    [Fact]
+    public async Task Unknown_import_id_is_404()
     {
-        var response = await Client.PostAsJsonAsync(Url, search, CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        return (await response.Content.ReadFromJsonAsync<ImportResultDto>(CancellationToken))!;
+        var response = await Client.GetAsync($"/api/imports/{Guid.NewGuid()}", CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Recent_imports_are_listed_newest_first_with_a_limit()
+    {
+        var first = await RunImportAsync("""{ "keyword": "A" }""");
+        Factory.Clock.Advance(TimeSpan.FromMinutes(1));
+        var second = await RunImportAsync("""{ "keyword": "B" }""");
+
+        var all = await Client.GetFromJsonAsync<List<ImportRunDto>>("/api/imports", ApiJson, CancellationToken);
+        var one = await Client.GetFromJsonAsync<List<ImportRunDto>>("/api/imports?limit=1", ApiJson, CancellationToken);
+
+        all!.Select(r => r.Id).Should().Equal(second.Id, first.Id);
+        one!.Select(r => r.Id).Should().Equal(second.Id);
+        (await Client.GetAsync("/api/imports?limit=0", CancellationToken)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await Client.GetAsync("/api/imports?limit=51", CancellationToken)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     private async Task MarkAllSeenAsync()
