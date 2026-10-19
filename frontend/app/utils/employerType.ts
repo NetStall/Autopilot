@@ -9,7 +9,25 @@ const employerTypeLabels: Record<EmployerType, string> = {
 
 const sourceLabels: Record<VacancySource, string> = {
   Arbeitsagentur: 'Bundesagentur für Arbeit',
+  Himalayas: 'Himalayas',
   Manual: 'Manuell erfasst',
+}
+
+export interface SourceAttribution {
+  /** e.g. „via Himalayas" */
+  label: string
+  /** The source's own site — the Himalayas terms require a visible link. */
+  href: string
+}
+
+const attributions: Partial<Record<VacancySource, SourceAttribution>> = {
+  Himalayas: { label: 'via Himalayas', href: 'https://himalayas.app' },
+  Arbeitsagentur: { label: 'via Bundesagentur für Arbeit', href: 'https://www.arbeitsagentur.de/jobsuche/' },
+}
+
+/** Credit and link for vacancies from an external source; null for manual ones. */
+export function sourceAttribution(source: VacancySource): SourceAttribution | null {
+  return attributions[source] ?? null
 }
 
 /** German UI label for an employer type. */

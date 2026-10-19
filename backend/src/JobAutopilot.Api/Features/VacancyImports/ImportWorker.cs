@@ -69,9 +69,9 @@ public sealed partial class ImportWorker(
 
             await using var importScope = scopes.CreateAsyncScope();
             var services = importScope.ServiceProvider;
-            var source = services.GetServices<IVacancySource>().Single(s => s.Source == VacancySource.Arbeitsagentur);
+            var sources = services.GetServices<IVacancySource>().ToList();
             var result = await services.GetRequiredService<VacancyImportService>().ImportAsync(
-                source,
+                sources,
                 job.Searches,
                 new TitleExclusionFilter(job.ExcludeTitleTerms),
                 stoppingToken,
@@ -87,6 +87,14 @@ public sealed partial class ImportWorker(
                     search.Unchanged, search.Excluded);
             }
 
+            // Himalayas terms: postings are removed once they expire.
+            var expired = await services.GetRequiredService<IVacancyStore>()
+                .DeleteExpiredAsync(timeProvider.GetUtcNow(), stoppingToken);
+            if (expired > 0)
+            {
+                LogExpiredDeleted(logger, expired);
+            }
+
             await FetchDetailsAsync(services, run, runs, stoppingToken);
             run.Succeed(result, timeProvider.GetUtcNow());
         }
@@ -97,7 +105,7 @@ public sealed partial class ImportWorker(
         }
         catch (VacancySourceUnavailableException ex)
         {
-            run.Fail("The Arbeitsagentur Jobsuche API is not reachable. Nothing was imported. " + ex.Message,
+            run.Fail("No job source was reachable. Nothing was imported. " + ex.Message,
                 timeProvider.GetUtcNow());
             LogFailed(logger, ex, run.Id);
         }
@@ -188,6 +196,9 @@ public sealed partial class ImportWorker(
         Message = "Details from {Source}: requested {Requested}, fetched {Fetched}, gone {NotFound}, stopped early {Stopped}")]
     private static partial void LogDetailsFetched(
         ILogger logger, VacancySource source, int requested, int fetched, int notFound, bool stopped);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Deleted {Count} expired vacancies")]
+    private static partial void LogExpiredDeleted(ILogger logger, int count);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Import {RunId}: fetching details was interrupted by the shutdown")]
     private static partial void LogDetailsInterrupted(ILogger logger, Guid runId);

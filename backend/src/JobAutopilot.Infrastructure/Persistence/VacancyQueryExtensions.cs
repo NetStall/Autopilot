@@ -68,6 +68,12 @@ public static class VacancyQueryExtensions
             query = query.Where(v => v.FetchedAt >= sinceUtc);
         }
 
+        if (filter.NotExpiredAt is { } activeAt)
+        {
+            var activeUtc = activeAt.ToUniversalTime();
+            query = query.Where(v => v.ExpiresAt == null || v.ExpiresAt >= activeUtc);
+        }
+
         if (filter.MatchedSearches is { Count: > 0 } searches)
         {
             // Array overlap (&&): found by at least one of the given searches.
@@ -77,6 +83,19 @@ public static class VacancyQueryExtensions
 
         return query;
     }
+
+    /// <summary>
+    /// Shows each job once: of all vacancies with the same <see cref="Vacancy.DuplicateKey"/> in
+    /// <paramref name="pool"/>, only the one imported first is kept (ties: lower source/external id). The others are
+    /// listed with it as "also found at". The pool is all vacancies — so dismissing the first one also hides its
+    /// duplicates — or, with a source filter, the vacancies of that source.
+    /// </summary>
+    public static IQueryable<Vacancy> CollapseDuplicates(this IQueryable<Vacancy> query, IQueryable<Vacancy> pool) =>
+        query.Where(v => v.DuplicateKey == null || !pool.Any(o =>
+            o.DuplicateKey == v.DuplicateKey
+            && o.Id != v.Id
+            && (o.FetchedAt < v.FetchedAt
+                || (o.FetchedAt == v.FetchedAt && string.Compare(o.ExternalId, v.ExternalId) < 0))));
 
     /// <summary>Stable ordering for paging; ties are broken by import time and id.</summary>
     public static IOrderedQueryable<Vacancy> ApplySort(this IQueryable<Vacancy> query, VacancySort sort) => sort switch

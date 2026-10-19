@@ -254,3 +254,12 @@ describe('hasActiveFilters', () => {
     expect(hasActiveFilters({ ...defaults(), ...patch })).toBe(true)
   })
 })
+
+describe('source filter', () => {
+  it('accepts Himalayas from the URL and sends it to the API', () => {
+    const filters = filtersFromQuery({ source: 'Himalayas' })
+
+    expect(filters.source).toBe('Himalayas')
+    expect(filtersToApiParams(filters, 20).source).toBe('Himalayas')
+  })
+})

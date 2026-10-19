@@ -1,3 +1,5 @@
+using JobAutopilot.Core.Vacancies;
+
 namespace JobAutopilot.Core.Import;
 
 /// <summary>Validation rules for searches, shared by the configuration check and the ad-hoc import request.</summary>
@@ -52,6 +54,16 @@ public static class VacancySearchRules
         if (search.PublishedWithinDays is < 0 or > MaxPublishedWithinDays)
         {
             errors.Add($"PublishedWithinDays must be between 0 and {MaxPublishedWithinDays}.");
+        }
+
+        if (search.Source is not (VacancySource.Arbeitsagentur or VacancySource.Himalayas))
+        {
+            errors.Add("Source must be Arbeitsagentur or Himalayas.");
+        }
+
+        if (search.Source == VacancySource.Himalayas && !string.IsNullOrWhiteSpace(search.Location))
+        {
+            errors.Add("Himalayas searches have no Location: they always search remote jobs open to Germany.");
         }
 
         if (search.MaxPages is < 1 or > MaxPagesLimit)

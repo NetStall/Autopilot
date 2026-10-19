@@ -24,6 +24,12 @@ public class Vacancy
 
     public DateTimeOffset? PublishedAt { get; set; }
 
+    /// <summary>When the source takes the posting down (Himalayas); expired vacancies are deleted.</summary>
+    public DateTimeOffset? ExpiresAt { get; set; }
+
+    /// <summary>Company + title normalised (<see cref="DuplicateKeys"/>): the same job from several sources.</summary>
+    public string? DuplicateKey { get; set; }
+
     /// <summary>When the vacancy entered this system.</summary>
     public DateTimeOffset FetchedAt { get; set; }
 

@@ -191,7 +191,7 @@ public sealed class ArbeitsagenturClientTests : IDisposable
         services.AddHttpClient<ArbeitsagenturClient>().ConfigurePrimaryHttpMessageHandler(() => _handler);
         _services = services.BuildServiceProvider();
 
-        var source = _services.GetRequiredService<IVacancySource>();
+        var source = _services.GetServices<IVacancySource>().Single(s => s.Source == Core.Vacancies.VacancySource.Arbeitsagentur);
         var result = new List<VacancyCandidate>();
         await foreach (var candidate in source.SearchAsync(search, TestContext.Current.CancellationToken))
         {

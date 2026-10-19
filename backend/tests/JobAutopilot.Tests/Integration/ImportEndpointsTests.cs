@@ -65,7 +65,11 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
         run.SearchesDone.Should().Be(ConfiguredSearchCount);
         run.Searches.Should().HaveCount(ConfiguredSearchCount);
         run.DurationMs.Should().NotBeNull();
-        _source.Searches.Should().HaveCount(ConfiguredSearchCount);
+        // The fake stands in for the Arbeitsagentur; the Himalayas searches find no client and are skipped with an error.
+        var arbeitsagenturSearches = Factory.Services.GetRequiredService<IOptions<ImportOptions>>().Value.Searches
+            .Count(s => s.Source == VacancySource.Arbeitsagentur);
+        _source.Searches.Should().HaveCount(arbeitsagenturSearches);
+        run.Searches.Where(s => s.Source == VacancySource.Himalayas).Should().OnlyContain(s => s.Error != null);
         _source.Searches[0].Should().Be(new VacancySearch
         {
             Name = "region-softwareentwickler", Keyword = "Softwareentwickler", Location = "Deggendorf", RadiusKm = 70,
@@ -129,7 +133,7 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
         var run = await RunImportAsync();
 
         run.Status.Should().Be(ImportRunStatus.Failed);
-        run.Error.Should().StartWith("The Arbeitsagentur Jobsuche API is not reachable. Nothing was imported.");
+        run.Error.Should().StartWith("No job source was reachable. Nothing was imported.");
         run.FinishedAt.Should().NotBeNull();
         await using var db = Postgres.CreateDbContext();
         (await db.Vacancies.CountAsync(CancellationToken)).Should().Be(0);

@@ -4,7 +4,8 @@ namespace JobAutopilot.Core.Vacancies;
 /// Criteria for browsing vacancies. <c>null</c> means "no restriction". <see cref="MatchedSearches"/> matches
 /// vacancies found by any of the given searches. Dismissed vacancies are left out unless
 /// <see cref="IncludeDismissed"/> is set or <see cref="Interests"/> asks for them explicitly. Vacancies that are not
-/// scored yet count as <see cref="RelevanceLevel.Maybe"/>.
+/// scored yet count as <see cref="RelevanceLevel.Maybe"/>. <see cref="NotExpiredAt"/> hides postings expired at that
+/// moment (they are deleted with the next import).
 /// </summary>
 public sealed record VacancyFilter(
     string? Text = null,
@@ -18,7 +19,8 @@ public sealed record VacancyFilter(
     IReadOnlyCollection<VacancyInterest>? Interests = null,
     bool IncludeDismissed = false,
     DateTimeOffset? FetchedSince = null,
-    IReadOnlyCollection<RelevanceLevel>? RelevanceLevels = null);
+    IReadOnlyCollection<RelevanceLevel>? RelevanceLevels = null,
+    DateTimeOffset? NotExpiredAt = null);
 
 public enum VacancySort
 {

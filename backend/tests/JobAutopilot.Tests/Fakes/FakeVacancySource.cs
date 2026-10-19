@@ -5,11 +5,11 @@ using JobAutopilot.Core.Vacancies;
 namespace JobAutopilot.Tests.Fakes;
 
 /// <summary>Returns canned candidates per search name (or keyword) and records which searches were run.</summary>
-public sealed class FakeVacancySource : IVacancySource
+public sealed class FakeVacancySource(VacancySource source = VacancySource.Arbeitsagentur) : IVacancySource
 {
     private readonly Dictionary<string, List<VacancyCandidate>> _results = new(StringComparer.Ordinal);
 
-    public VacancySource Source => VacancySource.Arbeitsagentur;
+    public VacancySource Source => source;
 
     public List<VacancySearch> Searches { get; } = [];
 

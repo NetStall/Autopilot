@@ -39,6 +39,12 @@ internal sealed class EfVacancyStore(AppDbContext db) : IVacancyStore
             .ToListAsync(cancellationToken);
     }
 
+    public Task<int> DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var utc = now.ToUniversalTime();
+        return db.Vacancies.Where(v => v.ExpiresAt != null && v.ExpiresAt < utc).ExecuteDeleteAsync(cancellationToken);
+    }
+
     public void Add(Vacancy vacancy) => db.Vacancies.Add(vacancy);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);

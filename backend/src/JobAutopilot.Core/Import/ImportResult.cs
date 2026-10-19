@@ -14,11 +14,15 @@ public sealed record ImportResult(
     int Excluded,
     IReadOnlyList<SearchImportResult> Searches);
 
-/// <summary>Counts for one search. A vacancy already handled by an earlier search of the same run is not counted again.</summary>
+/// <summary>
+/// Counts for one search. A vacancy already handled by an earlier search of the same run is not counted again.
+/// <paramref name="Error"/> is set (user-facing, German) when the search was skipped because its source failed.
+/// </summary>
 public sealed record SearchImportResult(
     VacancySearch Search,
     int Fetched,
     int Added,
     int Updated,
     int Unchanged,
-    int Excluded);
+    int Excluded,
+    string? Error = null);

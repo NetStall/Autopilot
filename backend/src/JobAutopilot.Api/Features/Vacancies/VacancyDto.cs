@@ -21,4 +21,8 @@ public sealed record VacancyDto(
     int? RelevanceScore,
     RelevanceLevel? RelevanceLevel,
     IReadOnlyList<string> RelevanceReasons,
-    DateTimeOffset? DetailsFetchedAt);
+    DateTimeOffset? DetailsFetchedAt,
+    IReadOnlyList<VacancyLinkDto> AlsoFoundAt);
+
+/// <summary>The same job in another place (other source or a repost), see <c>DuplicateKey</c>.</summary>
+public sealed record VacancyLinkDto(Guid Id, VacancySource Source, string? Url);

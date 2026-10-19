@@ -1,0 +1,47 @@
+{
+  "comments": "Hand-written fixture in the shape of GET jobs/api/search (2026-10-19).",
+  "updatedAt": 1792416015,
+  "offset": 0,
+  "limit": 20,
+  "totalCount": 25,
+  "jobs": [
+    {
+      "title": "Senior .NET Developer (m/w/d) - remote",
+      "excerpt": "Remote in Deutschland",
+      "companyName": "Beispiel Software GmbH",
+      "companySlug": "beispiel-software",
+      "employmentType": "Full Time",
+      "seniority": ["Senior"],
+      "currency": "EUR",
+      "locationRestrictions": ["Germany"],
+      "timezoneRestrictions": [1],
+      "categories": [".NET-Development"],
+      "parentCategories": ["Developer"],
+      "description": "<h3>Über uns</h3><p>Wir entwickeln mit <strong>C#</strong>, ASP.NET Core &amp; Vue.js.</p><ul><li>100 % remote</li><li>PostgreSQL</li></ul><script>alert(1)</script>",
+      "pubDate": 1792386898,
+      "expiryDate": 1797570898,
+      "applicationLink": "https://himalayas.app/companies/beispiel-software/jobs/senior-net-developer-4267385201?utm_source=api",
+      "guid": "https://himalayas.app/companies/beispiel-software/jobs/senior-net-developer-4267385201"
+    },
+    {
+      "title": "Backend Engineer (US only)",
+      "companyName": "Example Inc",
+      "locationRestrictions": ["United States"],
+      "description": "<p>US only</p>",
+      "pubDate": 1792386898,
+      "expiryDate": 1797570898,
+      "applicationLink": "https://himalayas.app/companies/example/jobs/backend-engineer-1",
+      "guid": "https://himalayas.app/companies/example/jobs/backend-engineer-1"
+    },
+    {
+      "title": "Fullstack Developer Vue/.NET",
+      "companyName": "Alt GmbH",
+      "locationRestrictions": ["Germany", "Austria", "Switzerland"],
+      "description": "<p>Alt</p>",
+      "pubDate": 1780000000,
+      "expiryDate": 1797570898,
+      "applicationLink": "https://himalayas.app/companies/alt/jobs/fullstack-old-2",
+      "guid": "https://himalayas.app/companies/alt/jobs/fullstack-old-2"
+    }
+  ]
+}

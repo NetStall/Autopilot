@@ -1,3 +1,5 @@
+using JobAutopilot.Core.Vacancies;
+
 namespace JobAutopilot.Core.Import;
 
 public enum ImportRunStatus
@@ -118,6 +120,8 @@ public class ImportRunSearch
 
     public required string Keyword { get; set; }
 
+    public VacancySource Source { get; set; }
+
     public string? Location { get; set; }
 
     public bool RemoteOnly { get; set; }
@@ -132,6 +136,9 @@ public class ImportRunSearch
 
     public int Excluded { get; set; }
 
+    /// <summary>Why the search was skipped, if it was.</summary>
+    public string? Error { get; set; }
+
     public static ImportRunSearch From(SearchImportResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -139,6 +146,7 @@ public class ImportRunSearch
         {
             Name = result.Search.Name,
             Keyword = result.Search.Keyword,
+            Source = result.Search.Source,
             Location = result.Search.Location,
             RemoteOnly = result.Search.RemoteOnly,
             Fetched = result.Fetched,
@@ -146,6 +154,7 @@ public class ImportRunSearch
             Updated = result.Updated,
             Unchanged = result.Unchanged,
             Excluded = result.Excluded,
+            Error = result.Error,
         };
     }
 }

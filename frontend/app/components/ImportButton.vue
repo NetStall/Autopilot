@@ -19,8 +19,10 @@ const searchResults = computed<SearchImportResult[]>(() =>
 
 function searchDescription(search: SearchImportResult): string {
   const where = search.remoteOnly ? 'remote, Deutschland' : (search.location ?? 'Deutschland')
-  return `${search.keyword} · ${where}`
+  return `${search.keyword} · ${where} · ${sourceLabel(search.source ?? 'Arbeitsagentur')}`
 }
+
+const failedSearches = computed(() => searchResults.value.filter(s => s.error))
 
 async function poll(importId: string) {
   clearTimeout(pollTimer)
@@ -121,11 +123,16 @@ onBeforeUnmount(() => clearTimeout(pollTimer))
               <th scope="row" :title="searchDescription(search)">
                 {{ search.name }}
               </th>
-              <td>{{ search.fetched }}</td>
+              <td v-if="search.error" colspan="5" class="import__search-error">
+                {{ search.error }}
+              </td>
+              <template v-else>
+                <td>{{ search.fetched }}</td>
               <td>{{ search.added }}</td>
               <td>{{ search.updated }}</td>
               <td>{{ search.unchanged }}</td>
-              <td>{{ search.excluded }}</td>
+                <td>{{ search.excluded }}</td>
+              </template>
             </tr>
           </tbody>
         </table>
@@ -135,6 +142,11 @@ onBeforeUnmount(() => clearTimeout(pollTimer))
         die schon eine frühere Suche geliefert hat.
       </p>
     </details>
+
+    <p v-if="failedSearches.length > 0" class="import__warning" role="status">
+      {{ failedSearches.length }} {{ failedSearches.length === 1 ? 'Suche wurde' : 'Suchen wurden' }} übersprungen
+      (Quelle nicht erreichbar) – siehe „Details je Suche".
+    </p>
 
     <p v-if="errorMessage || view?.error" class="import__error" role="alert">
       {{ errorMessage ?? view?.error }}
@@ -225,6 +237,19 @@ onBeforeUnmount(() => clearTimeout(pollTimer))
     flex-basis: 100%;
     text-align: right;
     color: var(--color-error-text);
+  }
+
+  &__warning {
+    flex-basis: 100%;
+    margin: 0;
+    text-align: right;
+    font-size: 0.85rem;
+    color: var(--color-warning-text);
+  }
+
+  &__search-error {
+    color: var(--color-warning-text);
+    text-align: left;
   }
 }
 

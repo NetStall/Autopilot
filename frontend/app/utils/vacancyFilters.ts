@@ -16,7 +16,7 @@ export const RELEVANCE_LEVELS: readonly RelevanceLevel[] = ['Relevant', 'Maybe',
 /** The default list: everything except „Irrelevant". */
 export const DEFAULT_RELEVANCE: readonly RelevanceLevel[] = ['Relevant', 'Maybe']
 
-export const VACANCY_SOURCES: readonly VacancySource[] = ['Arbeitsagentur', 'Manual']
+export const VACANCY_SOURCES: readonly VacancySource[] = ['Arbeitsagentur', 'Himalayas', 'Manual']
 
 /** Alle / Neu / Gesehen */
 export type StatusFilter = 'all' | 'new' | 'seen'

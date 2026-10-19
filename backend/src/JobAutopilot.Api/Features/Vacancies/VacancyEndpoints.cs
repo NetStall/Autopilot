@@ -30,13 +30,15 @@ public static partial class VacancyEndpoints
     private static async Task<Ok<PagedResponse<VacancyDto>>> ListVacancies(
         [AsParameters] VacancyListQuery request,
         AppDbContext db,
+        TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
-        var filter = request.ToFilter();
+        var filter = request.ToFilter() with { NotExpiredAt = timeProvider.GetUtcNow() };
         var page = request.PageOrDefault;
         var pageSize = request.PageSizeOrDefault;
 
-        var query = db.Vacancies.AsNoTracking().ApplyFilter(filter);
+        var pool = filter.Source is { } source ? db.Vacancies.Where(v => v.Source == source) : db.Vacancies;
+        var query = db.Vacancies.AsNoTracking().ApplyFilter(filter).CollapseDuplicates(pool);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var vacancies = await query
@@ -46,7 +48,8 @@ public static partial class VacancyEndpoints
             .ToListAsync(cancellationToken);
 
         // The list does not need the (long) descriptions; the detail endpoint returns them.
-        var items = vacancies.ConvertAll(v => v.ToDto(includeDescription: false));
+        var duplicates = await DuplicatesOfAsync(db, vacancies, cancellationToken);
+        var items = vacancies.ConvertAll(v => v.ToDto(includeDescription: false, AlsoFoundAt(v, duplicates)));
         return TypedResults.Ok(new PagedResponse<VacancyDto>(items, page, pageSize, totalCount));
     }
 
@@ -57,9 +60,38 @@ public static partial class VacancyEndpoints
     {
         var vacancy = await db.Vacancies.AsNoTracking()
             .FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
+        if (vacancy is null)
+        {
+            return TypedResults.NotFound();
+        }
 
-        return vacancy is null ? TypedResults.NotFound() : TypedResults.Ok(vacancy.ToDto());
+        var duplicates = await DuplicatesOfAsync(db, [vacancy], cancellationToken);
+        return TypedResults.Ok(vacancy.ToDto(alsoFoundAt: AlsoFoundAt(vacancy, duplicates)));
     }
+
+    /// <summary>All vacancies sharing a duplicate key with one of <paramref name="vacancies"/>, by key.</summary>
+    private static async Task<ILookup<string, Core.Vacancies.Vacancy>> DuplicatesOfAsync(
+        AppDbContext db,
+        IReadOnlyCollection<Core.Vacancies.Vacancy> vacancies,
+        CancellationToken cancellationToken)
+    {
+        var keys = vacancies.Select(v => v.DuplicateKey).OfType<string>().Distinct(StringComparer.Ordinal).ToList();
+        if (keys.Count == 0)
+        {
+            return Array.Empty<Core.Vacancies.Vacancy>().ToLookup(v => v.DuplicateKey!);
+        }
+
+        var found = await db.Vacancies.AsNoTracking()
+            .Where(v => v.DuplicateKey != null && keys.Contains(v.DuplicateKey))
+            .OrderBy(v => v.FetchedAt)
+            .ToListAsync(cancellationToken);
+        return found.ToLookup(v => v.DuplicateKey!, StringComparer.Ordinal);
+    }
+
+    private static List<VacancyLinkDto> AlsoFoundAt(Core.Vacancies.Vacancy vacancy, ILookup<string, Core.Vacancies.Vacancy> duplicates) =>
+        vacancy.DuplicateKey is null
+            ? []
+            : [.. duplicates[vacancy.DuplicateKey].Where(d => d.Id != vacancy.Id).Select(d => new VacancyLinkDto(d.Id, d.Source, d.Url))];
 
     private static async Task<CreatedAtRoute<VacancyDto>> CreateVacancy(
         CreateVacancyRequest request,

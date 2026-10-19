@@ -2,7 +2,14 @@
 
 export type EmployerType = 'Unknown' | 'Direct' | 'Agency' | 'Temporary'
 
-export type VacancySource = 'Arbeitsagentur' | 'Manual'
+export type VacancySource = 'Arbeitsagentur' | 'Himalayas' | 'Manual'
+
+/** The same job in another place (other source or repost). */
+export interface VacancyLink {
+  id: string
+  source: VacancySource
+  url: string | null
+}
 
 export type VacancySort = 'relevance' | 'published' | 'fetched'
 
@@ -37,6 +44,7 @@ export interface Vacancy {
   /** Why: „C# im Titel ✓ (+50)", „Java als Hauptsprache ✗ (-60)", remote and employer notes. */
   relevanceReasons: string[]
   detailsFetchedAt: string | null
+  alsoFoundAt: VacancyLink[]
 }
 
 export interface PagedResponse<T> {
@@ -75,6 +83,9 @@ export interface SearchImportResult {
   updated: number
   unchanged: number
   excluded: number
+  source: VacancySource
+  /** Set when the search was skipped because its source failed. */
+  error: string | null
 }
 
 export type ImportRunStatus = 'Queued' | 'Running' | 'Succeeded' | 'Failed' | 'Cancelled'
@@ -130,6 +141,7 @@ export interface ConfiguredSearch {
   radiusKm: number | null
   publishedWithinDays: number
   remoteOnly: boolean
+  source: VacancySource
 }
 
 /** RFC 9457 problem details as returned by the API on errors. */

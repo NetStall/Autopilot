@@ -3,8 +3,8 @@ using JobAutopilot.Core.Vacancies;
 namespace JobAutopilot.Core.Scoring;
 
 /// <summary>
-/// Derives everything that is computed from a vacancy's text: remote level, employer type and relevance (score,
-/// level, reasons). Called by the import (new and refreshed vacancies), after fetching details, and when re-scoring.
+/// Derives everything that is computed from a vacancy's text: duplicate key, remote level, employer type and
+/// relevance (score, level, reasons). Called by the import (new and refreshed vacancies), after fetching details, and when re-scoring.
 /// </summary>
 public sealed class VacancyEnricher(
     RelevanceScorer scorer,
@@ -20,6 +20,7 @@ public sealed class VacancyEnricher(
     {
         ArgumentNullException.ThrowIfNull(vacancy);
 
+        vacancy.DuplicateKey = DuplicateKeys.For(vacancy.Company, vacancy.Title);
         var remote = remoteClassifier.Classify(vacancy.Title, vacancy.Description);
         vacancy.RaiseRemoteLevel(remoteHint > remote.Level ? remoteHint : remote.Level);
 

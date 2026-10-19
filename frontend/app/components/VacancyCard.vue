@@ -24,6 +24,8 @@ const originalUrl = computed(() => safeExternalUrl(props.vacancy.url))
 const badges = computed(() => vacancyBadges(props.vacancy))
 const score = computed(() => scoreBadge(props.vacancy))
 const reasonsOpen = ref(false)
+const attribution = computed(() => sourceAttribution(props.vacancy.source))
+const alsoFoundAt = computed(() => props.vacancy.alsoFoundAt ?? [])
 const reasonsId = computed(() => `reasons-${props.vacancy.id}`)
 const statusBadges = computed(() => badges.value.filter(b => b.variant !== 'employer' && b.variant !== 'intermediary'))
 const employerBadge = computed(() => badges.value.find(b => b.variant === 'employer' || b.variant === 'intermediary'))
@@ -62,6 +64,15 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
       <p class="card__meta">
         <span>{{ vacancy.company }}</span>
         <span v-if="vacancy.location"> · {{ vacancy.location }}</span>
+      </p>
+      <p class="card__source">
+        <a v-if="attribution" :href="attribution.href" target="_blank" rel="noopener noreferrer">{{ attribution.label }}</a>
+        <span v-if="alsoFoundAt.length > 0">
+          · auch bei
+          <template v-for="(link, index) in alsoFoundAt" :key="link.id">
+            <NuxtLink :to="{ path: `/vacancies/${link.id}`, query: listQuery }">{{ sourceLabel(link.source) }}</NuxtLink><span v-if="index < alsoFoundAt.length - 1">, </span>
+          </template>
+        </span>
       </p>
       <p class="card__date">
         <time :datetime="vacancy.publishedAt ?? vacancy.fetchedAt" :title="dateTitle">{{ dateLabel }}</time>
@@ -177,6 +188,12 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
     margin: var(--space-1) 0 0;
     color: var(--color-muted);
     overflow-wrap: anywhere;
+  }
+
+  &__source {
+    margin: var(--space-1) 0 0;
+    font-size: 0.8rem;
+    color: var(--color-muted);
   }
 
   &__date {

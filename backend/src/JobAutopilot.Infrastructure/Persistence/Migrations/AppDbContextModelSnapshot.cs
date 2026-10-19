@@ -108,10 +108,17 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("DetailsFetchedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DuplicateKey")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
                     b.Property<string>("EmployerType")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ExternalId")
                         .IsRequired()
@@ -180,6 +187,8 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DuplicateKey");
+
                     b.HasIndex("FetchedAt");
 
                     b.HasIndex("Interest");
@@ -205,6 +214,8 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
 
                             b1.Property<int>("Added");
 
+                            b1.Property<string>("Error");
+
                             b1.Property<int>("Excluded");
 
                             b1.Property<int>("Fetched");
@@ -218,6 +229,9 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                                 .IsRequired();
 
                             b1.Property<bool>("RemoteOnly");
+
+                            b1.Property<string>("Source")
+                                .IsRequired();
 
                             b1.Property<int>("Unchanged");
 

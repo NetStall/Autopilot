@@ -39,6 +39,9 @@ public sealed class InMemoryVacancyStore : IVacancyStore
         return Task.FromResult(page);
     }
 
+    public Task<int> DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
+        Task.FromResult(Saved.RemoveAll(v => v.ExpiresAt < now));
+
     public void Add(Vacancy vacancy) => _pending.Add(vacancy);
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)

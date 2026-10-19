@@ -8,6 +8,7 @@ namespace JobAutopilot.Core.Import;
 /// <param name="RemoteHint">What the source itself says about home office (e.g. Arbeitsagentur
 /// <c>homeofficeprozent</c>).</param>
 /// <param name="ChangedAt">When the posting was last changed at the source; a newer value refetches the details.</param>
+/// <param name="ExpiresAt">When the source takes the posting down; expired vacancies are removed (Himalayas terms).</param>
 public sealed record VacancyCandidate(
     string ExternalId,
     string Title,
@@ -17,4 +18,5 @@ public sealed record VacancyCandidate(
     DateTimeOffset? PublishedAt,
     string? Description = null,
     RemoteLevel RemoteHint = RemoteLevel.Unknown,
-    DateTimeOffset? ChangedAt = null);
+    DateTimeOffset? ChangedAt = null,
+    DateTimeOffset? ExpiresAt = null);

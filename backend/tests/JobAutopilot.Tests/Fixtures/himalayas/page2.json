@@ -1,0 +1,18 @@
+{
+  "updatedAt": 1792416015,
+  "offset": 20,
+  "limit": 20,
+  "totalCount": 25,
+  "jobs": [
+    {
+      "title": "C# Entwickler (w/m/d)",
+      "companyName": "Zweite AG",
+      "locationRestrictions": ["Germany", "Austria"],
+      "description": "Plain text without tags",
+      "pubDate": 1792300000000,
+      "expiryDate": null,
+      "applicationLink": "https://himalayas.app/companies/zweite/jobs/c-entwickler-3",
+      "guid": "https://himalayas.app/companies/zweite/jobs/c-entwickler-3"
+    }
+  ]
+}

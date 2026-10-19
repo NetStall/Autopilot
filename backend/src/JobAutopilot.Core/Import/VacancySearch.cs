@@ -1,3 +1,5 @@
+using JobAutopilot.Core.Vacancies;
+
 namespace JobAutopilot.Core.Import;
 
 /// <summary>
@@ -12,6 +14,9 @@ public sealed record VacancySearch
     public required string Name { get; init; }
 
     public required string Keyword { get; init; }
+
+    /// <summary>Where to search: <see cref="VacancySource.Arbeitsagentur"/> (default) or <see cref="VacancySource.Himalayas"/>.</summary>
+    public VacancySource Source { get; init; } = VacancySource.Arbeitsagentur;
 
     /// <summary>Place to search around; <c>null</c> = all of Germany.</summary>
     public string? Location { get; init; }

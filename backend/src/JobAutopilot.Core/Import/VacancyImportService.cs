@@ -4,16 +4,21 @@ using JobAutopilot.Core.Vacancies;
 namespace JobAutopilot.Core.Import;
 
 /// <summary>
-/// Runs searches against a source and upserts the results by <c>Source + ExternalId</c>:
-/// new vacancies are added, known ones get fresh posting data but keep everything the user did with them
-/// (<see cref="Vacancy.IsSeen"/>, <see cref="Vacancy.Interest"/>). Every vacancy remembers which searches found
-/// it; a remote-only search makes it at least <see cref="RemoteLevel.Hybrid"/>, and the level is never lowered.
-/// New and changed vacancies are scored right away (<see cref="VacancyEnricher"/>). Titles matching the exclusion
-/// filter are not stored. Everything is saved at once at the end, so a failing source leaves the database untouched.
+/// Runs searches against their sources (<see cref="VacancySearch.Source"/>) and upserts the results by
+/// <c>Source + ExternalId</c>: new vacancies are added, known ones get fresh posting data but keep everything the user
+/// did with them (<see cref="Vacancy.IsSeen"/>, <see cref="Vacancy.Interest"/>). Every vacancy remembers which
+/// searches found it; a remote-only search makes it at least <see cref="RemoteLevel.Hybrid"/>, and the level is never
+/// lowered. New and changed vacancies are scored right away (<see cref="VacancyEnricher"/>). Titles matching the
+/// exclusion filter are not stored.
+/// <para>
+/// A search whose source is unavailable is recorded with an error and skipped; the run fails only when every search
+/// failed. Everything is saved at once at the end, so a failing run leaves the database untouched.
+/// </para>
 /// </summary>
 public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeProvider, VacancyEnricher? enricher = null)
 {
-    public async Task<ImportResult> ImportAsync(
+    /// <summary>Imports from one source (all searches must belong to it).</summary>
+    public Task<ImportResult> ImportAsync(
         IVacancySource source,
         IReadOnlyList<VacancySearch> searches,
         TitleExclusionFilter exclusion,
@@ -22,12 +27,32 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(searches);
+        return ImportAsync(
+            [source],
+            [.. searches.Select(s => s with { Source = source.Source })],
+            exclusion,
+            cancellationToken,
+            onProgress);
+    }
+
+    public async Task<ImportResult> ImportAsync(
+        IReadOnlyCollection<IVacancySource> sources,
+        IReadOnlyList<VacancySearch> searches,
+        TitleExclusionFilter exclusion,
+        CancellationToken cancellationToken,
+        Func<ImportProgress, CancellationToken, Task>? onProgress = null)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+        ArgumentNullException.ThrowIfNull(searches);
         ArgumentNullException.ThrowIfNull(exclusion);
 
         var now = timeProvider.GetUtcNow();
-        var tracked = new Dictionary<string, TrackedVacancy>(StringComparer.Ordinal);
-        var excludedInRun = new HashSet<string>(StringComparer.Ordinal);
+        var bySource = sources.GroupBy(s => s.Source).ToDictionary(g => g.Key, g => g.First());
+        var tracked = new Dictionary<(VacancySource, string), TrackedVacancy>();
+        var excludedInRun = new HashSet<(VacancySource, string)>();
         var counts = new List<SearchCounts>(searches.Count);
+        VacancySourceUnavailableException? lastFailure = null;
+        VacancySourceUnavailableException? missingClient = null;
 
         for (var index = 0; index < searches.Count; index++)
         {
@@ -39,34 +64,26 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
 
             var searchCounts = new SearchCounts(search);
             counts.Add(searchCounts);
-            var fresh = new Dictionary<string, VacancyCandidate>(StringComparer.Ordinal);
-
-            await foreach (var candidate in source.SearchAsync(search, cancellationToken))
+            if (!bySource.TryGetValue(search.Source, out var source))
             {
-                searchCounts.Fetched++;
-                var id = candidate.ExternalId;
+                missingClient ??= new VacancySourceUnavailableException($"No client for source {search.Source} is registered.");
+                searchCounts.Error = $"Die Quelle {search.Source} ist nicht eingerichtet.";
+                continue;
+            }
 
-                if (tracked.TryGetValue(id, out var known))
-                {
-                    // Already handled by an earlier search of this run: only remember this search too.
-                    if (known.Vacancy.MarkFoundBy(search.Name, search.RemoteOnly))
-                    {
-                        enricher?.Apply(known.Vacancy, candidate.RemoteHint);
-                    }
-                }
-                else if (excludedInRun.Contains(id) || fresh.ContainsKey(id))
-                {
-                    // Duplicate of an excluded candidate, or repeated within this search.
-                }
-                else if (exclusion.IsExcluded(candidate.Title))
-                {
-                    excludedInRun.Add(id);
-                    searchCounts.Excluded++;
-                }
-                else
-                {
-                    fresh.Add(id, candidate);
-                }
+            Dictionary<string, VacancyCandidate> fresh;
+            try
+            {
+                fresh = await FetchAsync(source, search, searchCounts, tracked, excludedInRun, exclusion, cancellationToken);
+            }
+            catch (VacancySourceUnavailableException ex)
+            {
+                // The other searches still count; what this search returned before failing is dropped.
+                lastFailure = ex;
+                searchCounts.Error = $"{search.Source} nicht erreichbar – diese Suche wurde übersprungen.";
+                searchCounts.Fetched = 0;
+                searchCounts.Excluded = 0;
+                continue;
             }
 
             if (fresh.Count == 0)
@@ -100,8 +117,13 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
                     enricher.Apply(vacancy, candidate.RemoteHint);
                 }
 
-                tracked.Add(id, entry);
+                tracked.Add((source.Source, id), entry);
             }
+        }
+
+        if (searches.Count > 0 && counts.All(c => c.Error is not null))
+        {
+            throw lastFailure ?? missingClient ?? new VacancySourceUnavailableException("No search could be run.");
         }
 
         // Last chance to stop: once saving starts, the run completes (one SaveChanges = one transaction).
@@ -137,6 +159,58 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
             results);
     }
 
+    /// <summary>Reads one search; returns the candidates not seen before in this run (and not excluded).</summary>
+    private async Task<Dictionary<string, VacancyCandidate>> FetchAsync(
+        IVacancySource source,
+        VacancySearch search,
+        SearchCounts searchCounts,
+        Dictionary<(VacancySource, string), TrackedVacancy> tracked,
+        HashSet<(VacancySource, string)> excludedInRun,
+        TitleExclusionFilter exclusion,
+        CancellationToken cancellationToken)
+    {
+        var fresh = new Dictionary<string, VacancyCandidate>(StringComparer.Ordinal);
+        var excludedHere = new List<(VacancySource, string)>();
+        var foundAgain = new List<(Vacancy Vacancy, RemoteLevel Hint)>();
+
+        await foreach (var candidate in source.SearchAsync(search, cancellationToken))
+        {
+            searchCounts.Fetched++;
+            var key = (source.Source, candidate.ExternalId);
+
+            if (tracked.TryGetValue(key, out var known))
+            {
+                foundAgain.Add((known.Vacancy, candidate.RemoteHint));
+            }
+            else if (excludedInRun.Contains(key) || excludedHere.Contains(key) || fresh.ContainsKey(candidate.ExternalId))
+            {
+                // Duplicate of an excluded candidate, or repeated within this search.
+            }
+            else if (exclusion.IsExcluded(candidate.Title))
+            {
+                excludedHere.Add(key);
+                searchCounts.Excluded++;
+            }
+            else
+            {
+                fresh.Add(candidate.ExternalId, candidate);
+            }
+        }
+
+        // Only applied once the search has completed, so a search that fails half-way changes nothing.
+        excludedInRun.UnionWith(excludedHere);
+        foreach (var (vacancy, hint) in foundAgain)
+        {
+            // Already handled by an earlier search of this run: only remember this search too.
+            if (vacancy.MarkFoundBy(search.Name, search.RemoteOnly))
+            {
+                enricher?.Apply(vacancy, hint);
+            }
+        }
+
+        return fresh;
+    }
+
     private static Vacancy Create(VacancySource source, VacancyCandidate candidate, DateTimeOffset now) => new()
     {
         Id = Guid.CreateVersion7(now),
@@ -147,6 +221,7 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
         Location = candidate.Location,
         Url = candidate.Url,
         PublishedAt = candidate.PublishedAt,
+        ExpiresAt = candidate.ExpiresAt,
         Description = candidate.Description,
         DetailsFetchedAt = candidate.Description is null ? null : now,
         EmployerType = EmployerType.Unknown,
@@ -199,6 +274,11 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
         {
             vacancy.PublishedAt = candidate.PublishedAt;
         }
+
+        if (vacancy.ExpiresAt != candidate.ExpiresAt)
+        {
+            vacancy.ExpiresAt = candidate.ExpiresAt;
+        }
     }
 
     /// <summary>The stored fields an import can change.</summary>
@@ -208,12 +288,13 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
         string? Location,
         string? Url,
         DateTimeOffset? PublishedAt,
+        DateTimeOffset? ExpiresAt,
         string? Description,
         RemoteLevel RemoteLevel,
         string MatchedSearches)
     {
         public static Snapshot Of(Vacancy v) => new(
-            v.Title, v.Company, v.Location, v.Url, v.PublishedAt, v.Description, v.RemoteLevel,
+            v.Title, v.Company, v.Location, v.Url, v.PublishedAt, v.ExpiresAt, v.Description, v.RemoteLevel,
             string.Join('\n', v.MatchedSearches));
     }
 
@@ -231,6 +312,8 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
 
         public int Excluded { get; set; }
 
-        public SearchImportResult ToResult() => new(search, Fetched, Added, Updated, Unchanged, Excluded);
+        public string? Error { get; set; }
+
+        public SearchImportResult ToResult() => new(search, Fetched, Added, Updated, Unchanged, Excluded, Error);
     }
 }

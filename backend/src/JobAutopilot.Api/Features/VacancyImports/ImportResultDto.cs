@@ -1,4 +1,5 @@
 using JobAutopilot.Core.Import;
+using JobAutopilot.Core.Vacancies;
 
 namespace JobAutopilot.Api.Features.VacancyImports;
 
@@ -61,7 +62,9 @@ public sealed record SearchImportResultDto(
     int Added,
     int Updated,
     int Unchanged,
-    int Excluded)
+    int Excluded,
+    VacancySource Source,
+    string? Error)
 {
     public static SearchImportResultDto From(ImportRunSearch search)
     {
@@ -75,7 +78,9 @@ public sealed record SearchImportResultDto(
             search.Added,
             search.Updated,
             search.Unchanged,
-            search.Excluded);
+            search.Excluded,
+            search.Source,
+            search.Error);
     }
 }
 
@@ -86,11 +91,13 @@ public sealed record ConfiguredSearchDto(
     string? Location,
     int? RadiusKm,
     int PublishedWithinDays,
-    bool RemoteOnly)
+    bool RemoteOnly,
+    VacancySource Source)
 {
     public static ConfiguredSearchDto From(VacancySearch search)
     {
         ArgumentNullException.ThrowIfNull(search);
-        return new(search.Name, search.Keyword, search.Location, search.RadiusKm, search.PublishedWithinDays, search.RemoteOnly);
+        return new(search.Name, search.Keyword, search.Location, search.RadiusKm, search.PublishedWithinDays,
+            search.RemoteOnly, search.Source);
     }
 }

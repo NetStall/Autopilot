@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using JobAutopilot.Core.Import;
 using JobAutopilot.Core.Scoring;
 using JobAutopilot.Infrastructure.Arbeitsagentur;
+using JobAutopilot.Infrastructure.Himalayas;
 using JobAutopilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -46,8 +47,34 @@ public static class DependencyInjection
 
         services.AddScoring(configuration);
         services.AddArbeitsagentur(configuration);
+        services.AddHimalayas(configuration);
 
         return services;
+    }
+
+    private static void AddHimalayas(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<HimalayasOptions>()
+            .Bind(configuration.GetSection(HimalayasOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<HimalayasOptions>, HimalayasOptionsValidator>();
+
+        services
+            .AddHttpClient<HimalayasClient>((serviceProvider, client) =>
+            {
+                var options = serviceProvider.GetRequiredService<IOptions<HimalayasOptions>>().Value;
+                client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+                client.DefaultRequestHeaders.UserAgent.ParseAdd(ArbeitsagenturClient.UserAgent);
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                if (!string.IsNullOrWhiteSpace(options.ApiKey))
+                {
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
+                }
+            })
+            // Retries 5xx, 408 and 429 (respecting Retry-After) with backoff; circuit breaker; total timeout.
+            .AddStandardResilienceHandler();
+
+        services.AddTransient<IVacancySource>(sp => sp.GetRequiredService<HimalayasClient>());
     }
 
     /// <summary>Relevance, remote and employer rules from configuration; invalid relevance rules stop the start.</summary>

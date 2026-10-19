@@ -15,11 +15,13 @@ docker compose up -d     # "use" mode: db + api + frontend in Docker → http://
 
 Dev mode additionally needs the .NET 10 SDK and Node 24; Ctrl+C stops API and frontend. Details below.
 
-**Status:** step 03 (+ 03b, 03c) of the [roadmap](docs/ROADMAP.md) — a usable vacancy list: background import
-from the Bundesagentur für Arbeit with progress and a daily run at 07:00 (region around Deggendorf + fully remote
-jobs in all of Germany, apprenticeships/internships filtered out), fast triage (seen / Merken / Ausblenden, keyboard
-shortcuts, keyword highlighting), filters in the URL; one-command start in Docker or dev mode; security review in
-[docs/SECURITY.md](docs/SECURITY.md). Earlier steps: foundation (01), import (02).
+**Status:** step 04 of the [roadmap](docs/ROADMAP.md) — vacancies from the Bundesagentur für Arbeit (region around
+Deggendorf + home-office jobs in all of Germany, with full descriptions) and from the
+[Himalayas](https://himalayas.app) remote jobs API, **scored against the profile** (C#/.NET/Vue: relevant; Java,
+PHP, SAP, embedded …: not), with a remote level (voll remote / hybrid), detected recruitment agencies and merged
+duplicates. Background import with progress and a daily run at 07:00, fast triage (seen / Merken / Ausblenden,
+keyboard shortcuts), filters in the URL; one-command start in Docker or dev mode; security review in
+[docs/SECURITY.md](docs/SECURITY.md). Earlier steps: foundation (01), import (02), list UI (03).
 Agent rules: [AGENTS.md](AGENTS.md).
 
 ![Vacancy list with filters, "Neu" markers and employer type badges (demo data)](docs/img/vacancy-list.png)
@@ -56,7 +58,8 @@ More background: [ADR 0001](docs/decisions/0001-foundation.md) (foundation),
 (list UI), [ADR 0004](docs/decisions/0004-title-prefilter.md) (title pre-filter),
 [Jobsuche API notes](docs/arbeitsagentur-api.md), [ADR 0005](docs/decisions/0005-single-import-lock.md) (one import
 at a time), [ADR 0006](docs/decisions/0006-background-import-queue.md) (background import queue),
-[ADR 0007](docs/decisions/0007-daily-auto-import.md) (daily import). Security: [docs/SECURITY.md](docs/SECURITY.md) — threat model, review findings, and the rule that
+[ADR 0007](docs/decisions/0007-daily-auto-import.md) (daily import),
+[ADR 0008](docs/decisions/0008-second-source-himalayas.md) (second source: Himalayas). Security: [docs/SECURITY.md](docs/SECURITY.md) — threat model, review findings, and the rule that
 **authentication comes before anything is reachable from outside localhost**.
 
 ## Run locally (Windows, PowerShell)
@@ -106,7 +109,7 @@ Manual alternative: `docker compose up -d db`, `dotnet run --project backend/src
 
 Stop the API before a restore. The restore runs in one transaction — on an error nothing changes.
 
-### Import vacancies from the Arbeitsagentur
+### Import vacancies
 
 Click **Import starten** in the UI — it runs in the background with a progress bar — or:
 
@@ -114,7 +117,7 @@ Click **Import starten** in the UI — it runs in the background with a progress
 $run = Invoke-RestMethod -Method Post http://localhost:5080/api/imports        # 202 → { importId }
 Invoke-RestMethod "http://localhost:5080/api/imports/$($run.importId)"         # status, current search, counts
 Invoke-RestMethod "http://localhost:5080/api/imports?limit=5"                   # recent runs
-# real run on 2026-10-18 (15 searches): 117 vacancies — 77 in the region, 40 fully remote
+# real run on 2026-10-19 (20 searches incl. 5 Himalayas): see docs/arbeitsagentur-api.md, "After step 04"
 ```
 
 Only one import runs at a time (a second start gets 409). In use mode (docker compose) an import also runs **every
@@ -122,9 +125,11 @@ day at 07:00 Europe/Berlin**; if the PC was off at 07:00, the missed run starts 
 (`Import:Schedule`, see [ADR 0007](docs/decisions/0007-daily-auto-import.md)). The scheduler only fetches — it
 never sends anything.
 
-It runs every search in `Import:Searches` and stores new postings. Known ones are only updated; nothing you marked
-as seen is reset. Every vacancy remembers which searches found it (`matchedSearches`), and vacancies found by a
-remote search are marked `isRemote`.
+It runs every search in `Import:Searches` against its source and stores new postings. Known ones are only updated;
+nothing you marked is reset. Every vacancy remembers which searches found it (`matchedSearches`). After the searches
+the import fetches the **descriptions** of new or changed Arbeitsagentur postings (`Import:Details`: at most 300 per
+run, 300 ms apart, resumable — the rest follows next time), then everything is scored. A source that is down only
+skips its own searches. Himalayas postings past their expiry date are deleted (its terms require it).
 
 #### Configuring searches
 
@@ -148,6 +153,7 @@ Edit `backend/src/JobAutopilot.Api/appsettings.json` (or override it with user-s
 | `Keyword` | search text. Bare `C#` / `.NET` match a lot of unrelated postings in a region (licence class C, "net…"); combine them, e.g. `Softwareentwickler C#`, `C# .NET`, `.NET Entwickler` |
 | `Location`, `RadiusKm` | place and radius in km; leave `Location` out for all of Germany (`RadiusKm` then is an error) |
 | `PublishedWithinDays` | default 30 |
+| `Source` | `Arbeitsagentur` (default) or `Himalayas` ([ADR 0008](docs/decisions/0008-second-source-himalayas.md); no `Location`, always remote jobs open to Germany) |
 | `RemoteOnly` | only home-office postings, see `Arbeitsagentur:RemoteHomeOfficeFilter` below |
 | `MaxPages` | per-search page limit (default `Arbeitsagentur:MaxPages` = 10 × 100 results) |
 
@@ -168,6 +174,31 @@ One ad-hoc search instead of the configured ones (same fields, camelCase; `name`
 Invoke-RestMethod -Method Post http://localhost:5080/api/imports -ContentType 'application/json' `
   -Body '{ "keyword": "Vue", "remoteOnly": true }'
 ```
+
+### Relevance, remote level and agencies
+
+Every vacancy gets a **score 0–100**, a level (**Passt** ≥ 55, **Vielleicht** ≥ 30, **Passt nicht**) and the reasons
+(„Warum?" on the card, full list on the detail page), e.g. `C# im Titel ✓ (+50)`, `Java als Hauptsprache im Titel ✗
+(-60)`, `Java neben C#/.NET im Titel – abgeschwächt (-15)`. The list shows *Passt* + *Vielleicht* by default, best
+score first; at the same score direct employers come before unknown ones, agencies and temporary work.
+
+All rules live in `appsettings.json` and can be changed without code:
+
+| Section | What |
+|---|---|
+| `Relevance` | `Positive` / `Negative` keyword rules (`Name`, `Terms`, `Weight`, optional `MatchCase`, `TitleOnly`, `Core`, `SoftenedByCore`, `Reason`), `BaseScore`, `TitleFactor` (title counts ×2), `SoftenedFactor`, thresholds `RelevantFrom` / `MaybeFrom` |
+| `Remote` | phrases for **voll remote** („100 % remote", „deutschlandweit remote" …), **vor Ort** („kein Homeoffice") and **hybrid** („mobiles Arbeiten", „{n} Tage Homeoffice") |
+| `EmployerDetection` | known agencies (FERCHAU, Hays, Brunel …), phrases for agencies („im Auftrag unseres Kunden") and temporary work („Arbeitnehmerüberlassung"), phrases of direct employers („keine Anfragen von Personaldienstleistern") |
+
+Terms match whole words only: `Java` ≠ „JavaScript", `.NET` ≠ „Netzwerk", `C#` ≠ „C++"; spaces and hyphens are
+flexible („Full Stack" = „Full-Stack" = „Fullstack"). After changing rules, click **Neu bewerten** (or
+`POST /api/vacancies/rescore`); the API also re-scores everything when it starts. The remote level is the highest of:
+remote search (→ at least hybrid), the source's home-office data (Arbeitsagentur `homeofficeprozent` 100 → voll
+remote; Himalayas → voll remote) and the phrases; it is never lowered. The employer type comes from the
+Arbeitsagentur flags (Arbeitnehmerüberlassung / private Arbeitsvermittlung), then the known agencies, then phrases.
+
+The same job from several sources (or posted twice) is shown once — the first one imported — with „auch bei …"
+links (key: company + title without „(m/w/d)" and legal forms).
 
 ### Triage in the list
 
@@ -209,6 +240,8 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 | PATCH | `/api/vacancies/{id}` | `{ "isSeen": bool, "interest": "None" \| "Starred" \| "Dismissed" }` (either or both) → 204; nothing else is patchable |
 | POST | `/api/vacancies/seen` | `{ "ids": [...] }` (1–100) → 204, marks them as seen |
 | POST | `/api/vacancies` | create a manual vacancy |
+| POST | `/api/vacancies/rescore` | re-score all vacancies in the background → 202 with the status |
+| GET | `/api/vacancies/rescore` | `{ state: Idle\|Queued\|Running, lastStartedAt, lastFinishedAt, lastScored, lastError }` |
 | POST | `/api/imports` | queue an import: empty body = configured searches, or one search `{ name, keyword, location, radiusKm, publishedWithinDays, remoteOnly, maxPages }` → **202** `{ importId }`; 409 while another import is queued/running, 429 after 6/min |
 | GET | `/api/imports/{id}` | `{ status: Queued\|Running\|Succeeded\|Failed\|Cancelled, searchesDone, searchesTotal, currentSearch, fetched, added, updated, unchanged, excluded, error, searches: [...] }` |
 | GET | `/api/imports?limit=10` | recent runs, newest first (limit 1–50) |
@@ -223,13 +256,14 @@ Query parameters of `GET /api/vacancies`:
 | `location` | text in the location |
 | `employerType` | `Direct`, `Agency`, `Temporary`, `Unknown` — repeatable |
 | `seen` | `true` / `false`; omitted = all |
-| `source` | `Arbeitsagentur` / `Manual` |
-| `remote` | `true` = found by a remote search, `false` = the others |
+| `source` | `Arbeitsagentur` / `Himalayas` / `Manual` |
+| `remote` | `FullRemote`, `Hybrid`, `OnSite`, `Unknown` — repeatable |
+| `relevance` | `Relevant`, `Maybe`, `Irrelevant` — repeatable; not yet scored counts as `Maybe` |
 | `search` | name of a configured search — repeatable, matches any |
 | `interest` | `None`, `Starred`, `Dismissed` — repeatable; without it, dismissed vacancies are hidden |
 | `includeDismissed` | `true` = show dismissed vacancies too |
 | `fetchedSince` | ISO timestamp — only vacancies imported at/after it („Neu seit letztem Import") |
-| `sort` | `published` (default, newest first, without date last) or `fetched` |
+| `sort` | `relevance` (default: score, then direct employers first, then newest), `published` or `fetched` |
 | `page`, `pageSize` | default 1 / 20, `pageSize` ≤ 100 |
 
 Invalid values return `400` ProblemDetails naming the parameter.

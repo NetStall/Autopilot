@@ -57,6 +57,9 @@ internal sealed class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
             .HasDefaultValueSql("'{}'::text[]")
             .IsRequired();
 
+        builder.Property(v => v.DuplicateKey).HasMaxLength(DuplicateKeys.MaxLength);
+
+        builder.HasIndex(v => v.DuplicateKey);
         builder.HasIndex(v => v.RemoteLevel);
         builder.HasIndex(v => v.RelevanceLevel);
         builder.HasIndex(v => v.Interest);

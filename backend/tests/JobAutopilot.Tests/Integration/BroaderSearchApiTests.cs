@@ -94,7 +94,7 @@ public class BroaderSearchApiTests(PostgresFixture postgres) : IntegrationTestBa
     {
         var configured = Factory.Services.GetRequiredService<IOptions<ImportOptions>>().Value.Searches;
 
-        var searches = await Client.GetFromJsonAsync<List<ConfiguredSearchDto>>("/api/imports/searches", CancellationToken);
+        var searches = await Client.GetFromJsonAsync<List<ConfiguredSearchDto>>("/api/imports/searches", ApiJson, CancellationToken);
 
         searches.Should().HaveCount(configured.Count).And.HaveCountGreaterThan(5);
         searches!.Select(s => s.Name).Should().OnlyHaveUniqueItems();

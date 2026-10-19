@@ -19,7 +19,11 @@ internal sealed class ImportRunConfiguration : IEntityTypeConfiguration<ImportRu
         builder.Property(r => r.Error).HasMaxLength(1000);
 
         // Per-search counts as one jsonb column; they are only ever read together with the run.
-        builder.OwnsMany(r => r.Searches, searches => searches.ToJson());
+        builder.OwnsMany(r => r.Searches, searches =>
+        {
+            searches.ToJson();
+            searches.Property(s => s.Source).HasConversion<string>();
+        });
 
         // DB guard: at most one queued or running import at any time (insert of a second one fails).
         builder.HasIndex(r => r.IsActive)

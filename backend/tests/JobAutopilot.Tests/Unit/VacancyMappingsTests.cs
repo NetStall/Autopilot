@@ -29,7 +29,8 @@ public class VacancyMappingsTests
 
         var dto = vacancy.ToDto();
 
-        dto.Should().BeEquivalentTo(vacancy);
+        // ExpiresAt and DuplicateKey are internal (expiry clean-up, de-duplication) and not part of the DTO.
+        dto.Should().BeEquivalentTo(vacancy, o => o.Excluding(v => v.ExpiresAt).Excluding(v => v.DuplicateKey));
     }
 
     [Fact]

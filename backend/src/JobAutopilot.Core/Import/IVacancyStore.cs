@@ -20,6 +20,9 @@ public interface IVacancyStore
     /// <summary>One page of all vacancies in a stable order (for re-scoring everything).</summary>
     Task<IReadOnlyList<Vacancy>> ListPageAsync(int skip, int take, CancellationToken cancellationToken);
 
+    /// <summary>Deletes vacancies whose <see cref="Vacancy.ExpiresAt"/> lies before <paramref name="now"/>; returns how many.</summary>
+    Task<int> DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken);
+
     void Add(Vacancy vacancy);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);

@@ -20,6 +20,7 @@ const originalUrl = computed(() => safeExternalUrl(vacancy.value?.url))
 const badges = computed(() => (vacancy.value ? vacancyBadges(vacancy.value) : []))
 const statusBadges = computed(() => badges.value.filter(b => b.variant === 'new' || b.variant === 'remote' || b.variant === 'hybrid'))
 const score = computed(() => (vacancy.value ? scoreBadge(vacancy.value) : null))
+const attribution = computed(() => (vacancy.value ? sourceAttribution(vacancy.value.source) : null))
 const employerBadge = computed(() => badges.value.find(b => b.variant === 'employer' || b.variant === 'intermediary'))
 const notFound = computed(() => errorStatus(error.value) === 404)
 const saving = ref(false)
@@ -179,7 +180,26 @@ function openedOriginal() {
         <dt>Importiert</dt>
         <dd><time :datetime="vacancy.fetchedAt">{{ formatDateTime(vacancy.fetchedAt) }}</time></dd>
         <dt>Quelle</dt>
-        <dd>{{ sourceLabel(vacancy.source) }}</dd>
+        <dd>
+          <a v-if="attribution" :href="attribution.href" target="_blank" rel="noopener noreferrer">
+            {{ sourceLabel(vacancy.source) }}<span class="visually-hidden"> (neuer Tab)</span>
+          </a>
+          <template v-else>
+            {{ sourceLabel(vacancy.source) }}
+          </template>
+        </dd>
+        <template v-if="vacancy.alsoFoundAt.length > 0">
+          <dt>Auch gefunden bei</dt>
+          <dd>
+            <ul class="detail__searches">
+              <li v-for="link in vacancy.alsoFoundAt" :key="link.id">
+                <NuxtLink :to="{ path: `/vacancies/${link.id}`, query: route.query }">
+                  {{ sourceLabel(link.source) }}
+                </NuxtLink>
+              </li>
+            </ul>
+          </dd>
+        </template>
         <dt>Referenznummer</dt>
         <dd class="detail__mono">
           {{ vacancy.externalId }}

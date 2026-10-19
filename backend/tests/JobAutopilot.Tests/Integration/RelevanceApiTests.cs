@@ -114,6 +114,47 @@ public class RelevanceApiTests(PostgresFixture postgres) : IntegrationTestBase(p
     }
 
     [Fact]
+    public async Task The_same_job_from_two_sources_is_listed_once_with_the_other_source()
+    {
+        var key = DuplicateKeys.For("Beispiel GmbH", "C# Entwickler");
+        var first = Dup(Make(title: "C# Entwickler (m/w/d)", fetchedMinutesAfterBase: 0), key);
+        var second = Dup(Make(title: "C# Entwickler (w/m/d)", source: VacancySource.Himalayas, fetchedMinutesAfterBase: 5), key);
+        var other = Make(title: "Anderer Job");
+        await SeedAsync(first, second, other);
+
+        var page = await GetAsync(string.Empty);
+
+        page.TotalCount.Should().Be(2);
+        var listed = page.Items.Single(v => v.Id == first.Id);
+        listed.AlsoFoundAt.Should().ContainSingle().Which.Should().BeEquivalentTo(new { second.Id, Source = VacancySource.Himalayas });
+        (await GetAsync("?source=Himalayas")).Items.Select(v => v.Id).Should().Equal(second.Id);
+
+        var detail = await Client.GetFromJsonAsync<VacancyDto>($"/api/vacancies/{second.Id}", ApiJson, CancellationToken);
+        detail!.AlsoFoundAt.Should().ContainSingle().Which.Id.Should().Be(first.Id);
+    }
+
+    [Fact]
+    public async Task Dismissing_the_listed_one_hides_its_duplicates_too_and_expired_jobs_are_hidden()
+    {
+        var key = DuplicateKeys.For("Beispiel GmbH", "Vue Entwickler");
+        var first = Dup(Make(title: "Vue Entwickler", fetchedMinutesAfterBase: 0), key);
+        first.Interest = VacancyInterest.Dismissed;
+        var second = Dup(Make(title: "Vue Entwickler", source: VacancySource.Himalayas, fetchedMinutesAfterBase: 5), key);
+        var expired = Make(title: "Abgelaufen", source: VacancySource.Himalayas);
+        expired.ExpiresAt = Factory.Clock.GetUtcNow().AddMinutes(-1);
+        await SeedAsync(first, second, expired);
+
+        (await GetAsync(string.Empty)).Items.Should().BeEmpty();
+        (await GetAsync("?includeDismissed=true")).Items.Select(v => v.Id).Should().Equal(first.Id);
+    }
+
+    private static Vacancy Dup(Vacancy vacancy, string key)
+    {
+        vacancy.DuplicateKey = key;
+        return vacancy;
+    }
+
+    [Fact]
     public async Task Migration_maps_is_remote_to_at_least_hybrid()
     {
         var connectionString = new Npgsql.NpgsqlConnectionStringBuilder(Postgres.ConnectionString)

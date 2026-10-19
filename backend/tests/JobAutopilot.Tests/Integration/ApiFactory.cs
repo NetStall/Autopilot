@@ -38,7 +38,9 @@ public sealed class ApiFactory(
             services.RemoveAll<TimeProvider>();
             services.AddSingleton<TimeProvider>(Clock);
 
-            // Never the real Arbeitsagentur details endpoint; tests that need details register their own fake.
+            // Never a real job source (Arbeitsagentur, Himalayas); tests that import register their own fakes.
+            services.RemoveAll<IVacancySource>();
+            services.AddSingleton<IVacancySource>(new FakeVacancySource());
             services.RemoveAll<IVacancyDetailsSource>();
             services.AddSingleton<IVacancyDetailsSource>(DetailsSource);
             configureServices?.Invoke(services);

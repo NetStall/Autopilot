@@ -131,6 +131,9 @@ const searchOptions = computed(() => {
 })
 
 function searchLabel(search: ConfiguredSearch): string {
+  if (search.source === 'Himalayas') {
+    return `${search.name} (${search.keyword}, Himalayas)`
+  }
   if (search.remoteOnly) {
     return `${search.name} (${search.keyword}, remote)`
   }
