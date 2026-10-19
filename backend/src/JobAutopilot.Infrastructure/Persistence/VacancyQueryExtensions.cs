@@ -45,6 +45,21 @@ public static class VacancyQueryExtensions
             query = query.Where(v => v.IsRemote == isRemote);
         }
 
+        if (filter.Interests is { Count: > 0 } interests)
+        {
+            query = query.Where(v => interests.Contains(v.Interest));
+        }
+        else if (!filter.IncludeDismissed)
+        {
+            query = query.Where(v => v.Interest != VacancyInterest.Dismissed);
+        }
+
+        if (filter.FetchedSince is { } since)
+        {
+            var sinceUtc = since.ToUniversalTime();
+            query = query.Where(v => v.FetchedAt >= sinceUtc);
+        }
+
         if (filter.MatchedSearches is { Count: > 0 } searches)
         {
             // Array overlap (&&): found by at least one of the given searches.

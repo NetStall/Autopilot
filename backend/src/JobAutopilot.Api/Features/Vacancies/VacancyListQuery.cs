@@ -45,6 +45,19 @@ public sealed class VacancyListQuery : IValidatableObject
     [MaxLength(MaxSearchNames)]
     public string[]? Search { get; init; }
 
+    /// <summary>Repeatable: <c>None</c>, <c>Starred</c>, <c>Dismissed</c>. Without it, dismissed vacancies are hidden.</summary>
+    [FromQuery(Name = "interest")]
+    [MaxLength(MaxEmployerTypes)]
+    public string[]? Interest { get; init; }
+
+    /// <summary>Show dismissed vacancies too (only relevant without <c>interest</c>).</summary>
+    [FromQuery(Name = "includeDismissed")]
+    public bool? IncludeDismissed { get; init; }
+
+    /// <summary>Only vacancies that entered the system at or after this moment, e.g. the start of the last import.</summary>
+    [FromQuery(Name = "fetchedSince")]
+    public DateTimeOffset? FetchedSince { get; init; }
+
     /// <summary><c>published</c> (default) or <c>fetched</c>.</summary>
     [FromQuery(Name = "sort")]
     public string? Sort { get; init; }
@@ -80,6 +93,16 @@ public sealed class VacancyListQuery : IValidatableObject
                 [nameof(Source)]);
         }
 
+        foreach (var value in Interest ?? [])
+        {
+            if (!TryParseEnum<VacancyInterest>(value, out _))
+            {
+                yield return new ValidationResult(
+                    $"'{value}' is not an interest. Allowed: {string.Join(", ", Enum.GetNames<VacancyInterest>())}.",
+                    [nameof(Interest)]);
+            }
+        }
+
         if (Search?.Any(name => string.IsNullOrWhiteSpace(name) || name.Length > VacancySearchRules.NameMaxLength) == true)
         {
             yield return new ValidationResult(
@@ -104,7 +127,10 @@ public sealed class VacancyListQuery : IValidatableObject
         Source is null ? null : Parse<VacancySource>(Source),
         Sort is null ? VacancySort.Published : Parse<VacancySort>(Sort),
         Remote,
-        Search is { Length: > 0 } ? Search.Select(n => n.Trim()).Distinct(StringComparer.Ordinal).ToList() : null);
+        Search is { Length: > 0 } ? Search.Select(n => n.Trim()).Distinct(StringComparer.Ordinal).ToList() : null,
+        Interest is { Length: > 0 } ? Interest.Select(Parse<VacancyInterest>).Distinct().ToList() : null,
+        IncludeDismissed ?? false,
+        FetchedSince);
 
     private static T Parse<T>(string value)
         where T : struct, Enum =>

@@ -2,7 +2,8 @@ namespace JobAutopilot.Core.Vacancies;
 
 /// <summary>
 /// Criteria for browsing vacancies. <c>null</c> means "no restriction". <see cref="MatchedSearches"/> matches
-/// vacancies found by any of the given searches.
+/// vacancies found by any of the given searches. Dismissed vacancies are left out unless
+/// <see cref="IncludeDismissed"/> is set or <see cref="Interests"/> asks for them explicitly.
 /// </summary>
 public sealed record VacancyFilter(
     string? Text = null,
@@ -12,7 +13,10 @@ public sealed record VacancyFilter(
     VacancySource? Source = null,
     VacancySort Sort = VacancySort.Published,
     bool? IsRemote = null,
-    IReadOnlyCollection<string>? MatchedSearches = null);
+    IReadOnlyCollection<string>? MatchedSearches = null,
+    IReadOnlyCollection<VacancyInterest>? Interests = null,
+    bool IncludeDismissed = false,
+    DateTimeOffset? FetchedSince = null);
 
 public enum VacancySort
 {

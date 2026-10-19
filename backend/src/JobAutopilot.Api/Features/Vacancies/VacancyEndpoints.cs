@@ -72,19 +72,31 @@ public static partial class VacancyEndpoints
         return TypedResults.CreatedAtRoute(vacancy.ToDto(), nameof(GetVacancy), new { id = vacancy.Id });
     }
 
-    /// <summary>Only <c>isSeen</c> is patchable in this step.</summary>
+    /// <summary>Triage state only: <c>isSeen</c> and/or <c>interest</c>.</summary>
     private static async Task<Results<NoContent, NotFound>> UpdateVacancy(
         Guid id,
         UpdateVacancyRequest request,
         AppDbContext db,
         CancellationToken cancellationToken)
     {
-        var isSeen = request.IsSeen!.Value;
-        var updated = await db.Vacancies
-            .Where(v => v.Id == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(v => v.IsSeen, isSeen), cancellationToken);
+        var vacancy = await db.Vacancies.SingleOrDefaultAsync(v => v.Id == id, cancellationToken);
+        if (vacancy is null)
+        {
+            return TypedResults.NotFound();
+        }
 
-        return updated == 0 ? TypedResults.NotFound() : TypedResults.NoContent();
+        if (request.IsSeen is { } isSeen)
+        {
+            vacancy.IsSeen = isSeen;
+        }
+
+        if (request.ParsedInterest is { } interest)
+        {
+            vacancy.Interest = interest;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.NoContent();
     }
 
     /// <summary>Marks up to <see cref="MarkSeenRequest.MaxIds"/> vacancies as seen in one statement.</summary>

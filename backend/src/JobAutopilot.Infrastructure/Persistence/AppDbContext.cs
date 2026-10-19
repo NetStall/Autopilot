@@ -1,3 +1,4 @@
+using JobAutopilot.Core.Import;
 using JobAutopilot.Core.Vacancies;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,6 +7,8 @@ namespace JobAutopilot.Infrastructure.Persistence;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<Vacancy> Vacancies => Set<Vacancy>();
+
+    public DbSet<ImportRun> ImportRuns => Set<ImportRun>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

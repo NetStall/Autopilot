@@ -16,4 +16,5 @@ public sealed record VacancyDto(
     DateTimeOffset FetchedAt,
     bool IsSeen,
     bool IsRemote,
-    IReadOnlyList<string> MatchedSearches);
+    IReadOnlyList<string> MatchedSearches,
+    VacancyInterest Interest);

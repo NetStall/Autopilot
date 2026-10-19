@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using JobAutopilot.Api.Common;
 using JobAutopilot.Api.Features.Health;
+using JobAutopilot.Api.Features.Settings;
 using JobAutopilot.Api.Features.VacancyImports;
 using JobAutopilot.Api.Features.Vacancies;
 using JobAutopilot.Infrastructure;
@@ -15,6 +16,13 @@ builder.Services.AddOptions<ImportOptions>()
     .Bind(builder.Configuration.GetSection(ImportOptions.SectionName))
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<ImportOptions>, ImportOptionsValidator>();
+builder.Services.Configure<UiOptions>(builder.Configuration.GetSection(UiOptions.SectionName));
+
+// Background import: endpoints and scheduler queue runs, one worker executes them (ADR 0006, 0007).
+builder.Services.AddSingleton<ImportJobChannel>();
+builder.Services.AddSingleton<ImportCoordinator>();
+builder.Services.AddHostedService<ImportWorker>();
+builder.Services.AddHostedService<ImportScheduler>();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddValidation();
@@ -57,5 +65,6 @@ if (app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value.MigrateOn
 app.MapHealthEndpoints();
 app.MapVacancyEndpoints();
 app.MapImportEndpoints();
+app.MapUiSettingsEndpoints();
 
 await app.RunAsync();

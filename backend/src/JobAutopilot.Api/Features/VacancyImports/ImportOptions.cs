@@ -1,3 +1,4 @@
+using JobAutopilot.Core;
 using JobAutopilot.Core.Import;
 using Microsoft.Extensions.Options;
 
@@ -12,6 +13,23 @@ public sealed class ImportOptions
 
     /// <summary>Vacancies whose title contains one of these words or phrases are not stored (coarse pre-filter).</summary>
     public List<string> ExcludeTitleTerms { get; init; } = [];
+
+    public ImportScheduleOptions Schedule { get; init; } = new();
+}
+
+/// <summary><c>Import:Schedule</c> — the daily automatic import (fetching only, never sending anything).</summary>
+public sealed class ImportScheduleOptions
+{
+    public bool Enabled { get; init; }
+
+    /// <summary>Local time of day, <c>HH:mm</c>.</summary>
+    public string TimeOfDay { get; init; } = "07:00";
+
+    /// <summary>IANA time zone id.</summary>
+    public string TimeZone { get; init; } = "Europe/Berlin";
+
+    public DailySchedule ToSchedule() =>
+        new(TimeOnly.ParseExact(TimeOfDay, "HH:mm", System.Globalization.CultureInfo.InvariantCulture), TimeZones.Find(TimeZone));
 }
 
 /// <summary>Fails the start of the app when the configured searches are invalid (e.g. duplicate names).</summary>
@@ -25,6 +43,17 @@ internal sealed class ImportOptionsValidator : IValidateOptions<ImportOptions>
         if (options.ExcludeTitleTerms.Any(string.IsNullOrWhiteSpace))
         {
             errors.Add("ExcludeTitleTerms must not contain empty entries.");
+        }
+
+        if (!TimeOnly.TryParseExact(options.Schedule.TimeOfDay, "HH:mm", System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out _))
+        {
+            errors.Add($"Schedule:TimeOfDay '{options.Schedule.TimeOfDay}' must be HH:mm, e.g. 07:00.");
+        }
+
+        if (string.IsNullOrWhiteSpace(options.Schedule.TimeZone) || !TimeZones.TryFind(options.Schedule.TimeZone, out _))
+        {
+            errors.Add($"Schedule:TimeZone '{options.Schedule.TimeZone}' is not a known time zone.");
         }
 
         return errors.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(errors);

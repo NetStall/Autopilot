@@ -23,6 +23,74 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("JobAutopilot.Core.Import.ImportRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Added")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CurrentSearch")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("Excluded")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Fetched")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SearchesDone")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SearchesTotal")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("Unchanged")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Updated")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ImportRuns_OnlyOneActive")
+                        .HasFilter("\"IsActive\"");
+
+                    b.HasIndex("RequestedAt");
+
+                    b.ToTable("ImportRuns");
+                });
+
             modelBuilder.Entity("JobAutopilot.Core.Vacancies.Vacancy", b =>
                 {
                     b.Property<Guid>("Id")
@@ -49,6 +117,13 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("FetchedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Interest")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("None");
 
                     b.Property<bool>("IsRemote")
                         .HasColumnType("boolean");
@@ -87,12 +162,58 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("FetchedAt");
 
+                    b.HasIndex("Interest");
+
                     b.HasIndex("IsRemote");
 
                     b.HasIndex("Source", "ExternalId")
                         .IsUnique();
 
                     b.ToTable("Vacancies");
+                });
+
+            modelBuilder.Entity("JobAutopilot.Core.Import.ImportRun", b =>
+                {
+                    b.OwnsMany("JobAutopilot.Core.Import.ImportRunSearch", "Searches", b1 =>
+                        {
+                            b1.Property<Guid>("ImportRunId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<int>("Added");
+
+                            b1.Property<int>("Excluded");
+
+                            b1.Property<int>("Fetched");
+
+                            b1.Property<string>("Keyword")
+                                .IsRequired();
+
+                            b1.Property<string>("Location");
+
+                            b1.Property<string>("Name")
+                                .IsRequired();
+
+                            b1.Property<bool>("RemoteOnly");
+
+                            b1.Property<int>("Unchanged");
+
+                            b1.Property<int>("Updated");
+
+                            b1.HasKey("ImportRunId", "__synthesizedOrdinal");
+
+                            b1.ToTable("ImportRuns");
+
+                            b1
+                                .ToJson("Searches")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ImportRunId");
+                        });
+
+                    b.Navigation("Searches");
                 });
 #pragma warning restore 612, 618
         }

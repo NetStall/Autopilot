@@ -15,7 +15,8 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
         IVacancySource source,
         IReadOnlyList<VacancySearch> searches,
         TitleExclusionFilter exclusion,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<ImportProgress, CancellationToken, Task>? onProgress = null)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(searches);
@@ -29,6 +30,11 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
         for (var index = 0; index < searches.Count; index++)
         {
             var search = searches[index];
+            if (onProgress is not null)
+            {
+                await onProgress(new ImportProgress(index, searches.Count, search.Name), cancellationToken);
+            }
+
             var searchCounts = new SearchCounts(search);
             counts.Add(searchCounts);
             var fresh = new Dictionary<string, VacancyCandidate>(StringComparer.Ordinal);
@@ -84,6 +90,8 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
             }
         }
 
+        // Last chance to stop: once saving starts, the run completes (one SaveChanges = one transaction).
+        cancellationToken.ThrowIfCancellationRequested();
         await store.SaveChangesAsync(cancellationToken);
 
         // A vacancy is counted once, for the first search that found it; "updated" compares the final state

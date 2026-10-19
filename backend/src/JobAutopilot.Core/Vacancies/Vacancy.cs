@@ -29,6 +29,9 @@ public class Vacancy
 
     public bool IsSeen { get; set; }
 
+    /// <summary>„Merken" / „Ausblenden" — user triage, never touched by imports.</summary>
+    public VacancyInterest Interest { get; set; }
+
     /// <summary>Found by at least one remote-only search. Once true, imports never reset it.</summary>
     public bool IsRemote { get; set; }
 

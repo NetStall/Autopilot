@@ -18,7 +18,8 @@ public static class VacancyMappings
         vacancy.FetchedAt,
         vacancy.IsSeen,
         vacancy.IsRemote,
-        [.. vacancy.MatchedSearches]);
+        [.. vacancy.MatchedSearches],
+        vacancy.Interest);
 
     public static Vacancy ToManualVacancy(this CreateVacancyRequest request, DateTimeOffset now) =>
         Vacancy.CreateManual(

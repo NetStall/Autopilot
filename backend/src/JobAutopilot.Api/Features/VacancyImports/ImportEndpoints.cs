@@ -1,48 +1,47 @@
+using System.ComponentModel.DataAnnotations;
 using JobAutopilot.Api.Common;
 using JobAutopilot.Core.Import;
-using JobAutopilot.Core.Vacancies;
+using JobAutopilot.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace JobAutopilot.Api.Features.VacancyImports;
 
-public static partial class ImportEndpoints
+public static class ImportEndpoints
 {
-    private const string LogCategory = "JobAutopilot.Api.Imports";
+    public const int DefaultRecentLimit = 10;
+    public const int MaxRecentLimit = 50;
 
     public static IEndpointRouteBuilder MapImportEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/imports").WithTags("Imports");
 
-        group.MapPost("/arbeitsagentur", ImportFromArbeitsagentur)
-            .WithName(nameof(ImportFromArbeitsagentur))
+        group.MapPost("/", StartImport)
+            .WithName(nameof(StartImport))
             .RequireRateLimiting(ApiSecurity.ImportRateLimitPolicy);
+        group.MapGet("/{id:guid}", GetImport).WithName(nameof(GetImport));
+        group.MapGet("/", ListImports).WithName(nameof(ListImports));
         group.MapGet("/searches", ListSearches).WithName(nameof(ListSearches));
 
         return app;
     }
 
     /// <summary>
-    /// Runs the configured searches (empty body) or the one search in the body against the Arbeitsagentur
-    /// and stores the results. Triggered manually only.
+    /// Queues an import of the configured searches (empty body) or of the one search in the body and returns at once
+    /// with 202 and the run id; progress via <c>GET /api/imports/{id}</c>. 409 while another import is queued or running.
     /// </summary>
-    private static async Task<Results<Ok<ImportResultDto>, ProblemHttpResult>> ImportFromArbeitsagentur(
+    private static async Task<Results<Accepted<ImportStartedDto>, ProblemHttpResult>> StartImport(
         ImportSearchRequest? request,
-        IEnumerable<IVacancySource> sources,
-        VacancyImportService importService,
-        IImportLock importLock,
+        ImportCoordinator coordinator,
         IOptions<ImportOptions> importOptions,
-        TimeProvider timeProvider,
-        ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
-        var source = sources.Single(s => s.Source == VacancySource.Arbeitsagentur);
-        IReadOnlyList<VacancySearch> searches = request is null ? importOptions.Value.Searches : [request.ToSearch()];
-        var logger = loggerFactory.CreateLogger(LogCategory);
-        var started = timeProvider.GetTimestamp();
+        var options = importOptions.Value;
+        IReadOnlyList<VacancySearch> searches = request is null ? options.Searches : [request.ToSearch()];
 
-        await using var lockHandle = await importLock.TryAcquireAsync(cancellationToken);
-        if (lockHandle is null)
+        var run = await coordinator.TryStartAsync(ImportTrigger.Manual, searches, options.ExcludeTitleTerms, cancellationToken);
+        if (run is null)
         {
             return TypedResults.Problem(
                 statusCode: StatusCodes.Status409Conflict,
@@ -50,64 +49,38 @@ public static partial class ImportEndpoints
                 detail: "Only one import can run at a time. Wait until it has finished and try again.");
         }
 
-        ImportResult result;
-        try
-        {
-            var exclusion = new TitleExclusionFilter(importOptions.Value.ExcludeTitleTerms);
-            result = await importService.ImportAsync(source, searches, exclusion, cancellationToken);
-        }
-        catch (VacancySourceUnavailableException ex)
-        {
-            LogImportFailed(logger, ex);
-            return TypedResults.Problem(
-                statusCode: StatusCodes.Status502BadGateway,
-                title: "The Arbeitsagentur Jobsuche API is not reachable.",
-                detail: "Nothing was imported. " + ex.Message);
-        }
+        return TypedResults.Accepted($"/api/imports/{run.Id}", new ImportStartedDto(run.Id));
+    }
 
-        foreach (var search in result.Searches)
-        {
-            LogSearchImported(
-                logger,
-                search.Search.Name,
-                search.Search.Keyword,
-                search.Search.Location,
-                search.Fetched,
-                search.Added,
-                search.Updated,
-                search.Unchanged,
-                search.Excluded);
-        }
+    private static async Task<Results<Ok<ImportRunDto>, NotFound>> GetImport(
+        Guid id,
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var run = await db.ImportRuns.AsNoTracking().SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+        return run is null ? TypedResults.NotFound() : TypedResults.Ok(ImportRunDto.From(run));
+    }
 
-        var duration = (long)timeProvider.GetElapsedTime(started).TotalMilliseconds;
-        return TypedResults.Ok(new ImportResultDto(
-            result.Fetched,
-            result.Added,
-            result.Updated,
-            result.Unchanged,
-            result.Excluded,
-            duration,
-            [.. result.Searches.Select(SearchImportResultDto.From)]));
+    /// <summary>Most recent runs first.</summary>
+    private static async Task<Ok<List<ImportRunDto>>> ListImports(
+        [AsParameters] RecentImportsQuery query,
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var runs = await db.ImportRuns.AsNoTracking()
+            .OrderByDescending(r => r.RequestedAt)
+            .Take(query.Limit ?? DefaultRecentLimit)
+            .ToListAsync(cancellationToken);
+        return TypedResults.Ok(runs.ConvertAll(ImportRunDto.From));
     }
 
     /// <summary>The configured searches (Import:Searches), e.g. for the UI's search filter.</summary>
     private static Ok<List<ConfiguredSearchDto>> ListSearches(IOptions<ImportOptions> importOptions) =>
         TypedResults.Ok(importOptions.Value.Searches.ConvertAll(ConfiguredSearchDto.From));
 
-    [LoggerMessage(
-        Level = LogLevel.Information,
-        Message = "Imported search {SearchName} ({Keyword} in {Location}): fetched {Fetched}, added {Added}, updated {Updated}, unchanged {Unchanged}, excluded {Excluded}")]
-    private static partial void LogSearchImported(
-        ILogger logger,
-        string searchName,
-        string keyword,
-        string? location,
-        int fetched,
-        int added,
-        int updated,
-        int unchanged,
-        int excluded);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Arbeitsagentur import failed; nothing was saved")]
-    private static partial void LogImportFailed(ILogger logger, Exception exception);
+    public sealed class RecentImportsQuery
+    {
+        [Range(1, MaxRecentLimit)]
+        public int? Limit { get; init; }
+    }
 }

@@ -37,6 +37,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB:-jobautopilot};Username=${POSTGRES_USER:-jobautopilot};Password=${POSTGRES_PASSWORD}"
       Database__MigrateOnStartup: "true"
+      # Daily import at 07:00 Europe/Berlin (fetching only); a run missed while the PC was off is caught up at start.
+      Import__Schedule__Enabled: "true"
       # The browser loads the UI from the web port and calls the API from there.
       Cors__AllowedOrigins__0: "http://localhost:${WEB_PORT:-3000}"
     ports:

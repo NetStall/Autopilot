@@ -2,14 +2,55 @@ using JobAutopilot.Core.Import;
 
 namespace JobAutopilot.Api.Features.VacancyImports;
 
-public sealed record ImportResultDto(
+/// <summary>Response of <c>POST /api/imports</c> (202 Accepted).</summary>
+public sealed record ImportStartedDto(Guid ImportId);
+
+/// <summary>An import run: status, progress while running, counts when finished.</summary>
+public sealed record ImportRunDto(
+    Guid Id,
+    ImportTrigger Trigger,
+    ImportRunStatus Status,
+    DateTimeOffset RequestedAt,
+    DateTimeOffset? StartedAt,
+    DateTimeOffset? FinishedAt,
+    long? DurationMs,
+    int SearchesTotal,
+    int SearchesDone,
+    string? CurrentSearch,
     int Fetched,
     int Added,
     int Updated,
     int Unchanged,
     int Excluded,
-    long DurationMs,
-    IReadOnlyList<SearchImportResultDto> Searches);
+    string? Error,
+    IReadOnlyList<SearchImportResultDto> Searches)
+{
+    public static ImportRunDto From(ImportRun run)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        long? duration = run is { StartedAt: { } started, FinishedAt: { } finished }
+            ? (long)(finished - started).TotalMilliseconds
+            : null;
+        return new(
+            run.Id,
+            run.Trigger,
+            run.Status,
+            run.RequestedAt,
+            run.StartedAt,
+            run.FinishedAt,
+            duration,
+            run.SearchesTotal,
+            run.SearchesDone,
+            run.CurrentSearch,
+            run.Fetched,
+            run.Added,
+            run.Updated,
+            run.Unchanged,
+            run.Excluded,
+            run.Error,
+            [.. run.Searches.Select(SearchImportResultDto.From)]);
+    }
+}
 
 public sealed record SearchImportResultDto(
     string Name,
@@ -22,19 +63,19 @@ public sealed record SearchImportResultDto(
     int Unchanged,
     int Excluded)
 {
-    public static SearchImportResultDto From(SearchImportResult result)
+    public static SearchImportResultDto From(ImportRunSearch search)
     {
-        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(search);
         return new(
-            result.Search.Name,
-            result.Search.Keyword,
-            result.Search.Location,
-            result.Search.RemoteOnly,
-            result.Fetched,
-            result.Added,
-            result.Updated,
-            result.Unchanged,
-            result.Excluded);
+            search.Name,
+            search.Keyword,
+            search.Location,
+            search.RemoteOnly,
+            search.Fetched,
+            search.Added,
+            search.Updated,
+            search.Unchanged,
+            search.Excluded);
     }
 }
 

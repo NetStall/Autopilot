@@ -36,7 +36,14 @@ internal sealed class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
             .IsRequired();
 
         builder.HasIndex(v => new { v.Source, v.ExternalId }).IsUnique();
+        builder.Property(v => v.Interest)
+            .HasConversion<string>()
+            .HasMaxLength(EnumMaxLength)
+            .HasDefaultValue(VacancyInterest.None)
+            .HasSentinel(VacancyInterest.None);
+
         builder.HasIndex(v => v.IsRemote);
+        builder.HasIndex(v => v.Interest);
         builder.HasIndex(v => v.FetchedAt);
     }
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using JobAutopilot.Core;
 using JobAutopilot.Core.Import;
 using JobAutopilot.Core.Vacancies;
 
@@ -10,7 +11,7 @@ internal static class ArbeitsagenturMapper
     internal const string DetailPageBaseUrl = "https://www.arbeitsagentur.de/jobsuche/jobdetail/";
     internal const string UnknownCompany = "Unbekannter Arbeitgeber";
 
-    private static readonly TimeZoneInfo Berlin = FindBerlinTimeZone();
+    private static readonly TimeZoneInfo Berlin = TimeZones.Berlin;
 
     /// <summary>Returns <c>null</c> for entries that cannot be stored (no reference number or title).</summary>
     public static VacancyCandidate? ToCandidate(JobSearchItem item)
@@ -71,11 +72,4 @@ internal static class ArbeitsagenturMapper
 
     private static string Truncate(string value, int maxLength) =>
         value.Length <= maxLength ? value : value[..maxLength].TrimEnd();
-
-    // IANA id on Linux/macOS; on Windows without ICU (InvariantGlobalization) only the Windows id resolves.
-    private static TimeZoneInfo FindBerlinTimeZone() =>
-        TimeZoneInfo.TryFindSystemTimeZoneById("Europe/Berlin", out var zone)
-        || TimeZoneInfo.TryFindSystemTimeZoneById("W. Europe Standard Time", out zone)
-            ? zone
-            : throw new InvalidOperationException("Time zone Europe/Berlin is not available on this system.");
 }
