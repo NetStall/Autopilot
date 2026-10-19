@@ -50,7 +50,7 @@ public static class DependencyInjection
         return services;
     }
 
-    /// <summary>Relevance, remote and employer rules from configuration; invalid rules stop the start.</summary>
+    /// <summary>Relevance, remote and employer rules from configuration; invalid relevance rules stop the start.</summary>
     private static void AddScoring(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<RelevanceOptions>()
@@ -58,9 +58,11 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<RelevanceOptions>, RelevanceOptionsValidator>();
         services.AddOptions<RemoteOptions>().Bind(configuration.GetSection(RemoteOptions.SectionName));
+        services.AddOptions<EmployerDetectionOptions>().Bind(configuration.GetSection(EmployerDetectionOptions.SectionName));
 
         services.AddSingleton(sp => new RelevanceScorer(sp.GetRequiredService<IOptions<RelevanceOptions>>().Value));
         services.AddSingleton(sp => new RemoteClassifier(sp.GetRequiredService<IOptions<RemoteOptions>>().Value));
+        services.AddSingleton(sp => new EmployerClassifier(sp.GetRequiredService<IOptions<EmployerDetectionOptions>>().Value));
         services.AddSingleton<VacancyEnricher>();
     }
 

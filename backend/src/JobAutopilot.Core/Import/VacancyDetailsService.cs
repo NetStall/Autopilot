@@ -104,6 +104,6 @@ public sealed class VacancyDetailsService(IVacancyStore store, VacancyEnricher e
             vacancy.Description = TextLimits.Truncate(details.Description.Trim(), VacancyLimits.DescriptionMaxLength);
         }
 
-        enricher.Apply(vacancy, details.RemoteHint);
+        enricher.Apply(vacancy, details.RemoteHint, details.EmployerHint);
     }
 }

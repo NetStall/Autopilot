@@ -3,18 +3,27 @@ using JobAutopilot.Core.Vacancies;
 namespace JobAutopilot.Core.Scoring;
 
 /// <summary>
-/// Derives everything that is computed from a vacancy's text: remote level and relevance (score, level, reasons).
-/// Called by the import (new and refreshed vacancies), after fetching details, and when re-scoring.
+/// Derives everything that is computed from a vacancy's text: remote level, employer type and relevance (score,
+/// level, reasons). Called by the import (new and refreshed vacancies), after fetching details, and when re-scoring.
 /// </summary>
-public sealed class VacancyEnricher(RelevanceScorer scorer, RemoteClassifier remoteClassifier)
+public sealed class VacancyEnricher(
+    RelevanceScorer scorer,
+    RemoteClassifier remoteClassifier,
+    EmployerClassifier employerClassifier)
 {
     /// <param name="remoteHint">What the source says about home office, if anything.</param>
-    public void Apply(Vacancy vacancy, RemoteLevel remoteHint = RemoteLevel.Unknown)
+    /// <param name="employerHint">What the source says about the employer (Arbeitsagentur flags), if anything.</param>
+    public void Apply(
+        Vacancy vacancy,
+        RemoteLevel remoteHint = RemoteLevel.Unknown,
+        EmployerType employerHint = EmployerType.Unknown)
     {
         ArgumentNullException.ThrowIfNull(vacancy);
 
         var remote = remoteClassifier.Classify(vacancy.Title, vacancy.Description);
         vacancy.RaiseRemoteLevel(remoteHint > remote.Level ? remoteHint : remote.Level);
+
+        var employerReason = ApplyEmployer(vacancy, employerHint);
 
         var relevance = scorer.Score(vacancy.Title, vacancy.Description);
         vacancy.RelevanceScore = relevance.Score;
@@ -26,7 +35,39 @@ public sealed class VacancyEnricher(RelevanceScorer scorer, RemoteClassifier rem
             reasons.Add(remoteReason);
         }
 
+        if (employerReason is not null)
+        {
+            reasons.Add(employerReason);
+        }
+
         vacancy.RelevanceReasons = reasons;
+    }
+
+    /// <summary>
+    /// Manual vacancies keep the type Vitalii chose. Otherwise a detected type wins; when nothing is detected now
+    /// (e.g. re-scoring without the source's flags), the stored type stays.
+    /// </summary>
+    private string? ApplyEmployer(Vacancy vacancy, EmployerType hint)
+    {
+        if (vacancy.Source == VacancySource.Manual)
+        {
+            return null;
+        }
+
+        var employer = employerClassifier.Classify(vacancy.Company, vacancy.Description, hint);
+        if (employer.Type != EmployerType.Unknown)
+        {
+            vacancy.EmployerType = employer.Type;
+            return employer.Reason;
+        }
+
+        return vacancy.EmployerType switch
+        {
+            EmployerType.Temporary => "Zeitarbeit laut Quelle",
+            EmployerType.Agency => "Personalvermittlung laut Quelle",
+            EmployerType.Direct => "Direkter Arbeitgeber laut Quelle",
+            _ => null,
+        };
     }
 
     /// <summary>The phrase found now, or — when the stored level is higher — where that level came from.</summary>

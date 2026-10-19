@@ -18,5 +18,10 @@ internal static class ShippedConfig
         Configuration.Value.GetSection(RemoteOptions.SectionName).Get<RemoteOptions>()
         ?? throw new InvalidOperationException("No Remote section in appsettings.json.");
 
-    public static VacancyEnricher Enricher() => new(new RelevanceScorer(Relevance()), new RemoteClassifier(Remote()));
+    public static EmployerDetectionOptions Employer() =>
+        Configuration.Value.GetSection(EmployerDetectionOptions.SectionName).Get<EmployerDetectionOptions>()
+        ?? throw new InvalidOperationException("No EmployerDetection section in appsettings.json.");
+
+    public static VacancyEnricher Enricher() =>
+        new(new RelevanceScorer(Relevance()), new RemoteClassifier(Remote()), new EmployerClassifier(Employer()));
 }
