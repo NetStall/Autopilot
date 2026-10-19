@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using JobAutopilot.Core;
 using JobAutopilot.Core.Import;
 using JobAutopilot.Core.Vacancies;
@@ -6,7 +7,7 @@ using JobAutopilot.Core.Vacancies;
 namespace JobAutopilot.Infrastructure.Arbeitsagentur;
 
 /// <summary>Maps one Jobsuche search result to a source-neutral <see cref="VacancyCandidate"/>.</summary>
-internal static class ArbeitsagenturMapper
+internal static partial class ArbeitsagenturMapper
 {
     internal const string DetailPageBaseUrl = "https://www.arbeitsagentur.de/jobsuche/jobdetail/";
     internal const string UnknownCompany = "Unbekannter Arbeitgeber";
@@ -60,7 +61,10 @@ internal static class ArbeitsagenturMapper
         : homeOfficePossible == true || homeOfficePercent > 0 ? RemoteLevel.Hybrid
         : RemoteLevel.Unknown;
 
-    /// <summary>The description is plain text; only line endings and surrounding whitespace are normalized.</summary>
+    /// <summary>
+    /// The description is Markdown-like plain text. Line endings are normalized and Markdown backslash escapes removed
+    /// (the API sends „C\#", „\*"), so keywords like C# are found; everything else stays as it is.
+    /// </summary>
     internal static string? NormalizeDescription(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -68,7 +72,8 @@ internal static class ArbeitsagenturMapper
             return null;
         }
 
-        var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Trim();
+        var normalized = MarkdownEscape().Replace(text, "$1")
+            .Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Trim();
         return Truncate(normalized, VacancyLimits.DescriptionMaxLength);
     }
 
@@ -118,4 +123,7 @@ internal static class ArbeitsagenturMapper
     }
 
     private static string Truncate(string value, int maxLength) => TextLimits.Truncate(value, maxLength);
+
+    [GeneratedRegex(@"\\([\\`*_{}\[\]()#+\-.!|>~])", RegexOptions.None, matchTimeoutMilliseconds: 250)]
+    private static partial Regex MarkdownEscape();
 }

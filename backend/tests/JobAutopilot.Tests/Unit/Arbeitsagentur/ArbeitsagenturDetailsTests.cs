@@ -80,6 +80,22 @@ public sealed class ArbeitsagenturDetailsTests : IDisposable
     public void Home_office_fields_map_to_a_remote_hint(bool? possible, double? percent, RemoteLevel expected) =>
         ArbeitsagenturMapper.MapRemote(possible, percent).Should().Be(expected);
 
+    [Theory]
+    [InlineData(@"- C\#, .NET, Azure Cloud", "- C#, .NET, Azure Cloud")]
+    [InlineData(@"\*\*Remote\*\* möglich \- 100 \% bleibt", @"**Remote** möglich - 100 \% bleibt")]
+    [InlineData("## Aufgaben\r\n\r\n- Entwicklung", "## Aufgaben\n\n- Entwicklung")]
+    public void Markdown_escapes_of_the_description_are_removed(string raw, string expected) =>
+        ArbeitsagenturMapper.NormalizeDescription(raw).Should().Be(expected);
+
+    [Fact]
+    public void Escaped_csharp_in_a_description_is_scored()
+    {
+        var description = ArbeitsagenturMapper.NormalizeDescription(@"Must-Have: C\#, MS SQL Server");
+
+        new Core.Scoring.RelevanceScorer(Scoring.ShippedConfig.Relevance()).Score("Entwickler", description)
+            .Reasons.Should().Contain("C# ✓ (+25)");
+    }
+
     [Fact]
     public void Change_date_is_german_local_time()
     {
