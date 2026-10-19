@@ -8,7 +8,7 @@ name: autopilot
 
 services:
   db:
-    image: postgres:17.11-trixie
+    image: postgres:18.6-trixie
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-jobautopilot}
