@@ -154,7 +154,7 @@ Dropped: `Webentwickler` (region: 1 result, already found by other searches); ba
 - Stop when a page is empty, when `page * size >= maxErgebnisse`, or after `MaxPages` (default 10, per search
   overridable). With the defaults one search makes at most 10 requests / 1000 results; a warning is logged when a
   search stops at `MaxPages` although `maxErgebnisse` reports more.
-- Imports are triggered manually only (`POST /api/imports/arbeitsagentur`), no scheduler.
+- Imports start from the UI / `POST /api/imports` and once a day at 07:00 (use mode); one at a time, in the background.
 - Transient failures (5xx, 408, 429, timeouts) are retried with exponential backoff by the standard resilience
   handler (`Microsoft.Extensions.Http.Resilience`). 4xx such as 403 are not retried and make the import fail
   with 502 — nothing is saved.

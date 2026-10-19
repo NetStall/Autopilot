@@ -15,10 +15,11 @@ docker compose up -d     # "use" mode: db + api + frontend in Docker → http://
 
 Dev mode additionally needs the .NET 10 SDK and Node 24; Ctrl+C stops API and frontend. Details below.
 
-**Status:** step 03 (+ 03b) of the [roadmap](docs/ROADMAP.md) — a usable vacancy list: import from the
-Bundesagentur für Arbeit with one click (region around Deggendorf + fully remote jobs in all of Germany,
-apprenticeships/internships filtered out), filter (text, place, employer type, new/seen, remote, search), open the
-original posting, mark postings as seen; filters live in the URL. Earlier steps: foundation (01), import (02).
+**Status:** step 03 (+ 03b, 03c) of the [roadmap](docs/ROADMAP.md) — a usable vacancy list: background import
+from the Bundesagentur für Arbeit with progress and a daily run at 07:00 (region around Deggendorf + fully remote
+jobs in all of Germany, apprenticeships/internships filtered out), fast triage (seen / Merken / Ausblenden, keyboard
+shortcuts, keyword highlighting), filters in the URL; one-command start in Docker or dev mode; security review in
+[docs/SECURITY.md](docs/SECURITY.md). Earlier steps: foundation (01), import (02).
 Agent rules: [AGENTS.md](AGENTS.md).
 
 ![Vacancy list with filters, "Neu" markers and employer type badges (demo data)](docs/img/vacancy-list.png)
@@ -54,7 +55,8 @@ More background: [ADR 0001](docs/decisions/0001-foundation.md) (foundation),
 [ADR 0002](docs/decisions/0002-vacancy-import.md) (import), [ADR 0003](docs/decisions/0003-vacancy-list-ui.md)
 (list UI), [ADR 0004](docs/decisions/0004-title-prefilter.md) (title pre-filter),
 [Jobsuche API notes](docs/arbeitsagentur-api.md), [ADR 0005](docs/decisions/0005-single-import-lock.md) (one import
-at a time). Security: [docs/SECURITY.md](docs/SECURITY.md) — threat model, review findings, and the rule that
+at a time), [ADR 0006](docs/decisions/0006-background-import-queue.md) (background import queue),
+[ADR 0007](docs/decisions/0007-daily-auto-import.md) (daily import). Security: [docs/SECURITY.md](docs/SECURITY.md) — threat model, review findings, and the rule that
 **authentication comes before anything is reachable from outside localhost**.
 
 ## Run locally (Windows, PowerShell)
@@ -106,13 +108,19 @@ Stop the API before a restore. The restore runs in one transaction — on an err
 
 ### Import vacancies from the Arbeitsagentur
 
-Click **Import starten** in the UI, or:
+Click **Import starten** in the UI — it runs in the background with a progress bar — or:
 
 ```powershell
-Invoke-RestMethod -Method Post http://localhost:5080/api/imports/arbeitsagentur
+$run = Invoke-RestMethod -Method Post http://localhost:5080/api/imports        # 202 → { importId }
+Invoke-RestMethod "http://localhost:5080/api/imports/$($run.importId)"         # status, current search, counts
+Invoke-RestMethod "http://localhost:5080/api/imports?limit=5"                   # recent runs
 # real run on 2026-10-18 (15 searches): 117 vacancies — 77 in the region, 40 fully remote
-# second run: 0 neu · 0 aktualisiert · 117 unverändert · 0 ausgeschlossen
 ```
+
+Only one import runs at a time (a second start gets 409). In use mode (docker compose) an import also runs **every
+day at 07:00 Europe/Berlin**; if the PC was off at 07:00, the missed run starts when the API starts
+(`Import:Schedule`, see [ADR 0007](docs/decisions/0007-daily-auto-import.md)). The scheduler only fetches — it
+never sends anything.
 
 It runs every search in `Import:Searches` and stores new postings. Known ones are only updated; nothing you marked
 as seen is reset. Every vacancy remembers which searches found it (`matchedSearches`), and vacancies found by a
@@ -155,9 +163,24 @@ mostly hybrid). Details and measured numbers: [docs/arbeitsagentur-api.md](docs/
 One ad-hoc search instead of the configured ones (same fields, camelCase; `name` defaults to `ad-hoc`):
 
 ```powershell
-Invoke-RestMethod -Method Post http://localhost:5080/api/imports/arbeitsagentur -ContentType 'application/json' `
+Invoke-RestMethod -Method Post http://localhost:5080/api/imports -ContentType 'application/json' `
   -Body '{ "keyword": "Vue", "remoteOnly": true }'
 ```
+
+### Triage in the list
+
+| Key | Action |
+|---|---|
+| `j` / `k` | next / previous vacancy |
+| `o` | open the original posting (marks it as seen) |
+| `s` | seen ↔ new |
+| `m` | Merken (star) |
+| `x` | Ausblenden (not interested; hidden unless „Ausgeblendete anzeigen") |
+| `?` | help |
+
+Shortcuts are off while an input has focus. Changes appear immediately and are rolled back with a message if the
+API refuses. Keywords from `Ui:HighlightKeywords` are highlighted in titles (visual cue only). The last used filters
+are remembered per browser.
 
 ### Create a vacancy by hand
 
@@ -181,11 +204,14 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 | GET | `/health/ready` | ready to serve: `{ "status": "ok", "checks": { "database": "Healthy" } }`, 503 if the DB is unreachable |
 | GET | `/api/vacancies` | paged `{ items, page, pageSize, totalCount }`, filters below |
 | GET | `/api/vacancies/{id}` | one vacancy, 404 if unknown |
-| PATCH | `/api/vacancies/{id}` | `{ "isSeen": true \| false }` → 204; no other field is patchable |
+| PATCH | `/api/vacancies/{id}` | `{ "isSeen": bool, "interest": "None" \| "Starred" \| "Dismissed" }` (either or both) → 204; nothing else is patchable |
 | POST | `/api/vacancies/seen` | `{ "ids": [...] }` (1–100) → 204, marks them as seen |
 | POST | `/api/vacancies` | create a manual vacancy |
-| POST | `/api/imports/arbeitsagentur` | import: empty body = configured searches, or one search `{ name, keyword, location, radiusKm, publishedWithinDays, remoteOnly, maxPages }`; returns `{ fetched, added, updated, unchanged, excluded, durationMs, searches: [...] }`; 409 while another import runs, 429 after 6 imports/min, 502 if the Arbeitsagentur API is unreachable |
+| POST | `/api/imports` | queue an import: empty body = configured searches, or one search `{ name, keyword, location, radiusKm, publishedWithinDays, remoteOnly, maxPages }` → **202** `{ importId }`; 409 while another import is queued/running, 429 after 6/min |
+| GET | `/api/imports/{id}` | `{ status: Queued\|Running\|Succeeded\|Failed\|Cancelled, searchesDone, searchesTotal, currentSearch, fetched, added, updated, unchanged, excluded, error, searches: [...] }` |
+| GET | `/api/imports?limit=10` | recent runs, newest first (limit 1–50) |
 | GET | `/api/imports/searches` | the configured searches (for the UI filter) |
+| GET | `/api/settings/ui` | `{ highlightKeywords }` from `Ui:HighlightKeywords` |
 
 Query parameters of `GET /api/vacancies`:
 
@@ -198,6 +224,9 @@ Query parameters of `GET /api/vacancies`:
 | `source` | `Arbeitsagentur` / `Manual` |
 | `remote` | `true` = found by a remote search, `false` = the others |
 | `search` | name of a configured search — repeatable, matches any |
+| `interest` | `None`, `Starred`, `Dismissed` — repeatable; without it, dismissed vacancies are hidden |
+| `includeDismissed` | `true` = show dismissed vacancies too |
+| `fetchedSince` | ISO timestamp — only vacancies imported at/after it („Neu seit letztem Import") |
 | `sort` | `published` (default, newest first, without date last) or `fetched` |
 | `page`, `pageSize` | default 1 / 20, `pageSize` ≤ 100 |
 

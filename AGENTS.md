@@ -104,6 +104,7 @@ Dependency direction: `Api → Infrastructure → Core`. **Core references nothi
 docker compose up -d                          # everything in Docker (use mode) -> http://localhost:3000
 ./dev.ps1                                     # dev mode: db in Docker, API + frontend in one window
 ./scripts/backup-db.ps1                       # dump to ./backups (git-ignored)
+Invoke-RestMethod -Method Post http://localhost:5080/api/imports   # start a background import (202 + importId)
 docker compose up -d db                       # start PostgreSQL only
 dotnet build backend/JobAutopilot.sln
 dotnet test  backend/JobAutopilot.sln

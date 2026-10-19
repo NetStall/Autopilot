@@ -29,7 +29,7 @@ answer on the machine's LAN address). Containers run as non-root users (`app`, U
 | DNS rebinding (attacker domain resolving to 127.0.0.1) | Host filtering: `AllowedHosts = localhost;127.0.0.1;[::1]` → other `Host` headers get 400 |
 | XSS through vacancy data (titles, URLs come from an external API) | Vue escapes all text, no `v-html`; links only for absolute `http(s)` URLs with `rel="noopener noreferrer"`; CSP without `unsafe-inline` for scripts (hash-based), `connect-src` limited to the API origin, `frame-ancestors 'none'` |
 | Clickjacking | `X-Frame-Options: DENY`, `frame-ancestors 'none'` (frontend and API) |
-| Abuse of the import (floods the public Arbeitsagentur API, DB contention) | Only one import at a time (advisory lock → 409), rate limit 6 imports/min (429), sequential paging with delay |
+| Abuse of the import (floods the public Arbeitsagentur API, DB contention) | Only one import at a time (unique active run + advisory lock → 409), rate limit 6 starts/min (429), sequential paging with delay; the daily schedule only *fetches* and never sends anything |
 | Oversized or malformed input | Validation with limits on every parameter (text ≤ 200, page ≤ 1 000 000, pageSize ≤ 100, lists bounded), request bodies ≤ 64 KB (413), malformed JSON → 400 ProblemDetails |
 | Information leakage in errors | ProblemDetails everywhere; outside Development no exception messages or stack traces (tested) |
 | Secrets / personal data in git | `.env`, `appsettings.*.local.json`, `backups/`, `data/` git-ignored; history checked (see findings) |
