@@ -16,7 +16,7 @@ public class RelevanceScorerTests
         { "Fullstack-Entwickler .NET & Vue.js (m/w/d)", "Sie entwickeln Web-APIs mit ASP.NET Core und Entity Framework.", RelevanceLevel.Relevant },
         { "Backend Developer (m/f/d)", "Our stack: C#, .NET 8, PostgreSQL, Docker, Azure. REST APIs for our SaaS.", RelevanceLevel.Relevant },
         { "Software Engineer", "Wir arbeiten mit TypeScript, Vue 3 und einem .NET-Backend auf MS SQL Server.", RelevanceLevel.Relevant },
-        { "Teamleiter Softwareentwicklung .NET (m/w/d)", null, RelevanceLevel.Relevant },
+        { "Teamleiter Softwareentwicklung .NET (m/w/d)", null, RelevanceLevel.Maybe },
         // Either / or with the core stack must stay
         { "Softwareentwickler Java oder C# (m/w/d)", null, RelevanceLevel.Maybe },
         { "Backend-Entwickler (m/w/d) C#, Java", "Sie programmieren in C# oder Java; Python-Kenntnisse sind von Vorteil.", RelevanceLevel.Maybe },
@@ -119,14 +119,22 @@ public class RelevanceScorerTests
     }
 
     [Fact]
-    public void Leadership_roles_are_only_a_mild_minus()
+    public void Leadership_roles_cost_points_but_stay_visible()
     {
         var plain = _scorer.Score("Softwareentwickler .NET (m/w/d)", null);
         var lead = _scorer.Score("Teamleiter Softwareentwicklung .NET (m/w/d)", null);
 
-        (plain.Score - lead.Score).Should().BeInRange(0, 10);
-        lead.Reasons.Should().Contain("Leitungsrolle im Titel ✗ (-10)");
+        (plain.Score - lead.Score).Should().Be(20);
+        lead.Level.Should().Be(RelevanceLevel.Maybe);
+        lead.Reasons.Should().Contain("Leitungsrolle im Titel ✗ (-20)");
     }
+
+    [Theory]
+    [InlineData("CRM Software Developer Microsoft Dynamics 365 (m/w/d)", "C# und .NET für Erweiterungen")]
+    [InlineData("Web Developer Trainer (m/w/d)", "Schulungen zu C#, .NET und Vue")]
+    [InlineData("Qualitätsingenieur / Testautomatisierungs-Entwickler (m/w/d)", "C# und .NET")]
+    public void Neighbouring_roles_with_the_same_stack_are_not_relevant(string title, string description) =>
+        _scorer.Score(title, description).Level.Should().NotBe(RelevanceLevel.Relevant);
 
     [Fact]
     public void Ausbildung_as_a_requirement_in_the_text_does_not_count()

@@ -101,9 +101,10 @@ public static class VacancyQueryExtensions
     public static IOrderedQueryable<Vacancy> ApplySort(this IQueryable<Vacancy> query, VacancySort sort) => sort switch
     {
         // Direct employers before unknown ones before agencies / temporary work, at the same score.
+        // The rank (relevance minus fit penalties) when known, otherwise the relevance score.
         VacancySort.Relevance => query
             .OrderBy(v => v.RelevanceScore == null)
-            .ThenByDescending(v => v.RelevanceScore)
+            .ThenByDescending(v => v.RankScore ?? v.RelevanceScore)
             .ThenBy(v => v.EmployerType == EmployerType.Direct ? 0
                 : v.EmployerType == EmployerType.Unknown ? 1
                 : v.EmployerType == EmployerType.Agency ? 2

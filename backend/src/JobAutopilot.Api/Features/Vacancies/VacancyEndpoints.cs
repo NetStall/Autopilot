@@ -16,6 +16,7 @@ public static partial class VacancyEndpoints
 
         group.MapGet("/", ListVacancies).WithName(nameof(ListVacancies));
         group.MapGet("/{id:guid}", GetVacancy).WithName(nameof(GetVacancy));
+        group.MapGet("/{id:guid}/fit", GetFit).WithName(nameof(GetFit));
         group.MapPost("/", CreateVacancy).WithName(nameof(CreateVacancy));
         group.MapPatch("/{id:guid}", UpdateVacancy).WithName(nameof(UpdateVacancy));
         group.MapPost("/seen", MarkSeen).WithName(nameof(MarkSeen));
@@ -67,6 +68,31 @@ public static partial class VacancyEndpoints
 
         var duplicates = await DuplicatesOfAsync(db, [vacancy], cancellationToken);
         return TypedResults.Ok(vacancy.ToDto(alsoFoundAt: AlsoFoundAt(vacancy, duplicates)));
+    }
+
+    /// <summary>„Passt zu mir?" — the fit check of one vacancy against the current profile (computed, not stored).</summary>
+    private static async Task<Results<Ok<FitDto>, NotFound>> GetFit(
+        Guid id,
+        AppDbContext db,
+        Core.Fit.VacancyFitService fit,
+        Core.Profile.ICandidateProfileSource profiles,
+        CancellationToken cancellationToken)
+    {
+        var vacancy = await db.Vacancies.AsNoTracking().FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
+        if (vacancy is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var result = fit.Analyze(vacancy);
+        return TypedResults.Ok(new FitDto(
+            profiles.Current.Status,
+            vacancy.Description is not null,
+            result.Requirements,
+            result.Warnings,
+            result.RequiredGerman,
+            result.RequiredYears,
+            result.Penalty));
     }
 
     /// <summary>All vacancies sharing a duplicate key with one of <paramref name="vacancies"/>, by key.</summary>

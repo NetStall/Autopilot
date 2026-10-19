@@ -20,6 +20,7 @@ const originalUrl = computed(() => safeExternalUrl(vacancy.value?.url))
 const badges = computed(() => (vacancy.value ? vacancyBadges(vacancy.value) : []))
 const statusBadges = computed(() => badges.value.filter(b => b.variant === 'new' || b.variant === 'remote' || b.variant === 'hybrid'))
 const score = computed(() => (vacancy.value ? scoreBadge(vacancy.value) : null))
+const { data: fit } = useAsyncData(() => `vacancy-fit-${id.value}`, () => api.fit(id.value), { server: false, lazy: true })
 const attribution = computed(() => (vacancy.value ? sourceAttribution(vacancy.value.source) : null))
 const employerBadge = computed(() => badges.value.find(b => b.variant === 'employer' || b.variant === 'intermediary'))
 const notFound = computed(() => errorStatus(error.value) === 404)
@@ -227,10 +228,20 @@ function openedOriginal() {
         <dd>{{ interestLabels[vacancy.interest] ?? '–' }}</dd>
       </dl>
 
+      <section v-if="fit" class="detail__reasons" aria-labelledby="fit-heading">
+        <h2 id="fit-heading">
+          Passt zu mir?
+        </h2>
+        <VacancyFit :fit="fit" />
+      </section>
+
       <section class="detail__reasons" aria-labelledby="reasons-heading">
         <h2 id="reasons-heading">
           Warum diese Bewertung?
         </h2>
+        <p v-if="scoreLine(vacancy.relevanceScore, vacancy.rankScore)" class="detail__score-line">
+          {{ scoreLine(vacancy.relevanceScore, vacancy.rankScore) }}
+        </p>
         <VacancyReasons :reasons="vacancy.relevanceReasons" />
       </section>
 
@@ -349,6 +360,11 @@ function openedOriginal() {
 
   &__text {
     white-space: pre-line;
+  }
+
+  &__score-line {
+    margin: 0 0 var(--space-2);
+    font-weight: 600;
   }
 
   &__note {

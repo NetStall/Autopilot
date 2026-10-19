@@ -1,5 +1,6 @@
 import type {
   ConfiguredSearch,
+  FitResponse,
   ImportRun,
   ImportStarted,
   PagedResponse,
@@ -23,6 +24,11 @@ export function useVacanciesApi() {
 
     get(id: string) {
       return api<Vacancy>(`/api/vacancies/${encodeURIComponent(id)}`)
+    },
+
+    /** „Passt zu mir?" — fit check against the loaded profile. */
+    fit(id: string) {
+      return api<FitResponse>(`/api/vacancies/${encodeURIComponent(id)}/fit`)
     },
 
     async setSeen(id: string, isSeen: boolean): Promise<void> {

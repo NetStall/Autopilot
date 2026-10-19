@@ -24,6 +24,7 @@ public static class VacancyMappings
         [.. vacancy.MatchedSearches],
         vacancy.Interest,
         vacancy.RelevanceScore,
+        vacancy.RankScore,
         vacancy.RelevanceLevel,
         [.. vacancy.RelevanceReasons],
         vacancy.DetailsFetchedAt,

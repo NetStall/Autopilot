@@ -151,6 +151,9 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("PublishedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("RankScore")
+                        .HasColumnType("integer");
+
                     b.Property<string>("RelevanceLevel")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
@@ -199,6 +202,8 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.HasIndex("FetchedAt");
 
                     b.HasIndex("Interest");
+
+                    b.HasIndex("RankScore");
 
                     b.HasIndex("RelevanceLevel");
 

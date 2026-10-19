@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using JobAutopilot.Core.Fit;
 using JobAutopilot.Core.Import;
 using JobAutopilot.Core.Profile;
 using JobAutopilot.Core.Scoring;
@@ -94,6 +95,9 @@ public static class DependencyInjection
             sp.GetRequiredService<ICandidateProfileSource>()));
         services.AddSingleton(sp => new RemoteClassifier(sp.GetRequiredService<IOptions<RemoteOptions>>().Value));
         services.AddSingleton(sp => new EmployerClassifier(sp.GetRequiredService<IOptions<EmployerDetectionOptions>>().Value));
+        services.AddOptions<FitOptions>().Bind(configuration.GetSection(FitOptions.SectionName));
+        services.AddSingleton(sp => new FitAnalyzer(sp.GetRequiredService<IOptions<FitOptions>>().Value));
+        services.AddSingleton<VacancyFitService>();
         services.AddSingleton<VacancyEnricher>();
 
         // The API replaces this with the file-based source (it knows the content root).

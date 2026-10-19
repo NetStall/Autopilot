@@ -1,3 +1,4 @@
+using JobAutopilot.Core.Fit;
 using JobAutopilot.Core.Vacancies;
 
 namespace JobAutopilot.Core.Scoring;
@@ -9,7 +10,8 @@ namespace JobAutopilot.Core.Scoring;
 public sealed class VacancyEnricher(
     IRelevanceScorerProvider scorers,
     RemoteClassifier remoteClassifier,
-    EmployerClassifier employerClassifier)
+    EmployerClassifier employerClassifier,
+    VacancyFitService? fit = null)
 {
     /// <param name="remoteHint">What the source says about home office, if anything.</param>
     /// <param name="employerHint">What the source says about the employer (Arbeitsagentur flags), if anything.</param>
@@ -40,6 +42,19 @@ public sealed class VacancyEnricher(
         if (employerReason is not null)
         {
             reasons.Add(employerReason);
+        }
+
+        // The ranking: relevance adjusted by the fit warnings against the profile.
+        var fitResult = fit?.Analyze(vacancy) ?? FitResult.Empty;
+        vacancy.RankScore = Math.Clamp(relevance.Score - fitResult.Penalty, 0, 100);
+        foreach (var warning in fitResult.Warnings.Where(w => w.Penalty > 0))
+        {
+            reasons.Add($"Fit: {warning.Text} (−{warning.Penalty})");
+        }
+
+        if (fitResult.Penalty > 0)
+        {
+            reasons.Add($"Rang {vacancy.RankScore} = Relevanz {relevance.Score} − {fitResult.Penalty}");
         }
 
         vacancy.RelevanceReasons = reasons;

@@ -19,6 +19,7 @@ public sealed record VacancyDto(
     IReadOnlyList<string> MatchedSearches,
     VacancyInterest Interest,
     int? RelevanceScore,
+    int? RankScore,
     RelevanceLevel? RelevanceLevel,
     IReadOnlyList<string> RelevanceReasons,
     DateTimeOffset? DetailsFetchedAt,

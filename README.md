@@ -222,6 +222,16 @@ without a phrase the source's data count (`homeofficeprozent` 100 → voll remot
 found by a remote search keeps a vacancy at least hybrid. The employer type comes from the
 Arbeitsagentur flags (Arbeitnehmerüberlassung / private Arbeitsvermittlung), then the known agencies, then phrases.
 
+**Passt zu mir?** On the detail page every vacancy is checked against the profile (rules only, no AI): which
+requirements I cover (✓ profile level `Production`), partly (~ `Project`/`Learning`) or not (✗, with the honest
+phrasing from `knownGaps`). A requirement only in a sentence with „von Vorteil"/„nice to have", or offered as an
+alternative to a skill I cover („Angular oder Vue.js"), is optional. Warnings: German level above mine („sehr gute
+Deutschkenntnisse" = C1), more years than mine („mehrjährig", „5 Jahre", „Senior"), not fully remote outside my
+`preferences.regions`, an employer type I avoid. The **default order** is the *rank* = relevance minus these penalties
+(`Fit:Penalties` in `appsettings.json`: German 8 per level, experience 8, required gap 6 each up to 18, region 15,
+avoided employer type 10); „Warum?" shows both numbers. Common requirements that are not in the profile (Angular,
+React, Kubernetes, Führerschein …) are listed in `Fit:CommonRequirements`.
+
 The same job from several sources (or posted twice) is shown once — the first one imported — with „auch bei …"
 links (key: company + title without „(m/w/d)" and legal forms).
 
@@ -262,6 +272,8 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 | GET | `/health/ready` | ready to serve: `{ "status": "ok", "checks": { "database": "Healthy" } }`, 503 if the DB is unreachable |
 | GET | `/api/vacancies` | paged `{ items, page, pageSize, totalCount }`, filters below |
 | GET | `/api/vacancies/{id}` | one vacancy, 404 if unknown |
+| GET | `/api/vacancies/{id}/fit` | „Passt zu mir?": `{ profileStatus, hasDescription, requirements: [{ name, coverage: Covered\|Partial\|Gap, optional, note }], warnings: [{ text, penalty }], requiredGerman, requiredYears, penalty }` |
+| GET | `/api/profile` | `{ status: Loaded\|Missing\|Invalid, fileName, errors, warnings, experienceYears, profile }` |
 | PATCH | `/api/vacancies/{id}` | `{ "isSeen": bool, "interest": "None" \| "Starred" \| "Dismissed" }` (either or both) → 204; nothing else is patchable |
 | POST | `/api/vacancies/seen` | `{ "ids": [...] }` (1–100) → 204, marks them as seen |
 | POST | `/api/vacancies` | create a manual vacancy |

@@ -47,6 +47,23 @@ public sealed class TermMatcher
         return null;
     }
 
+    /// <summary>All positions where a configured term occurs, with the term that matched.</summary>
+    public IEnumerable<(string Term, int Index)> FindAll(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            yield break;
+        }
+
+        foreach (var (term, pattern) in _terms)
+        {
+            foreach (Match match in pattern.Matches(text))
+            {
+                yield return (term, match.Index);
+            }
+        }
+    }
+
     internal static string ToPattern(string term)
     {
         var pattern = new StringBuilder(@"(?<![\p{L}\p{N}_])");

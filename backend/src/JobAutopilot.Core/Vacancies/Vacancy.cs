@@ -60,6 +60,12 @@ public class Vacancy
 
     public RelevanceLevel? RelevanceLevel { get; set; }
 
+    /// <summary>
+    /// The ranking value of the default list: <see cref="RelevanceScore"/> minus the fit penalties (German level above
+    /// mine, more years than I have, required gaps such as Angular, an employer type I avoid). <c>null</c> until scored.
+    /// </summary>
+    public int? RankScore { get; set; }
+
     /// <summary>Why the vacancy got its score, remote level and employer type (German, shown in the UI).</summary>
     public List<string> RelevanceReasons { get; set; } = [];
 

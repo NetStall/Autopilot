@@ -40,6 +40,8 @@ export interface Vacancy {
   interest: VacancyInterest
   /** 0–100; null until scored. */
   relevanceScore: number | null
+  /** Relevance minus the fit penalties — the order of the default list. */
+  rankScore: number | null
   relevanceLevel: RelevanceLevel | null
   /** Why: „C# im Titel ✓ (+50)", „Java als Hauptsprache ✗ (-60)", remote and employer notes. */
   relevanceReasons: string[]
@@ -117,6 +119,27 @@ export interface ImportRun extends ImportCounts {
 /** POST /api/imports → 202 */
 export interface ImportStarted {
   importId: string
+}
+
+export type FitCoverage = 'Covered' | 'Partial' | 'Gap'
+
+export interface FitRequirement {
+  name: string
+  coverage: FitCoverage
+  optional: boolean
+  /** Level, or the honest phrasing for a gap. */
+  note: string
+}
+
+/** GET /api/vacancies/{id}/fit — „Passt zu mir?" */
+export interface FitResponse {
+  profileStatus: 'Loaded' | 'Missing' | 'Invalid'
+  hasDescription: boolean
+  requirements: FitRequirement[]
+  warnings: { text: string, penalty: number }[]
+  requiredGerman: string | null
+  requiredYears: number | null
+  penalty: number
 }
 
 /** GET/POST /api/vacancies/rescore */

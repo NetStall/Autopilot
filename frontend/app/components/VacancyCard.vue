@@ -87,6 +87,9 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
         </button>
       </p>
       <div v-if="reasonsOpen" :id="reasonsId" class="card__reasons">
+        <p v-if="scoreLine(vacancy.relevanceScore, vacancy.rankScore)" class="card__score-line">
+          {{ scoreLine(vacancy.relevanceScore, vacancy.rankScore) }}
+        </p>
         <VacancyReasons :reasons="vacancy.relevanceReasons" />
       </div>
     </div>
@@ -214,6 +217,12 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
     color: var(--color-accent);
     text-decoration: underline;
     cursor: pointer;
+  }
+
+  &__score-line {
+    margin: 0 0 var(--space-1);
+    font-weight: 600;
+    font-size: 0.85rem;
   }
 
   &__reasons {
