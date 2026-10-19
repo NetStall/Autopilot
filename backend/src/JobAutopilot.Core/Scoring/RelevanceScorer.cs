@@ -16,11 +16,19 @@ public sealed class RelevanceScorer
     private readonly CompiledRule[] _positive;
     private readonly CompiledRule[] _negative;
 
-    public RelevanceScorer(RelevanceOptions options)
+    /// <param name="additionalPositive">More positive rules, e.g. from the candidate profile's skills. A rule whose
+    /// name or terms are already covered by a configured rule is ignored, so a skill never counts twice.</param>
+    public RelevanceScorer(RelevanceOptions options, IEnumerable<RelevanceRule>? additionalPositive = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         _options = options;
-        _positive = [.. options.Positive.Select(r => new CompiledRule(r))];
+        var configured = options.Positive;
+        var known = new HashSet<string>(
+            configured.SelectMany(r => r.Terms.Append(r.Name)).Select(t => t.Trim()),
+            StringComparer.OrdinalIgnoreCase);
+        var extra = (additionalPositive ?? [])
+            .Where(r => !known.Contains(r.Name.Trim()) && !r.Terms.Any(t => known.Contains(t.Trim())));
+        _positive = [.. configured.Concat(extra).Select(r => new CompiledRule(r))];
         _negative = [.. options.Negative.Select(r => new CompiledRule(r))];
     }
 
@@ -28,6 +36,8 @@ public sealed class RelevanceScorer
     {
         ArgumentNullException.ThrowIfNull(title);
         var contributions = new List<(double Points, string Reason)>();
+        var groupTotals = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        var anyPositive = false;
 
         var corePlace = Place.None;
         foreach (var rule in _positive)
@@ -45,6 +55,20 @@ public sealed class RelevanceScorer
 
             var points = rule.Rule.Weight * Factor(place);
             contributions.Add((points, $"{rule.Rule.Name}{Where(place)} ✓ ({Signed(points)})"));
+            anyPositive = true;
+            if (rule.Rule.Group is { Length: > 0 } group)
+            {
+                groupTotals[group] = groupTotals.GetValueOrDefault(group) + points;
+            }
+        }
+
+        // Related skills do not stack without limit: ".NET" in the title plus C# plus ASP.NET is one strong signal.
+        foreach (var (group, total) in groupTotals)
+        {
+            if (_options.GroupCaps.TryGetValue(group, out var cap) && total > cap)
+            {
+                contributions.Add((cap - total, $"Gruppe {group} gedeckelt auf {cap} ({Signed(cap - total)})"));
+            }
         }
 
         foreach (var rule in _negative)
@@ -77,7 +101,15 @@ public sealed class RelevanceScorer
             reasons.Add("Nur der Titel bewertet (noch keine Beschreibung)");
         }
 
-        return new RelevanceResult(score, LevelFor(score), reasons);
+        var level = LevelFor(score);
+        if (string.IsNullOrWhiteSpace(description) && anyPositive && level == RelevanceLevel.Irrelevant
+            && !contributions.Any(c => c.Points < 0))
+        {
+            // Only the title is known yet: a developer title without negatives stays visible until the text arrives.
+            level = RelevanceLevel.Maybe;
+        }
+
+        return new RelevanceResult(score, level, reasons);
     }
 
     public RelevanceLevel LevelFor(int score) =>

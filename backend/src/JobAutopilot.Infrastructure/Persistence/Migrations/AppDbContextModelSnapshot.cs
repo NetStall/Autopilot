@@ -164,6 +164,13 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.Property<int?>("RelevanceScore")
                         .HasColumnType("integer");
 
+                    b.Property<string>("RemoteHint")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Unknown");
+
                     b.Property<string>("RemoteLevel")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

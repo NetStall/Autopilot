@@ -9,6 +9,8 @@ namespace JobAutopilot.Core.Import;
 /// <c>homeofficeprozent</c>).</param>
 /// <param name="ChangedAt">When the posting was last changed at the source; a newer value refetches the details.</param>
 /// <param name="ExpiresAt">When the source takes the posting down; expired vacancies are removed (Himalayas terms).</param>
+/// <param name="ExclusionReason">Set by the source when the posting must not be stored (e.g. „only for applicants in
+/// the US"); counted as excluded like the title pre-filter.</param>
 public sealed record VacancyCandidate(
     string ExternalId,
     string Title,
@@ -19,4 +21,5 @@ public sealed record VacancyCandidate(
     string? Description = null,
     RemoteLevel RemoteHint = RemoteLevel.Unknown,
     DateTimeOffset? ChangedAt = null,
-    DateTimeOffset? ExpiresAt = null);
+    DateTimeOffset? ExpiresAt = null,
+    string? ExclusionReason = null);

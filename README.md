@@ -186,15 +186,16 @@ All rules live in `appsettings.json` and can be changed without code:
 
 | Section | What |
 |---|---|
-| `Relevance` | `Positive` / `Negative` keyword rules (`Name`, `Terms`, `Weight`, optional `MatchCase`, `TitleOnly`, `Core`, `SoftenedByCore`, `Reason`), `BaseScore`, `TitleFactor` (title counts ×2), `SoftenedFactor`, thresholds `RelevantFrom` / `MaybeFrom` |
+| `Relevance` | `Positive` / `Negative` keyword rules (`Name`, `Terms`, `Weight`, optional `Group`, `MatchCase`, `TitleOnly`, `Core`, `SoftenedByCore`, `Reason`), `GroupCaps` (related skills share a maximum, e.g. `dotnet: 50` — „.NET" in the title plus C# plus ASP.NET does not stack without limit), `BaseScore` (10), `TitleFactor` (title counts ×2), `SoftenedFactor`, thresholds `RelevantFrom` / `MaybeFrom` |
 | `Remote` | phrases for **voll remote** („100 % remote", „deutschlandweit remote" …), **vor Ort** („kein Homeoffice") and **hybrid** („mobiles Arbeiten", „{n} Tage Homeoffice") |
 | `EmployerDetection` | known agencies (FERCHAU, Hays, Brunel …), phrases for agencies („im Auftrag unseres Kunden") and temporary work („Arbeitnehmerüberlassung"), phrases of direct employers („keine Anfragen von Personaldienstleistern") |
 
 Terms match whole words only: `Java` ≠ „JavaScript", `.NET` ≠ „Netzwerk", `C#` ≠ „C++"; spaces and hyphens are
 flexible („Full Stack" = „Full-Stack" = „Fullstack"). After changing rules, click **Neu bewerten** (or
-`POST /api/vacancies/rescore`); the API also re-scores everything when it starts. The remote level is the highest of:
-remote search (→ at least hybrid), the source's home-office data (Arbeitsagentur `homeofficeprozent` 100 → voll
-remote; Himalayas → voll remote) and the phrases; it is never lowered. The employer type comes from the
+`POST /api/vacancies/rescore`); the API also re-scores everything when it starts. The remote level is recomputed
+each time: an explicit phrase decides („anteilig Homeoffice" → hybrid, even if the Arbeitsagentur field says 100 %);
+without a phrase the source's data count (`homeofficeprozent` 100 → voll remote, Himalayas → voll remote); being
+found by a remote search keeps a vacancy at least hybrid. The employer type comes from the
 Arbeitsagentur flags (Arbeitnehmerüberlassung / private Arbeitsvermittlung), then the known agencies, then phrases.
 
 The same job from several sources (or posted twice) is shown once — the first one imported — with „auch bei …"
@@ -269,6 +270,8 @@ Query parameters of `GET /api/vacancies`:
 Invalid values return `400` ProblemDetails naming the parameter.
 
 ### Database migrations
+
+What the columns mean (e.g. `RemoteHint` vs `RemoteLevel`, `ExpiresAt`): [docs/schema.md](docs/schema.md).
 
 ```powershell
 dotnet tool restore

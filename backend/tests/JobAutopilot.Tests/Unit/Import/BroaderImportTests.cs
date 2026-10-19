@@ -39,7 +39,7 @@ public class BroaderImportTests
         vacancy.MarkFoundBy("region-csharp", remoteOnly: false).Should().BeTrue();
 
         vacancy.MatchedSearches.Should().Equal("remote-csharp", "region-csharp");
-        vacancy.RemoteLevel.Should().Be(RemoteLevel.Hybrid);
+        vacancy.RemoteHint.Should().Be(RemoteLevel.Hybrid);
     }
 
     [Fact]

@@ -18,8 +18,11 @@ public class RelevanceScorerTests
         { "Software Engineer", "Wir arbeiten mit TypeScript, Vue 3 und einem .NET-Backend auf MS SQL Server.", RelevanceLevel.Relevant },
         { "Teamleiter Softwareentwicklung .NET (m/w/d)", null, RelevanceLevel.Relevant },
         // Either / or with the core stack must stay
-        { "Softwareentwickler Java oder C# (m/w/d)", null, RelevanceLevel.Relevant },
-        { "Backend-Entwickler (m/w/d) C#, Java", "Sie programmieren in C# oder Java; Python-Kenntnisse sind von Vorteil.", RelevanceLevel.Relevant },
+        { "Softwareentwickler Java oder C# (m/w/d)", null, RelevanceLevel.Maybe },
+        { "Backend-Entwickler (m/w/d) C#, Java", "Sie programmieren in C# oder Java; Python-Kenntnisse sind von Vorteil.", RelevanceLevel.Maybe },
+        // Nothing from the stack: generic terms alone must stay low
+        { "Junior Fullstack Entwickler Fokus Next.js", "React, Next.js, Node.js und GraphQL", RelevanceLevel.Irrelevant },
+        { "Senior Software Engineer / Fullstack", "Go, Kubernetes, gRPC", RelevanceLevel.Irrelevant },
         { "Softwareentwickler (m/w/d)", "Wir entwickeln mit C#/.NET. Kenntnisse in Python sind ein Plus.", RelevanceLevel.Relevant },
         // Generic titles without text: not hidden
         { "Softwareentwickler (m/w/d)", null, RelevanceLevel.Maybe },
@@ -54,6 +57,21 @@ public class RelevanceScorerTests
     }
 
     [Fact]
+    public void Related_skills_are_capped_per_group()
+    {
+        var result = _scorer.Score("Senior .NET / C# Entwickler ASP.NET Core", "Entity Framework, Blazor");
+
+        result.Reasons.Should().Contain(r => r.StartsWith("Gruppe dotnet gedeckelt auf 50", StringComparison.Ordinal));
+        result.Score.Should().BeLessThan(100);
+    }
+
+    [Fact]
+    public void Generic_terms_without_the_stack_stay_far_below_maybe()
+    {
+        _scorer.Score("Fullstack Software Engineer", "Wir suchen Verstärkung für unser Team.").Score.Should().BeLessThan(25);
+    }
+
+    [Fact]
     public void Javascript_is_not_java()
     {
         var result = _scorer.Score("JavaScript-Entwickler (m/w/d)", "Frontend mit TypeScript und Vue.js");
@@ -74,7 +92,7 @@ public class RelevanceScorerTests
     [Fact]
     public void Title_matches_weigh_more_than_description_matches()
     {
-        var inTitle = _scorer.Score("Entwickler C#", null);
+        var inTitle = _scorer.Score("Entwickler C#", "Team");
         var inText = _scorer.Score("Entwickler", "Wir nutzen C#.");
 
         inTitle.Score.Should().BeGreaterThan(inText.Score);

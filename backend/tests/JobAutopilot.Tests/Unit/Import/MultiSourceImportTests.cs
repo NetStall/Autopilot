@@ -75,6 +75,19 @@ public class MultiSourceImportTests
     }
 
     [Fact]
+    public async Task Candidates_the_source_excludes_are_counted_and_not_stored()
+    {
+        _himalayas.Returns("hima",
+            Candidate("US") with { ExclusionReason = "Nur für Bewerber aus: United States" },
+            Candidate("DE"));
+
+        var result = await ImportAsync(Hima);
+
+        result.Excluded.Should().Be(1);
+        _store.Saved.Should().ContainSingle().Which.ExternalId.Should().Be("DE");
+    }
+
+    [Fact]
     public async Task Expiry_dates_are_stored_and_expired_vacancies_deleted()
     {
         _himalayas.Returns("hima",

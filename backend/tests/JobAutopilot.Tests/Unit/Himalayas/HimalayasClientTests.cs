@@ -37,7 +37,7 @@ public sealed class HimalayasClientTests : IDisposable
         _handler.Requests.Should().Equal(
             "https://himalayas.app/jobs/api/search?q=.NET&country=DE&exclude_worldwide=true&sort=recent&page=1",
             "https://himalayas.app/jobs/api/search?q=.NET&country=DE&exclude_worldwide=true&sort=recent&page=2");
-        candidates.Select(c => c.ExternalId).Should().Equal("senior-net-developer-4267385201", "c-entwickler-3");
+        candidates.Select(c => c.ExternalId).Should().Equal("senior-net-developer-4267385201", "backend-engineer-1", "c-entwickler-3");
     }
 
     [Fact]
@@ -47,6 +47,7 @@ public sealed class HimalayasClientTests : IDisposable
         _handler.Responses.Enqueue(Ok("page2.json"));
 
         var job = (await SearchAsync(Search))[0];
+        job.ExclusionReason.Should().BeNull();
 
         job.Title.Should().Be("Senior .NET Developer (m/w/d) - remote");
         job.Company.Should().Be("Beispiel Software GmbH");
@@ -67,10 +68,12 @@ public sealed class HimalayasClientTests : IDisposable
 
         var candidates = await SearchAsync(Search);
 
-        candidates.Should().NotContain(c => c.ExternalId == "backend-engineer-1", "US only");
+        candidates.Single(c => c.ExternalId == "backend-engineer-1").ExclusionReason
+            .Should().Be("Nur für Bewerber aus: United States", "US-only jobs are counted as excluded, not stored");
         candidates.Should().NotContain(c => c.ExternalId == "fullstack-old-2", "published in June, the search asks for 30 days");
-        candidates[1].PublishedAt.Should().Be(DateTimeOffset.FromUnixTimeMilliseconds(1792300000000), "milliseconds are understood too");
-        candidates[1].Location.Should().Be("Remote (2 Länder inkl. Deutschland)");
+        var second = candidates.Single(c => c.ExternalId == "c-entwickler-3");
+        second.PublishedAt.Should().Be(DateTimeOffset.FromUnixTimeMilliseconds(1792300000000), "milliseconds are understood too");
+        second.Location.Should().Be("Remote (Deutschland, Austria)");
     }
 
     [Fact]
@@ -95,7 +98,7 @@ public sealed class HimalayasClientTests : IDisposable
 
         var candidates = await SearchAsync(Search);
 
-        candidates.Should().HaveCount(2);
+        candidates.Should().HaveCount(3);
         _handler.Requests.Should().HaveCount(3);
     }
 

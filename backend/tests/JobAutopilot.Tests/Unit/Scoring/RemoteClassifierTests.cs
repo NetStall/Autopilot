@@ -51,18 +51,49 @@ public class RemoteClassifierTests
     }
 
     [Fact]
-    public void Enricher_never_lowers_the_level_and_takes_the_source_hint()
+    public void Explicit_text_beats_a_wrong_100_percent_field_ifm_prover()
     {
-        var enricher = ShippedConfig.Enricher();
-        var vacancy = Vacancy.CreateManual("Softwareentwickler", "Firma", DateTimeOffset.UnixEpoch);
-        vacancy.RemoteLevel = RemoteLevel.Hybrid;
-        vacancy.Description = "Leider kein Homeoffice.";
+        // Real case (Arbeitsagentur 12511-2026X0000053169-S): homeofficeprozent = 100, the text says „anteilig".
+        var vacancy = Imported(
+            "Softwareentwickler für Tools und Anwendungen / C# (m/w/d)",
+            "Wir bieten: flexible Arbeitszeiten (Gleitzeit) - anteilig Homeoffice - 30 Tage Urlaub");
 
-        enricher.Apply(vacancy);
-        vacancy.RemoteLevel.Should().Be(RemoteLevel.Hybrid, "found by a remote search before");
+        ShippedConfig.Enricher().Apply(vacancy, RemoteLevel.FullRemote);
 
-        enricher.Apply(vacancy, RemoteLevel.FullRemote);
+        vacancy.RemoteLevel.Should().Be(RemoteLevel.Hybrid);
+        vacancy.RemoteHint.Should().Be(RemoteLevel.FullRemote, "the source's value is kept, the text decides");
+        vacancy.RelevanceReasons.Should().Contain("Hybrid: „anteilig Homeoffice“");
+    }
+
+    [Fact]
+    public void Rescoring_lowers_the_level_when_the_rules_say_less_but_a_remote_search_stays_sticky()
+    {
+        var vacancy = Imported("Softwareentwickler", "Leider kein Homeoffice.");
+        vacancy.RemoteLevel = RemoteLevel.FullRemote; // from an older rule set
+
+        ShippedConfig.Enricher().Apply(vacancy);
+        vacancy.RemoteLevel.Should().Be(RemoteLevel.OnSite, "re-scoring recomputes from the current text");
+
+        vacancy.MarkFoundBy("remote-csharp", remoteOnly: true);
+        ShippedConfig.Enricher().Apply(vacancy);
+        vacancy.RemoteLevel.Should().Be(RemoteLevel.Hybrid, "found by a remote-only search: at least hybrid");
+    }
+
+    [Fact]
+    public void Without_a_phrase_the_source_decides()
+    {
+        var vacancy = Imported("Softwareentwickler", "Wir freuen uns auf dich.");
+
+        ShippedConfig.Enricher().Apply(vacancy, RemoteLevel.FullRemote);
+
         vacancy.RemoteLevel.Should().Be(RemoteLevel.FullRemote);
         vacancy.RelevanceReasons.Should().Contain("Voll remote laut Quelle");
+    }
+
+    private static Vacancy Imported(string title, string description)
+    {
+        var vacancy = Vacancy.CreateManual(title, "Firma", DateTimeOffset.UnixEpoch, description: description);
+        vacancy.Source = VacancySource.Arbeitsagentur;
+        return vacancy;
     }
 }

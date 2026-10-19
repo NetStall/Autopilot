@@ -39,10 +39,18 @@ public class Vacancy
     public VacancyInterest Interest { get; set; }
 
     /// <summary>
-    /// How remote the job is: the highest level any signal gave so far (remote-only search → at least
-    /// <see cref="RemoteLevel.Hybrid"/>, the source's home-office data, phrases in title/description). Never lowered.
+    /// How remote the job is, recomputed on every scoring from the current rules: an explicit phrase in title or
+    /// description wins („anteilig Homeoffice" → hybrid even if the source says 100 %), otherwise
+    /// <see cref="RemoteHint"/>.
     /// </summary>
     public RemoteLevel RemoteLevel { get; set; }
+
+    /// <summary>
+    /// What the source and the searches said: the source's home-office data (Arbeitsagentur
+    /// <c>homeofficeprozent</c>, Himalayas = remote) and „found by a remote-only search" (→ at least
+    /// <see cref="RemoteLevel.Hybrid"/>). The highest value seen so far — this signal is sticky.
+    /// </summary>
+    public RemoteLevel RemoteHint { get; set; }
 
     /// <summary>When the description and details were last fetched from the source; <c>null</c> = still to fetch.</summary>
     public DateTimeOffset? DetailsFetchedAt { get; set; }
@@ -72,21 +80,21 @@ public class Vacancy
 
         if (remoteOnly)
         {
-            changed |= RaiseRemoteLevel(RemoteLevel.Hybrid);
+            changed |= RaiseRemoteHint(RemoteLevel.Hybrid);
         }
 
         return changed;
     }
 
-    /// <summary>Sets <see cref="RemoteLevel"/> to <paramref name="level"/> if that is higher; returns whether it changed.</summary>
-    public bool RaiseRemoteLevel(RemoteLevel level)
+    /// <summary>Sets <see cref="RemoteHint"/> to <paramref name="level"/> if that is higher; returns whether it changed.</summary>
+    public bool RaiseRemoteHint(RemoteLevel level)
     {
-        if (level <= RemoteLevel)
+        if (level <= RemoteHint)
         {
             return false;
         }
 
-        RemoteLevel = level;
+        RemoteHint = level;
         return true;
     }
 

@@ -21,8 +21,9 @@ public sealed class VacancyEnricher(
         ArgumentNullException.ThrowIfNull(vacancy);
 
         vacancy.DuplicateKey = DuplicateKeys.For(vacancy.Company, vacancy.Title);
+        vacancy.RaiseRemoteHint(remoteHint);
         var remote = remoteClassifier.Classify(vacancy.Title, vacancy.Description);
-        vacancy.RaiseRemoteLevel(remoteHint > remote.Level ? remoteHint : remote.Level);
+        vacancy.RemoteLevel = CombineRemote(remote.Level, vacancy.RemoteHint);
 
         var employerReason = ApplyEmployer(vacancy, employerHint);
 
@@ -71,15 +72,27 @@ public sealed class VacancyEnricher(
         };
     }
 
-    /// <summary>The phrase found now, or — when the stored level is higher — where that level came from.</summary>
-    private static string? RemoteReason(RemoteLevel stored, RemoteClassification found)
+    /// <summary>
+    /// An explicit phrase decides (full remote or hybrid — so a wrong „100 %" field cannot beat „anteilig Homeoffice");
+    /// „kein Homeoffice" cannot undo a remote-search hit or the source's home-office flag (then hybrid); without any
+    /// phrase the source's data count.
+    /// </summary>
+    internal static RemoteLevel CombineRemote(RemoteLevel fromText, RemoteLevel hint) => fromText switch
     {
-        if (stored == found.Level)
+        RemoteLevel.FullRemote or RemoteLevel.Hybrid => fromText,
+        RemoteLevel.OnSite => hint >= RemoteLevel.Hybrid ? RemoteLevel.Hybrid : RemoteLevel.OnSite,
+        _ => hint,
+    };
+
+    /// <summary>The phrase that decided, or — when the level comes from the source — that.</summary>
+    private static string? RemoteReason(RemoteLevel level, RemoteClassification found)
+    {
+        if (level == found.Level)
         {
             return found.Reason;
         }
 
-        return stored switch
+        return level switch
         {
             RemoteLevel.FullRemote => "Voll remote laut Quelle",
             RemoteLevel.Hybrid => "Homeoffice möglich (Remote-Suche bzw. Angabe der Quelle)",

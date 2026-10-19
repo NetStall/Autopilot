@@ -48,6 +48,12 @@ internal sealed class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
             .HasDefaultValue(RemoteLevel.Unknown)
             .HasSentinel(RemoteLevel.Unknown);
 
+        builder.Property(v => v.RemoteHint)
+            .HasConversion<string>()
+            .HasMaxLength(EnumMaxLength)
+            .HasDefaultValue(RemoteLevel.Unknown)
+            .HasSentinel(RemoteLevel.Unknown);
+
         builder.Property(v => v.RelevanceLevel)
             .HasConversion<string>()
             .HasMaxLength(EnumMaxLength);

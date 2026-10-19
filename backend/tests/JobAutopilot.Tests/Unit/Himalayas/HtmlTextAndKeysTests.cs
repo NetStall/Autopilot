@@ -35,6 +35,22 @@ public class HtmlTextAndKeysTests
     public void Different_jobs_get_different_keys(string companyA, string titleA, string companyB, string titleB) =>
         DuplicateKeys.For(companyA, titleA).Should().NotBe(DuplicateKeys.For(companyB, titleB));
 
+    [Theory]
+    [InlineData(new string[0], null)]
+    [InlineData(new[] { "Germany" }, null)]
+    [InlineData(new[] { "Europe" }, null)]
+    [InlineData(new[] { "EMEA", "UK" }, null)]
+    [InlineData(new[] { "Spain", "Germany", "France" }, null)]
+    [InlineData(new[] { "United States" }, "Nur für Bewerber aus: United States")]
+    [InlineData(new[] { "Brazil", "Mexico", "Argentina" }, "Nur für Bewerber aus: Brazil, Mexico, Argentina")]
+    public void Only_jobs_open_to_germany_eu_or_worldwide_are_kept(string[] restrictions, string? exclusion)
+    {
+        var job = new HimalayasJob("https://himalayas.app/companies/x/jobs/dev-1", "Dev", "X", "https://himalayas.app/a",
+            null, restrictions, null, null);
+
+        HimalayasMapper.ToCandidate(job, "DE")!.ExclusionReason.Should().Be(exclusion);
+    }
+
     [Fact]
     public void Key_has_a_readable_form() =>
         DuplicateKeys.For("Muster GmbH & Co. KG", "Softwareentwickler C#/.NET (m/w/d)")

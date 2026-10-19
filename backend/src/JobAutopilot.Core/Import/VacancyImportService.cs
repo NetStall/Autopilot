@@ -110,7 +110,8 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
                 vacancy.MarkFoundBy(search.Name, search.RemoteOnly);
                 if (enricher is null)
                 {
-                    vacancy.RaiseRemoteLevel(candidate.RemoteHint);
+                    vacancy.RaiseRemoteHint(candidate.RemoteHint);
+                    vacancy.RemoteLevel = vacancy.RemoteHint;
                 }
                 else
                 {
@@ -186,7 +187,7 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
             {
                 // Duplicate of an excluded candidate, or repeated within this search.
             }
-            else if (exclusion.IsExcluded(candidate.Title))
+            else if (candidate.ExclusionReason is not null || exclusion.IsExcluded(candidate.Title))
             {
                 excludedHere.Add(key);
                 searchCounts.Excluded++;
@@ -204,7 +205,14 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
             // Already handled by an earlier search of this run: only remember this search too.
             if (vacancy.MarkFoundBy(search.Name, search.RemoteOnly))
             {
-                enricher?.Apply(vacancy, hint);
+                if (enricher is null)
+                {
+                    vacancy.RemoteLevel = vacancy.RemoteHint > vacancy.RemoteLevel ? vacancy.RemoteHint : vacancy.RemoteLevel;
+                }
+                else
+                {
+                    enricher.Apply(vacancy, hint);
+                }
             }
         }
 
@@ -291,10 +299,11 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
         DateTimeOffset? ExpiresAt,
         string? Description,
         RemoteLevel RemoteLevel,
+        RemoteLevel RemoteHint,
         string MatchedSearches)
     {
         public static Snapshot Of(Vacancy v) => new(
-            v.Title, v.Company, v.Location, v.Url, v.PublishedAt, v.ExpiresAt, v.Description, v.RemoteLevel,
+            v.Title, v.Company, v.Location, v.Url, v.PublishedAt, v.ExpiresAt, v.Description, v.RemoteLevel, v.RemoteHint,
             string.Join('\n', v.MatchedSearches));
     }
 

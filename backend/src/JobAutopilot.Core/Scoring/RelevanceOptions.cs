@@ -28,6 +28,9 @@ public sealed class RelevanceOptions
 
     public List<RelevanceRule> Positive { get; init; } = [];
 
+    /// <summary>Maximum points per <see cref="RelevanceRule.Group"/>, e.g. <c>dotnet: 50</c>; groups without a cap are not limited.</summary>
+    public Dictionary<string, int> GroupCaps { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
     public List<RelevanceRule> Negative { get; init; } = [];
 
     /// <summary>Re-score all vacancies when the API starts (picks up changed weights and phrases).</summary>
@@ -57,6 +60,7 @@ public sealed class RelevanceOptions
             errors.Add("Thresholds must satisfy 0 <= MaybeFrom < RelevantFrom <= 100.");
         }
 
+        errors.AddRange(GroupCaps.Where(c => c.Value is < 1 or > 100).Select(c => $"GroupCaps '{c.Key}' must be between 1 and 100."));
         errors.AddRange(ValidateRules(Positive, nameof(Positive)));
         errors.AddRange(ValidateRules(Negative, nameof(Negative)));
         return errors;
@@ -104,6 +108,9 @@ public sealed class RelevanceRule
 
     /// <summary>Positive rules: the core stack; softens negative rules marked <see cref="SoftenedByCore"/>.</summary>
     public bool Core { get; set; }
+
+    /// <summary>Positive rules: skills of one group share the group's cap (<see cref="RelevanceOptions.GroupCaps"/>).</summary>
+    public string? Group { get; set; }
 
     /// <summary>Negative rules: an alternative technology that may appear next to the core stack (Java, Python …).</summary>
     public bool SoftenedByCore { get; set; }
