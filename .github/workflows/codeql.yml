@@ -44,6 +44,22 @@ jobs:
         if: matrix.language == 'csharp'
         run: dotnet build backend/JobAutopilot.sln --configuration Release
 
+      # Code scanning (the Security tab) is free for public repositories; a private repository needs GitHub
+      # Code Security. Without it the upload fails, so private repositories analyse without uploading and gate on
+      # the SARIF below instead.
       - uses: github/codeql-action/analyze@v4
         with:
           category: /language:${{ matrix.language }}
+          output: sarif-results
+          upload: ${{ github.event.repository.private && 'never' || 'always' }}
+
+      - name: Keep SARIF results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: codeql-${{ matrix.language }}
+          path: sarif-results
+          if-no-files-found: ignore
+
+      - name: Fail on high/critical findings
+        run: python3 .github/scripts/sarif-gate.py sarif-results

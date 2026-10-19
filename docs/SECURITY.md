@@ -33,7 +33,7 @@ answer on the machine's LAN address). Containers run as non-root users (`app`, U
 | Oversized or malformed input | Validation with limits on every parameter (text ≤ 200, page ≤ 1 000 000, pageSize ≤ 100, lists bounded), request bodies ≤ 64 KB (413), malformed JSON → 400 ProblemDetails |
 | Information leakage in errors | ProblemDetails everywhere; outside Development no exception messages or stack traces (tested) |
 | Secrets / personal data in git | `.env`, `appsettings.*.local.json`, `backups/`, `data/` git-ignored; history checked (see findings) |
-| Vulnerable dependencies | CI fails on high/critical (NuGet + npm, documented exceptions), Dependabot weekly, CodeQL |
+| Vulnerable dependencies / insecure code | CI fails on high/critical (NuGet + npm, documented exceptions), Dependabot weekly, CodeQL (fails on findings with security-severity >= 7; results go to the Security tab once code scanning is available — public repository or GitHub Code Security — otherwise they are kept as a SARIF artifact) |
 
 Not in scope while localhost-only: authentication, TLS, encryption at rest (the Docker volume is protected by the
 OS user account), multi-user separation.
