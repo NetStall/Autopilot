@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { VacancyInterest } from '~/types/vacancy'
+
 const route = useRoute()
 const api = useVacanciesApi()
 
@@ -39,6 +41,26 @@ async function setSeen(isSeen: boolean) {
     saving.value = false
   }
 }
+
+async function setInterest(interest: VacancyInterest) {
+  if (!vacancy.value) {
+    return
+  }
+  saving.value = true
+  actionError.value = null
+  try {
+    await api.setInterest(vacancy.value.id, interest)
+    vacancy.value = { ...vacancy.value, interest }
+  }
+  catch (e: unknown) {
+    actionError.value = `Änderung konnte nicht gespeichert werden: ${describeApiError(e)}`
+  }
+  finally {
+    saving.value = false
+  }
+}
+
+const interestLabels: Record<VacancyInterest, string> = { None: '–', Starred: '★ Gemerkt', Dismissed: 'Ausgeblendet' }
 
 function openedOriginal() {
   if (vacancy.value && !vacancy.value.isSeen) {
@@ -107,6 +129,24 @@ function openedOriginal() {
         <button type="button" class="button button--secondary" :disabled="saving" @click="setSeen(!vacancy.isSeen)">
           {{ vacancy.isSeen ? 'Als neu markieren' : 'Als gesehen markieren' }}
         </button>
+        <button
+          type="button"
+          class="button button--secondary"
+          :disabled="saving"
+          :aria-pressed="vacancy.interest === 'Starred'"
+          @click="setInterest(vacancy.interest === 'Starred' ? 'None' : 'Starred')"
+        >
+          {{ vacancy.interest === 'Starred' ? '★ Gemerkt' : '☆ Merken' }}
+        </button>
+        <button
+          type="button"
+          class="button button--secondary"
+          :disabled="saving"
+          :aria-pressed="vacancy.interest === 'Dismissed'"
+          @click="setInterest(vacancy.interest === 'Dismissed' ? 'None' : 'Dismissed')"
+        >
+          {{ vacancy.interest === 'Dismissed' ? 'Einblenden' : 'Ausblenden' }}
+        </button>
       </div>
       <p v-if="actionError" class="detail__error" role="alert">
         {{ actionError }}
@@ -154,6 +194,8 @@ function openedOriginal() {
         </dd>
         <dt>Status</dt>
         <dd>{{ vacancy.isSeen ? 'Gesehen' : 'Neu' }}</dd>
+        <dt>Einschätzung</dt>
+        <dd>{{ interestLabels[vacancy.interest] ?? '–' }}</dd>
       </dl>
 
       <section class="detail__description" aria-labelledby="description-heading">

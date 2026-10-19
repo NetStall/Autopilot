@@ -6,6 +6,9 @@ export type VacancySource = 'Arbeitsagentur' | 'Manual'
 
 export type VacancySort = 'published' | 'fetched'
 
+/** „Merken" / „Ausblenden" */
+export type VacancyInterest = 'None' | 'Starred' | 'Dismissed'
+
 export interface Vacancy {
   id: string
   source: VacancySource
@@ -23,6 +26,7 @@ export interface Vacancy {
   isRemote: boolean
   /** Names of the searches that found this vacancy. */
   matchedSearches: string[]
+  interest: VacancyInterest
 }
 
 export interface PagedResponse<T> {
@@ -42,6 +46,10 @@ export interface VacancyListParams {
   sort?: VacancySort
   remote?: boolean
   search?: string[]
+  interest?: VacancyInterest[]
+  includeDismissed?: boolean
+  /** ISO timestamp: only vacancies that entered the system at or after it. */
+  fetchedSince?: string
   page?: number
   pageSize?: number
 }
@@ -58,14 +66,40 @@ export interface SearchImportResult {
   excluded: number
 }
 
-export interface ImportResult {
+export type ImportRunStatus = 'Queued' | 'Running' | 'Succeeded' | 'Failed' | 'Cancelled'
+
+export interface ImportCounts {
   fetched: number
   added: number
   updated: number
   unchanged: number
   excluded: number
-  durationMs: number
+}
+
+/** GET /api/imports/{id} — one background import run. */
+export interface ImportRun extends ImportCounts {
+  id: string
+  trigger: 'Manual' | 'Scheduled'
+  status: ImportRunStatus
+  requestedAt: string
+  startedAt: string | null
+  finishedAt: string | null
+  durationMs: number | null
+  searchesTotal: number
+  searchesDone: number
+  currentSearch: string | null
+  error: string | null
   searches: SearchImportResult[]
+}
+
+/** POST /api/imports → 202 */
+export interface ImportStarted {
+  importId: string
+}
+
+/** GET /api/settings/ui */
+export interface UiSettings {
+  highlightKeywords: string[]
 }
 
 /** A search from Import:Searches (GET /api/imports/searches). */

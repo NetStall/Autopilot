@@ -24,4 +24,11 @@ describe('vacancyBadges', () => {
     expect(vacancyBadges({ isSeen: true, isRemote: false, employerType: 'Temporary' })[0])
       .toEqual({ label: 'Zeitarbeit', variant: 'intermediary' })
   })
+
+  it('shows Gemerkt and Ausgeblendet', () => {
+    expect(vacancyBadges({ isSeen: true, isRemote: true, employerType: 'Direct', interest: 'Starred' }).map(b => b.variant))
+      .toEqual(['starred', 'remote', 'employer'])
+    expect(vacancyBadges({ isSeen: false, isRemote: false, employerType: 'Direct', interest: 'Dismissed' }).map(b => b.label))
+      .toEqual(['Neu', 'Ausgeblendet', 'Direkter Arbeitgeber'])
+  })
 })

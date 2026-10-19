@@ -15,6 +15,9 @@ const full: VacancyFilters = {
   status: 'new',
   remoteOnly: true,
   searches: ['remote-dotnet', 'region-csharp'],
+  starredOnly: false,
+  showDismissed: false,
+  since: '',
   sort: 'fetched',
   page: 3,
 }
@@ -133,6 +136,38 @@ describe('remote and search filters', () => {
 
     expect(fromUrl).toEqual(filters)
   })
+})
+
+describe('interest and since filters', () => {
+  it('reads and writes Gemerkt, Ausgeblendete anzeigen and since', () => {
+    const query = { starred: 'true', dismissed: 'show', since: '2026-10-19T05:00:12.345Z' }
+    const filters = filtersFromQuery(query)
+
+    expect(filters).toMatchObject({ starredOnly: true, showDismissed: true, since: '2026-10-19T05:00:12.345Z' })
+    expect(filtersToQuery(filters)).toEqual(query)
+  })
+
+  it('ignores a malformed since value', () => {
+    expect(filtersFromQuery({ since: 'yesterday' }).since).toBe('')
+    expect(filtersFromQuery({ since: '2026-13-45T99:00:00Z' }).since).toBe('')
+  })
+
+  it('maps to interest / includeDismissed / fetchedSince', () => {
+    expect(filtersToApiParams({ ...defaults(), starredOnly: true, showDismissed: true }, 20))
+      .toMatchObject({ interest: ['Starred'] })
+    expect(filtersToApiParams({ ...defaults(), starredOnly: true }, 20).includeDismissed).toBeUndefined()
+    expect(filtersToApiParams({ ...defaults(), showDismissed: true }, 20).includeDismissed).toBe(true)
+    expect(filtersToApiParams({ ...defaults(), since: '2026-10-19T05:00:00Z' }, 20).fetchedSince)
+      .toBe('2026-10-19T05:00:00Z')
+    expect(filtersToApiParams(defaults(), 20)).not.toHaveProperty('interest')
+  })
+
+  it.each<Partial<VacancyFilters>>([{ starredOnly: true }, { showDismissed: true }, { since: '2026-10-19T05:00:00Z' }])(
+    'counts %o as an active filter',
+    (patch) => {
+      expect(hasActiveFilters({ ...defaults(), ...patch })).toBe(true)
+    },
+  )
 })
 
 describe('filtersToApiParams', () => {

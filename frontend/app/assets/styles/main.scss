@@ -15,6 +15,9 @@
   --color-new-text: #17643a;
   --color-remote-bg: #ece4fd;
   --color-remote-text: #5320a8;
+  --color-star-bg: #fff3c4;
+  --color-star-text: #7a5a00;
+  --color-highlight: #fff1a8;
   --color-error-text: #b42318;
   --color-skeleton: #e4e8ee;
   --color-focus: #2557d6;
@@ -49,6 +52,9 @@
     --color-new-text: #8fe0b0;
     --color-remote-bg: #33264f;
     --color-remote-text: #d6c4ff;
+    --color-star-bg: #3d3412;
+    --color-star-text: #ffe08a;
+    --color-highlight: #5a4a12;
     --color-error-text: #ff8a80;
     --color-skeleton: #2a313d;
     --color-focus: #7aa2ff;
@@ -183,4 +189,22 @@ a {
     color: var(--color-remote-text);
     font-weight: 600;
   }
+
+  &--starred {
+    background: var(--color-star-bg);
+    color: var(--color-star-text);
+    font-weight: 600;
+  }
+
+  &--dismissed {
+    background: var(--color-surface-muted);
+    color: var(--color-muted);
+  }
+}
+
+mark.highlight {
+  padding: 0 0.1em;
+  border-radius: 3px;
+  background: var(--color-highlight);
+  color: inherit;
 }

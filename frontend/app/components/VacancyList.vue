@@ -2,14 +2,19 @@
 import type { LocationQueryRaw } from 'vue-router'
 import type { Vacancy } from '~/types/vacancy'
 
-defineProps<{
+withDefaults(defineProps<{
   vacancies: Vacancy[]
   listQuery: LocationQueryRaw
-}>()
+  highlightKeywords?: readonly string[]
+  activeId?: string | null
+}>(), { highlightKeywords: () => [], activeId: null })
 
 const emit = defineEmits<{
   'toggle-seen': [vacancy: Vacancy]
+  'toggle-star': [vacancy: Vacancy]
+  'toggle-dismiss': [vacancy: Vacancy]
   'opened-original': [vacancy: Vacancy]
+  'activate': [vacancy: Vacancy]
 }>()
 </script>
 
@@ -19,8 +24,13 @@ const emit = defineEmits<{
       <VacancyCard
         :vacancy="vacancy"
         :list-query="listQuery"
+        :highlight-keywords="highlightKeywords"
+        :active="vacancy.id === activeId"
         @toggle-seen="emit('toggle-seen', $event)"
+        @toggle-star="emit('toggle-star', $event)"
+        @toggle-dismiss="emit('toggle-dismiss', $event)"
         @opened-original="emit('opened-original', $event)"
+        @activate="emit('activate', $event)"
       />
     </li>
   </ul>

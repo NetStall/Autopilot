@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, formatDateTime, formatRelativeDate } from '../app/utils/relativeDate'
+import { formatDate, formatDateTime, formatRelativeDate, formatRelativeTime } from '../app/utils/relativeDate'
 
 // 18.10.2026, 14:00 in Berlin (CEST, UTC+2)
 const now = new Date('2026-10-18T12:00:00Z')
@@ -47,5 +47,18 @@ describe('formatDate / formatDateTime', () => {
   it('returns an empty string for invalid input', () => {
     expect(formatDate('')).toBe('')
     expect(formatDateTime('x')).toBe('')
+  })
+})
+
+describe('formatRelativeTime', () => {
+  it.each([
+    ['2026-10-18T11:59:40Z', 'gerade eben'],
+    ['2026-10-18T11:55:00Z', 'vor 5 Min.'],
+    ['2026-10-18T10:00:00Z', 'vor 2 Std.'],
+    ['2026-10-18T01:00:00Z', 'vor 11 Std.'],
+    ['2026-10-17T12:00:00Z', 'gestern'],
+    ['2026-10-14T12:00:00Z', 'vor 4 Tagen'],
+  ])('%s → %s', (value, expected) => {
+    expect(formatRelativeTime(value, now)).toBe(expected)
   })
 })

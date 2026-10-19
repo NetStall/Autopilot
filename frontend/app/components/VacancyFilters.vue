@@ -82,6 +82,10 @@ function onSearchChange(event: Event) {
   update({ searches: value ? [value] : [] })
 }
 
+function onFlagChange(flag: 'starredOnly' | 'showDismissed', event: Event) {
+  update({ [flag]: (event.target as HTMLInputElement).checked })
+}
+
 function onRemoteChange(event: Event) {
   update({ remoteOnly: (event.target as HTMLInputElement).checked })
 }
@@ -202,9 +206,33 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
         >
         {{ option.label }}
       </label>
+      <label class="filters__choice">
+        <input type="checkbox" name="starred" :checked="filters.starredOnly" @change="onFlagChange('starredOnly', $event)">
+        ★ Gemerkt
+      </label>
+      <label class="filters__choice">
+        <input
+          type="checkbox"
+          name="dismissed"
+          :checked="filters.showDismissed"
+          :disabled="filters.starredOnly"
+          @change="onFlagChange('showDismissed', $event)"
+        >
+        Ausgeblendete anzeigen
+      </label>
     </fieldset>
 
     <div class="filters__actions">
+      <button
+        v-if="filters.since"
+        type="button"
+        class="filters__chip"
+        :title="`Nur Stellen, die seit ${formatDateTime(filters.since)} importiert wurden`"
+        @click="update({ since: '' })"
+      >
+        Neu seit letztem Import <span aria-hidden="true">×</span>
+        <span class="visually-hidden">(Filter entfernen)</span>
+      </button>
       <button type="button" class="button button--secondary button--small" :disabled="!canReset" @click="reset">
         Filter zurücksetzen
       </button>
@@ -274,7 +302,21 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
   &__actions {
     grid-column: span 3;
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: flex-end;
+    gap: var(--space-2);
+  }
+
+  &__chip {
+    font: inherit;
+    font-size: 0.85rem;
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-accent);
+    border-radius: 999px;
+    background: var(--color-badge);
+    color: var(--color-badge-text);
+    cursor: pointer;
   }
 }
 

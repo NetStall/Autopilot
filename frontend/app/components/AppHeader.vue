@@ -1,9 +1,36 @@
+<script setup lang="ts">
+const { lastImport } = useLastImport()
+
+// Re-render the relative time every minute.
+const now = ref(new Date())
+let clock: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  clock = setInterval(() => (now.value = new Date()), 60_000)
+})
+onBeforeUnmount(() => clearInterval(clock))
+
+const lastImportLabel = computed(() => (lastImport.value?.finishedAt
+  ? formatRelativeTime(lastImport.value.finishedAt, now.value)
+  : null))
+const newSinceLink = computed(() => (lastImport.value?.startedAt
+  ? { path: '/', query: { since: lastImport.value.startedAt } }
+  : null))
+</script>
+
 <template>
   <header class="header">
     <div class="header__inner">
       <NuxtLink to="/" class="header__brand">
         Job Autopilot
       </NuxtLink>
+      <p v-if="lastImport" class="header__last">
+        <span :title="lastImport.finishedAt ? formatDateTime(lastImport.finishedAt) : undefined">
+          Letzter Import: {{ lastImportLabel }}
+        </span>
+        <NuxtLink v-if="newSinceLink && lastImport.added > 0" :to="newSinceLink" class="header__new">
+          {{ lastImport.added }} neu seit letztem Import
+        </NuxtLink>
+      </p>
       <ImportButton />
     </div>
   </header>
@@ -30,6 +57,19 @@
     font-weight: 700;
     color: var(--color-text);
     text-decoration: none;
+  }
+
+  &__last {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    margin: 0 auto 0 0;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+  }
+
+  &__new {
+    font-weight: 600;
   }
 }
 </style>

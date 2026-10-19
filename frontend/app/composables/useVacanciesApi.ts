@@ -1,4 +1,13 @@
-import type { ConfiguredSearch, ImportResult, PagedResponse, Vacancy, VacancyListParams } from '~/types/vacancy'
+import type {
+  ConfiguredSearch,
+  ImportRun,
+  ImportStarted,
+  PagedResponse,
+  UiSettings,
+  Vacancy,
+  VacancyInterest,
+  VacancyListParams,
+} from '~/types/vacancy'
 
 /** All calls to the backend API. Base URL from runtime config (NUXT_PUBLIC_API_BASE). */
 export function useVacanciesApi() {
@@ -18,23 +27,40 @@ export function useVacanciesApi() {
       await api(`/api/vacancies/${encodeURIComponent(id)}`, { method: 'PATCH', body: { isSeen } })
     },
 
+    async setInterest(id: string, interest: VacancyInterest): Promise<void> {
+      await api(`/api/vacancies/${encodeURIComponent(id)}`, { method: 'PATCH', body: { interest } })
+    },
+
     async markSeen(ids: string[]): Promise<void> {
       if (ids.length > 0) {
         await api('/api/vacancies/seen', { method: 'POST', body: { ids } })
       }
     },
 
-    runImport() {
-      return api<ImportResult>('/api/imports/arbeitsagentur', { method: 'POST' })
+    /** Queues an import of the configured searches; 409 while one is queued or running. */
+    startImport() {
+      return api<ImportStarted>('/api/imports', { method: 'POST' })
+    },
+
+    getImport(id: string) {
+      return api<ImportRun>(`/api/imports/${encodeURIComponent(id)}`)
+    },
+
+    recentImports(limit = 10) {
+      return api<ImportRun[]>('/api/imports', { query: { limit } })
     },
 
     searches() {
       return api<ConfiguredSearch[]>('/api/imports/searches')
     },
+
+    uiSettings() {
+      return api<UiSettings>('/api/settings/ui')
+    },
   }
 }
 
-/** Bumped after every successful import so open lists can refresh themselves. */
+/** Bumped after every finished import so open lists and the header refresh themselves. */
 export function useImportVersion() {
   return useState('import-version', () => 0)
 }

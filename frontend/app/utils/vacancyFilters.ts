@@ -16,6 +16,12 @@ export interface VacancyFilters {
   remoteOnly: boolean
   /** Names of configured searches; vacancies found by any of them. */
   searches: string[]
+  /** „Gemerkt" — only starred vacancies. */
+  starredOnly: boolean
+  /** „Ausgeblendet anzeigen" — include dismissed vacancies (hidden by default). */
+  showDismissed: boolean
+  /** ISO timestamp for „Neu seit letztem Import"; empty = off. */
+  since: string
   sort: VacancySort
   page: number
 }
@@ -27,6 +33,9 @@ export const DEFAULT_FILTERS: Readonly<VacancyFilters> = Object.freeze({
   status: 'all',
   remoteOnly: false,
   searches: [],
+  starredOnly: false,
+  showDismissed: false,
+  since: '',
   sort: 'published',
   page: 1,
 })
@@ -41,6 +50,10 @@ function firstValue(value: QueryValue): string {
 function allValues(value: QueryValue): string[] {
   const values = Array.isArray(value) ? value : [value]
   return values.filter((v): v is string => typeof v === 'string' && v.length > 0)
+}
+
+function isIsoTimestamp(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}T[\d:.]+(Z|[+-]\d{2}:\d{2})$/.test(value) && !Number.isNaN(Date.parse(value))
 }
 
 function isEmployerType(value: string): value is EmployerType {
@@ -59,6 +72,9 @@ export function filtersFromQuery(query: LocationQuery): VacancyFilters {
     employerTypes: [...new Set(allValues(query.employerType).filter(isEmployerType))],
     status: status === 'new' || status === 'seen' ? status : 'all',
     remoteOnly: firstValue(query.remote) === 'true',
+    starredOnly: firstValue(query.starred) === 'true',
+    showDismissed: firstValue(query.dismissed) === 'show',
+    since: isIsoTimestamp(firstValue(query.since)) ? firstValue(query.since) : '',
     searches: [...new Set(allValues(query.search).map(s => s.trim()).filter(s => s.length > 0))],
     sort: sort === 'fetched' ? 'fetched' : 'published',
     page: Number.isInteger(page) && page > 0 ? page : 1,
@@ -88,6 +104,15 @@ export function filtersToQuery(filters: VacancyFilters): LocationQueryRaw {
   }
   if (filters.searches.length > 0) {
     query.search = [...filters.searches]
+  }
+  if (filters.starredOnly) {
+    query.starred = 'true'
+  }
+  if (filters.showDismissed) {
+    query.dismissed = 'show'
+  }
+  if (filters.since) {
+    query.since = filters.since
   }
   if (filters.sort !== 'published') {
     query.sort = filters.sort
@@ -119,6 +144,15 @@ export function filtersToApiParams(filters: VacancyFilters, pageSize: number): V
   if (filters.searches.length > 0) {
     params.search = [...filters.searches]
   }
+  if (filters.starredOnly) {
+    params.interest = ['Starred']
+  }
+  else if (filters.showDismissed) {
+    params.includeDismissed = true
+  }
+  if (filters.since) {
+    params.fetchedSince = filters.since
+  }
   return params
 }
 
@@ -130,4 +164,7 @@ export function hasActiveFilters(filters: VacancyFilters): boolean {
     || filters.status !== 'all'
     || filters.remoteOnly
     || filters.searches.length > 0
+    || filters.starredOnly
+    || filters.showDismissed
+    || filters.since !== ''
 }

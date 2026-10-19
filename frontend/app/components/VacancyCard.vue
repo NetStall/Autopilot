@@ -2,21 +2,30 @@
 import type { LocationQueryRaw } from 'vue-router'
 import type { Vacancy } from '~/types/vacancy'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   vacancy: Vacancy
   /** Current list filters, carried to the detail page so its back link restores them. */
   listQuery: LocationQueryRaw
-}>()
+  /** Ui:HighlightKeywords — visual cue in the title only. */
+  highlightKeywords?: readonly string[]
+  /** The card the keyboard shortcuts act on. */
+  active?: boolean
+}>(), { highlightKeywords: () => [], active: false })
 
 const emit = defineEmits<{
   'toggle-seen': [vacancy: Vacancy]
+  'toggle-star': [vacancy: Vacancy]
+  'toggle-dismiss': [vacancy: Vacancy]
   'opened-original': [vacancy: Vacancy]
+  'activate': [vacancy: Vacancy]
 }>()
 
 const originalUrl = computed(() => safeExternalUrl(props.vacancy.url))
 const badges = computed(() => vacancyBadges(props.vacancy))
-const statusBadges = computed(() => badges.value.filter(b => b.variant === 'new' || b.variant === 'remote'))
+const statusBadges = computed(() => badges.value.filter(b => b.variant !== 'employer' && b.variant !== 'intermediary'))
 const employerBadge = computed(() => badges.value.find(b => b.variant === 'employer' || b.variant === 'intermediary'))
+const starred = computed(() => props.vacancy.interest === 'Starred')
+const dismissed = computed(() => props.vacancy.interest === 'Dismissed')
 const dateLabel = computed(() => props.vacancy.publishedAt
   ? `Veröffentlicht ${formatRelativeDate(props.vacancy.publishedAt)}`
   : `Importiert ${formatRelativeDate(props.vacancy.fetchedAt)}`)
@@ -24,7 +33,15 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
 </script>
 
 <template>
-  <article class="card" :class="{ 'card--seen': vacancy.isSeen }" :aria-labelledby="`vacancy-${vacancy.id}`">
+  <article
+    :id="`card-${vacancy.id}`"
+    class="card"
+    :class="{ 'card--seen': vacancy.isSeen, 'card--active': active, 'card--dismissed': dismissed }"
+    :aria-labelledby="`vacancy-${vacancy.id}`"
+    :aria-current="active ? 'true' : undefined"
+    tabindex="-1"
+    @focusin="emit('activate', vacancy)"
+  >
     <div class="card__main">
       <div class="card__heading">
         <span v-for="badge in statusBadges" :key="badge.variant" class="badge" :class="`badge--${badge.variant}`">
@@ -32,7 +49,7 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
         </span>
         <h2 :id="`vacancy-${vacancy.id}`" class="card__title">
           <NuxtLink :to="{ path: `/vacancies/${vacancy.id}`, query: listQuery }">
-            {{ vacancy.title }}
+            <HighlightedText :text="vacancy.title" :keywords="highlightKeywords" />
           </NuxtLink>
         </h2>
       </div>
@@ -66,6 +83,24 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
         <button type="button" class="button button--secondary button--small" @click="emit('toggle-seen', vacancy)">
           {{ vacancy.isSeen ? 'Als neu markieren' : 'Als gesehen markieren' }}
         </button>
+        <button
+          type="button"
+          class="button button--secondary button--small"
+          :aria-pressed="starred"
+          :title="starred ? 'Nicht mehr merken (m)' : 'Merken (m)'"
+          @click="emit('toggle-star', vacancy)"
+        >
+          {{ starred ? '★ Gemerkt' : '☆ Merken' }}
+        </button>
+        <button
+          type="button"
+          class="button button--secondary button--small"
+          :aria-pressed="dismissed"
+          :title="dismissed ? 'Wieder einblenden (x)' : 'Ausblenden – nicht interessant (x)'"
+          @click="emit('toggle-dismiss', vacancy)"
+        >
+          {{ dismissed ? 'Einblenden' : 'Ausblenden' }}
+        </button>
       </div>
     </div>
   </article>
@@ -81,9 +116,21 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
   border: 1px solid var(--color-border);
   border-left: 4px solid var(--color-accent);
   border-radius: var(--radius);
+  scroll-margin: var(--space-6);
 
   &--seen {
     border-left-color: var(--color-border);
+  }
+
+  &--dismissed {
+    opacity: 0.65;
+  }
+
+  // Keyboard navigation (j/k): clearly visible, also without :focus-visible.
+  &--active,
+  &:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
   }
 
   &__main {
@@ -126,6 +173,7 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
     align-items: flex-end;
     gap: var(--space-3);
     flex-shrink: 0;
+    max-width: 22rem;
   }
 
   &__actions {
@@ -136,12 +184,13 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .card {
     flex-direction: column;
 
     &__side {
       align-items: flex-start;
+      max-width: none;
     }
 
     &__actions {

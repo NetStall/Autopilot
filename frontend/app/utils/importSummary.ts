@@ -1,11 +1,6 @@
-import type { ImportResult, SearchImportResult } from '../types/vacancy'
+import type { ImportCounts, SearchImportResult } from '../types/vacancy'
 
-interface Counts {
-  added: number
-  updated: number
-  unchanged: number
-  excluded: number
-}
+type Counts = Omit<ImportCounts, 'fetched'>
 
 /** Missing counts (e.g. from an older backend) are shown as 0 instead of „undefined". */
 function formatCounts(counts: Partial<Counts>): string {
@@ -18,7 +13,7 @@ function formatCounts(counts: Partial<Counts>): string {
 }
 
 /** „85 neu · 12 aktualisiert · 140 unverändert · 23 ausgeschlossen" */
-export function formatImportSummary(result: ImportResult): string {
+export function formatImportSummary(result: Partial<ImportCounts>): string {
   return formatCounts(result)
 }
 

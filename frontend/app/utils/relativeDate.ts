@@ -40,6 +40,27 @@ export function formatRelativeDate(value: string | Date, now: Date = new Date())
   return relativeFormat.format(Math.trunc(days / 365), 'year')
 }
 
+const shortRelativeFormat = new Intl.RelativeTimeFormat('de', { numeric: 'always', style: 'short' })
+
+/** For recent events: „gerade eben", „vor 5 Min.", „vor 2 Std.", then by calendar day („gestern", „vor 3 Tagen"). */
+export function formatRelativeTime(value: string | Date, now: Date = new Date()): string {
+  const date = typeof value === 'string' ? new Date(value) : value
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  const minutes = Math.round((now.getTime() - date.getTime()) / 60_000)
+  if (minutes < 1) {
+    return 'gerade eben'
+  }
+  if (minutes < 60) {
+    return shortRelativeFormat.format(-minutes, 'minute')
+  }
+  if (minutes < 12 * 60) {
+    return shortRelativeFormat.format(-Math.round(minutes / 60), 'hour')
+  }
+  return formatRelativeDate(date, now)
+}
+
 /** e.g. „09.10.2026" */
 export function formatDate(value: string): string {
   const date = new Date(value)
