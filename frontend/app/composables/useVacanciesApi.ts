@@ -9,6 +9,7 @@ import type {
   VacancyInterest,
   VacancyListParams,
 } from '~/types/vacancy'
+import type { ProfileResponse } from '~/types/profile'
 
 /** All calls to the backend API. Base URL from runtime config (NUXT_PUBLIC_API_BASE). */
 export function useVacanciesApi() {
@@ -62,6 +63,11 @@ export function useVacanciesApi() {
 
     searches() {
       return api<ConfiguredSearch[]>('/api/imports/searches')
+    },
+
+    /** The loaded candidate profile with its validation problems. */
+    profile() {
+      return api<ProfileResponse>('/api/profile')
     },
 
     uiSettings() {

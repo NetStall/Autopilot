@@ -1,12 +1,15 @@
 using System.Text.Json.Serialization;
 using JobAutopilot.Api.Common;
 using JobAutopilot.Api.Features.Health;
+using JobAutopilot.Api.Features.Profile;
 using JobAutopilot.Api.Features.Scoring;
 using JobAutopilot.Api.Features.Settings;
 using JobAutopilot.Api.Features.VacancyImports;
 using JobAutopilot.Api.Features.Vacancies;
 using JobAutopilot.Infrastructure;
+using JobAutopilot.Core.Profile;
 using JobAutopilot.Infrastructure.Persistence;
+using JobAutopilot.Infrastructure.Profile;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -18,6 +21,13 @@ builder.Services.AddOptions<ImportOptions>()
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<ImportOptions>, ImportOptionsValidator>();
 builder.Services.Configure<UiOptions>(builder.Configuration.GetSection(UiOptions.SectionName));
+
+// The candidate profile (personal data, git-ignored file); re-read when it changes.
+var profilePath = Path.GetFullPath(
+    builder.Configuration.GetSection(ProfileOptions.SectionName).Get<ProfileOptions>()?.Path ?? new ProfileOptions().Path,
+    builder.Environment.ContentRootPath);
+builder.Services.AddSingleton<ICandidateProfileSource>(sp => new FileCandidateProfileSource(
+    profilePath, sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<ILogger<FileCandidateProfileSource>>()));
 
 // Background import: endpoints and scheduler queue runs, one worker executes them (ADR 0006, 0007).
 builder.Services.AddSingleton<ImportJobChannel>();
@@ -71,5 +81,6 @@ app.MapHealthEndpoints();
 app.MapVacancyEndpoints();
 app.MapImportEndpoints();
 app.MapUiSettingsEndpoints();
+app.MapProfileEndpoints();
 
 await app.RunAsync();

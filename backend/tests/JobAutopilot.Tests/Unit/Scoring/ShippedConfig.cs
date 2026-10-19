@@ -23,5 +23,6 @@ internal static class ShippedConfig
         ?? throw new InvalidOperationException("No EmployerDetection section in appsettings.json.");
 
     public static VacancyEnricher Enricher() =>
-        new(new RelevanceScorer(Relevance()), new RemoteClassifier(Remote()), new EmployerClassifier(Employer()));
+        new(new FixedRelevanceScorerProvider(new RelevanceScorer(Relevance())), new RemoteClassifier(Remote()),
+            new EmployerClassifier(Employer()));
 }

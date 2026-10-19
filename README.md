@@ -175,6 +175,30 @@ Invoke-RestMethod -Method Post http://localhost:5080/api/imports -ContentType 'a
   -Body '{ "keyword": "Vue", "remoteOnly": true }'
 ```
 
+### Profil
+
+Everything the tool says about you comes from **one file**: `data/profile.json` (git-ignored — never commit it).
+Start from the example with invented data:
+
+```powershell
+New-Item -ItemType Directory -Force data | Out-Null
+Copy-Item docs/profile.example.json data/profile.json   # then edit it
+```
+
+| Part | |
+|---|---|
+| `personal` | name, email, phone, city, website/github/linkedin (http/https only) |
+| `summary` | short self-descriptions by focus, e.g. `fullstack`, `backend`, `ai` |
+| `experience[]` | company, title, `from`/`to` (`YYYY-MM`, `to` empty = today), bullets with `tags` |
+| `skills[]` | name, `aliases` (spellings in job ads), `level`: `Production` (at work) · `Project` (own projects) · `Learning` · `None` (a gap), optional `years`, `group` |
+| `knownGaps[]` | missing skill + an honest phrasing in `de` **and** `en` |
+| `projects[]`, `education[]`, `languages[]` (`A1`…`C2`, `Native`), `certificates[]`, `preferences` | salary range, regions, max commute, remote preference, earliest start, employer types to avoid |
+
+The page **Profil** shows the loaded profile and every validation problem (unknown level, `from` after `to`, missing
+gap phrasing …). The file is re-read automatically when it changes; a missing or broken file does not stop the API —
+the page says what is wrong. In Docker, `./data` is mounted read-only into the API container. The profile's skills
+also count as (small) positive keywords in the relevance score.
+
 ### Relevance, remote level and agencies
 
 Every vacancy gets a **score 0–100**, a level (**Passt** ≥ 55, **Vielleicht** ≥ 30, **Passt nicht**) and the reasons

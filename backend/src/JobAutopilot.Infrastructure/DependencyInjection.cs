@@ -1,9 +1,11 @@
 using System.Net.Http.Headers;
 using JobAutopilot.Core.Import;
+using JobAutopilot.Core.Profile;
 using JobAutopilot.Core.Scoring;
 using JobAutopilot.Infrastructure.Arbeitsagentur;
 using JobAutopilot.Infrastructure.Himalayas;
 using JobAutopilot.Infrastructure.Persistence;
+using JobAutopilot.Infrastructure.Profile;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -87,10 +89,15 @@ public static class DependencyInjection
         services.AddOptions<RemoteOptions>().Bind(configuration.GetSection(RemoteOptions.SectionName));
         services.AddOptions<EmployerDetectionOptions>().Bind(configuration.GetSection(EmployerDetectionOptions.SectionName));
 
-        services.AddSingleton(sp => new RelevanceScorer(sp.GetRequiredService<IOptions<RelevanceOptions>>().Value));
+        services.AddSingleton<IRelevanceScorerProvider>(sp => new ProfileRelevanceScorerProvider(
+            sp.GetRequiredService<IOptions<RelevanceOptions>>().Value,
+            sp.GetRequiredService<ICandidateProfileSource>()));
         services.AddSingleton(sp => new RemoteClassifier(sp.GetRequiredService<IOptions<RemoteOptions>>().Value));
         services.AddSingleton(sp => new EmployerClassifier(sp.GetRequiredService<IOptions<EmployerDetectionOptions>>().Value));
         services.AddSingleton<VacancyEnricher>();
+
+        // The API replaces this with the file-based source (it knows the content root).
+        services.TryAddSingleton<ICandidateProfileSource, NoCandidateProfileSource>();
     }
 
     private static void AddArbeitsagentur(this IServiceCollection services, IConfiguration configuration)

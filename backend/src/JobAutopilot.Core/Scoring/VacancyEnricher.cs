@@ -7,7 +7,7 @@ namespace JobAutopilot.Core.Scoring;
 /// relevance (score, level, reasons). Called by the import (new and refreshed vacancies), after fetching details, and when re-scoring.
 /// </summary>
 public sealed class VacancyEnricher(
-    RelevanceScorer scorer,
+    IRelevanceScorerProvider scorers,
     RemoteClassifier remoteClassifier,
     EmployerClassifier employerClassifier)
 {
@@ -27,7 +27,7 @@ public sealed class VacancyEnricher(
 
         var employerReason = ApplyEmployer(vacancy, employerHint);
 
-        var relevance = scorer.Score(vacancy.Title, vacancy.Description);
+        var relevance = scorers.Scorer.Score(vacancy.Title, vacancy.Description);
         vacancy.RelevanceScore = relevance.Score;
         vacancy.RelevanceLevel = relevance.Level;
 

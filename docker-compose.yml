@@ -43,6 +43,11 @@ services:
       Import__Schedule__Enabled: "true"
       # The browser loads the UI from the web port and calls the API from there.
       Cors__AllowedOrigins__0: "http://localhost:${WEB_PORT:-3000}"
+      # Personal data from ./data (git-ignored): profile.json and import/bewerbungen-export.json, read-only.
+      Profile__Path: /app/data/profile.json
+      Applications__TrackerImportPath: /app/data/import/bewerbungen-export.json
+    volumes:
+      - ./data:/app/data:ro
     ports:
       - "127.0.0.1:${API_PORT:-5080}:8080"
 

@@ -23,6 +23,17 @@ const newSinceLink = computed(() => (lastImport.value?.startedAt
       <NuxtLink to="/" class="header__brand">
         Job Autopilot
       </NuxtLink>
+      <nav class="header__nav" aria-label="Hauptnavigation">
+        <NuxtLink to="/" class="header__link" exact-active-class="header__link--active">
+          Stellen
+        </NuxtLink>
+        <NuxtLink to="/bewerbungen" class="header__link" active-class="header__link--active">
+          Bewerbungen
+        </NuxtLink>
+        <NuxtLink to="/profil" class="header__link" active-class="header__link--active">
+          Profil
+        </NuxtLink>
+      </nav>
       <p v-if="lastImport" class="header__last">
         <span :title="lastImport.finishedAt ? formatDateTime(lastImport.finishedAt) : undefined">
           Letzter Import: {{ lastImportLabel }}
@@ -57,6 +68,23 @@ const newSinceLink = computed(() => (lastImport.value?.startedAt
     font-weight: 700;
     color: var(--color-text);
     text-decoration: none;
+  }
+
+  &__nav {
+    display: flex;
+    gap: var(--space-3);
+  }
+
+  &__link {
+    color: var(--color-muted);
+    text-decoration: none;
+    font-weight: 600;
+
+    &:hover,
+    &--active {
+      color: var(--color-accent);
+      text-decoration: underline;
+    }
   }
 
   &__last {

@@ -1,0 +1,70 @@
+{
+  // Example profile with INVENTED data. Copy to data/profile.json (git-ignored) and replace everything.
+  // Levels: Production (used at work) > Project (own projects) > Learning > None (= known gap).
+  "personal": {
+    "name": "Alex Beispiel",
+    "email": "alex@example.org",
+    "phone": "+49 30 0000000",
+    "city": "Regensburg",
+    "website": "https://example.org",
+    "github": "https://github.com/example",
+    "linkedin": "https://www.linkedin.com/in/example"
+  },
+  "summary": {
+    "fullstack": "Full-stack developer with 4 years of C#/.NET and Vue 3.",
+    "backend": "Backend developer: REST APIs with ASP.NET Core, SQL databases, CI/CD.",
+    "ai": "Builds tools with LLM APIs and agent workflows (spec-driven, tested)."
+  },
+  "experience": [
+    {
+      "company": "Muster Software GmbH",
+      "title": "Software Developer",
+      "from": "2021-04",
+      "to": "2025-03",
+      "location": "Regensburg",
+      "remote": false,
+      "bullets": [
+        { "text": "Built REST APIs with ASP.NET Core for three client apps.", "tags": [ "csharp", "dotnet", "rest" ] },
+        { "text": "Moved the frontend from jQuery to Vue 3 with TypeScript.", "tags": [ "vue", "typescript", "migration" ] },
+        { "text": "Set up the CI pipeline with GitHub Actions.", "tags": [ "ci" ] }
+      ]
+    }
+  ],
+  "skills": [
+    { "name": "C#", "aliases": [ "CSharp" ], "level": "Production", "years": 4, "group": "dotnet" },
+    { "name": ".NET", "aliases": [ "dotnet", "ASP.NET Core", "ASP.NET" ], "level": "Production", "years": 4, "group": "dotnet" },
+    { "name": "Vue", "aliases": [ "Vue.js", "Vue 3" ], "level": "Production", "years": 3, "group": "frontend" },
+    { "name": "TypeScript", "aliases": [], "level": "Production", "years": 3, "group": "frontend" },
+    { "name": "PostgreSQL", "aliases": [ "Postgres" ], "level": "Project", "group": "data" },
+    { "name": "Docker", "aliases": [], "level": "Learning" },
+    { "name": "Angular", "aliases": [], "level": "None" }
+  ],
+  "knownGaps": [
+    {
+      "skill": "Angular",
+      "aliases": [],
+      "de": "Mit Angular habe ich noch nicht gearbeitet, aber 3 Jahre mit Vue 3 und TypeScript.",
+      "en": "I have not worked with Angular yet, but with Vue 3 and TypeScript for 3 years."
+    }
+  ],
+  "projects": [
+    { "name": "Beispiel-Tool", "url": "https://github.com/example/tool", "description": "Small CLI for invoices.", "tags": [ "csharp" ] }
+  ],
+  "education": [
+    { "institution": "Beispiel-Hochschule", "degree": "B.Sc. Informatik", "from": "2017-10", "to": "2021-03", "notes": [] }
+  ],
+  "languages": [
+    { "name": "Deutsch", "level": "B2" },
+    { "name": "Englisch", "level": "C1" }
+  ],
+  "certificates": [],
+  "preferences": {
+    "salaryMin": 50000,
+    "salaryMax": 60000,
+    "regions": [ "Regensburg", "Remote" ],
+    "maxCommuteMinutes": 60,
+    "remote": "Hybrid",
+    "earliestStart": "2026-11-01",
+    "avoidEmployerTypes": [ "Temporary" ]
+  }
+}

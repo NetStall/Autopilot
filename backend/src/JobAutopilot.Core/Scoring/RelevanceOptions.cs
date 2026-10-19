@@ -33,6 +33,9 @@ public sealed class RelevanceOptions
 
     public List<RelevanceRule> Negative { get; init; } = [];
 
+    /// <summary>How the candidate profile's skills count as positive keywords.</summary>
+    public ProfileSkillWeights ProfileSkills { get; init; } = new();
+
     /// <summary>Re-score all vacancies when the API starts (picks up changed weights and phrases).</summary>
     public bool RescoreOnStartup { get; set; } = true;
 
@@ -88,6 +91,18 @@ public sealed class RelevanceOptions
             }
         }
     }
+}
+
+/// <summary>Weights for skills from the profile by level; <see cref="Group"/> is used when a skill names none.</summary>
+public sealed class ProfileSkillWeights
+{
+    public int Production { get; set; } = 4;
+
+    public int Project { get; set; } = 2;
+
+    public int Learning { get; set; } = 1;
+
+    public string Group { get; set; } = "profile";
 }
 
 /// <summary>One keyword group, e.g. Name „C#" with Terms „C#", „CSharp".</summary>
