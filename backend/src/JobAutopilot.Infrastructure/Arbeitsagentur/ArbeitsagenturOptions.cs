@@ -28,13 +28,14 @@ public sealed class ArbeitsagenturOptions
     public int DelayBetweenPagesMs { get; set; } = 300;
 
     /// <summary>
-    /// Value of the <c>homeoffice</c> parameter for <c>RemoteOnly</c> searches. <c>prozentual_100</c> = postings
-    /// that state 100 % home office; <c>prozentual_0;nv_true</c> = any home office incl. "by arrangement"
-    /// (mostly hybrid). See docs/arbeitsagentur-api.md.
+    /// Value of the <c>homeoffice</c> parameter for <c>RemoteOnly</c> searches. <c>prozentual_0;nv_true</c> (default)
+    /// = any home office incl. "by arrangement" — the web app's filter; how remote a posting really is comes from
+    /// <c>homeofficeprozent</c> and the description (RemoteLevel). <c>prozentual_100</c> = only postings that state
+    /// 100 % (very few). See docs/arbeitsagentur-api.md.
     /// </summary>
     [Required]
     [RegularExpression("^(prozentual_(100|[1-9]?[0-9])(;nv_true)?|nv_true)$")]
-    public string RemoteHomeOfficeFilter { get; set; } = "prozentual_100";
+    public string RemoteHomeOfficeFilter { get; set; } = "prozentual_0;nv_true";
 }
 
 [OptionsValidator]

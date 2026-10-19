@@ -53,9 +53,43 @@ links to it). Values, semicolon-separated, **order matters** (`nv_true;prozentua
 | `prozentual_0;nv_true` | any percentage **or** "nach Vereinbarung" — the web app's "Homeoffice" filter | 663 |
 | `prozentual_100;nv_true` | fully remote or by arrangement | 571 |
 
-`nv_true` ("by arrangement") is mostly hybrid work at the employer's site. For "remote anywhere in Germany" we
-therefore default to `prozentual_100` (`Arbeitsagentur:RemoteHomeOfficeFilter`); widen it in configuration if
-too few results arrive. Results also carry `homeofficemoeglich` (bool) and, when stated, `homeofficeprozent`.
+`nv_true` ("by arrangement") is mostly hybrid work at the employer's site. Step 03b defaulted to `prozentual_100`;
+**since step 04 the default is `prozentual_0;nv_true`** (`Arbeitsagentur:RemoteHomeOfficeFilter`), see the
+diagnosis below. Results also carry `homeofficemoeglich` (bool), `homeofficetyp` and, when stated,
+`homeofficeprozent`.
+
+### Remote diagnosis (2026-10-19, step 04 part A)
+
+Problem: almost no remote vacancies outside the region. Checked for every `RemoteOnly` search with the exact URL
+the client builds (`ArbeitsagenturClient.BuildSearchUri`, `size=100`, `veroeffentlichtseit=30`), e.g.
+
+```
+pc/v6/jobs?was=C%23&angebotsart=1&homeoffice=prozentual_100&veroeffentlichtseit=30&page=1&size=100
+```
+
+1. **`wo`/`umkreis` are absent** for remote searches (unit test `Remote_only_without_location_…`), so they do
+   search all of Germany: almost all results lie outside Lower Bavaria (*NdB*) and most outside Bavaria.
+2. **The home-office parameter is applied** — the counts with and without it differ by two orders of magnitude.
+   `;` may be sent encoded (`%3B`) or raw, both give the same result (174 for `C#`).
+3. **The filter was simply too strict.** `prozentual_100` only matches postings that *state* 100 %. Most employers
+   choose "nach Vereinbarung": in the 100 `C#` results of `prozentual_0;nv_true`, `homeofficetyp` was
+   `NACH_VEREINBARUNG` 71×, `ANGABE_IN_PROZENT` 29× (40 % 8×, 50 % 7×, 60 % 6×, 80 % 3×, 20 % 3×, 100 % 2×).
+   Fully remote postings mostly say so only in the text ("100 % remote", "deutschlandweit"), not in the field.
+4. v6 has no other home-office filter: `arbeitszeit=ho` returns 0; `homeoffice` is the only one.
+
+| Search | Keyword | `prozentual_100` (before) | outside NdB | no filter | `prozentual_0;nv_true` (after) | outside NdB / outside BY (first 100) |
+|---|---|---|---|---|---|---|
+| `remote-csharp` | `C#` | 3 | 3 | 2256 | **174** | 99 / 65 |
+| `remote-dotnet` | `.NET` | 3 | 3 | 2509 | **175** | 99 / 70 |
+| `remote-fullstack` | `Full Stack` | 8 | 8 | 552 | **172** | 99 / 80 |
+| `remote-vue` | `Vue` | 6 | 6 | 193 | **41** | 40 / 33 (of 41) |
+| `remote-softwareentwickler` | `Softwareentwickler` | 36 | 35 | 3395 | **664** | 99 / 84 |
+| `remote-backend` | `Backend` | 18 | 18 | 990 | **262** | 99 / 85 |
+
+Fix: `RemoteHomeOfficeFilter = prozentual_0;nv_true` for the remote searches (≈ 20× more results) and a
+per-vacancy **remote level** (FullRemote / Hybrid / OnSite / Unknown) from `homeofficeprozent` and the description,
+so "Nur voll remote" in the UI still shows only fully remote jobs. Numbers after a real import: see the end of
+this file.
 
 ### Result counts per keyword (2026-10-18, `angebotsart=1`, `veroeffentlichtseit=30`)
 
@@ -158,5 +192,5 @@ Dropped: `Webentwickler` (region: 1 result, already found by other searches); ba
 - Transient failures (5xx, 408, 429, timeouts) are retried with exponential backoff by the standard resilience
   handler (`Microsoft.Extensions.Http.Resilience`). 4xx such as 403 are not retried and make the import fail
   with 502 — nothing is saved.
-- No per-posting detail requests in this step (`pc/v4/jobdetails/{base64(refnr)}` exists, see bundesAPI).
+- Per-posting details: see *Job details* below.
 - No rate limit headers were returned; none are documented.

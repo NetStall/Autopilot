@@ -56,7 +56,7 @@ public sealed class ArbeitsagenturClientTests : IDisposable
         await SearchAsync(new VacancySearch { Name = "remote-dotnet", Keyword = ".NET", RemoteOnly = true });
 
         _handler.Requests.Single().Uri.Should().EndWith(
-            "pc/v6/jobs?was=.NET&angebotsart=1&homeoffice=prozentual_100&veroeffentlichtseit=30&page=1&size=2");
+            "pc/v6/jobs?was=.NET&angebotsart=1&homeoffice=prozentual_0%3Bnv_true&veroeffentlichtseit=30&page=1&size=2");
     }
 
     [Fact]
@@ -66,11 +66,11 @@ public sealed class ArbeitsagenturClientTests : IDisposable
 
         await SearchAsync(
             new VacancySearch { Name = "remote-csharp", Keyword = "C#", RemoteOnly = true },
-            remoteFilter: "prozentual_0;nv_true");
+            remoteFilter: "prozentual_100");
 
         var uri = _handler.Requests.Single().Uri;
         uri.Should().Contain("was=C%23&");
-        uri.Should().Contain("&homeoffice=prozentual_0%3Bnv_true&");
+        uri.Should().Contain("&homeoffice=prozentual_100&");
         uri.Should().NotContain("wo=").And.NotContain("umkreis=");
     }
 
@@ -173,7 +173,7 @@ public sealed class ArbeitsagenturClientTests : IDisposable
     private async Task<List<VacancyCandidate>> SearchAsync(
         VacancySearch search,
         int maxPages = 5,
-        string remoteFilter = "prozentual_100")
+        string remoteFilter = "prozentual_0;nv_true")
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>

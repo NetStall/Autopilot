@@ -156,9 +156,11 @@ Edit `backend/src/JobAutopilot.Api/appsettings.json` (or override it with user-s
 Fachinformatiker", not „Ausbildungsleiter"). Invalid search configuration stops the API at start-up with a clear
 message.
 
-`Arbeitsagentur:RemoteHomeOfficeFilter` decides what "remote" means: `prozentual_100` (default) = postings that state
-100 % home office; `prozentual_0;nv_true` = any home office incl. "nach Vereinbarung" (about 20× more results,
-mostly hybrid). Details and measured numbers: [docs/arbeitsagentur-api.md](docs/arbeitsagentur-api.md).
+`Arbeitsagentur:RemoteHomeOfficeFilter` is the home-office filter of `RemoteOnly` searches: `prozentual_0;nv_true`
+(default) = any home office incl. "nach Vereinbarung" — the same as the web app's „Homeoffice" filter;
+`prozentual_100` = only postings that state 100 % (about 50× fewer). How remote a vacancy really is
+(voll remote / hybrid) is decided per vacancy afterwards, see *Relevance and remote level* below. Details and
+measured numbers: [docs/arbeitsagentur-api.md](docs/arbeitsagentur-api.md).
 
 One ad-hoc search instead of the configured ones (same fields, camelCase; `name` defaults to `ad-hoc`):
 
