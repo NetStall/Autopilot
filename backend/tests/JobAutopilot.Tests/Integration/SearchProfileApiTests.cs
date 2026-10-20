@@ -53,7 +53,7 @@ public class SearchProfileApiTests(PostgresFixture postgres) : IntegrationTestBa
         saved.SearchProfile.Version.Should().Be(2);
         saved.SearchProfile.Searches.Should().Contain(s => s.Name == "remote-blazor").And.Contain(s => s.Name == "himalayas-blazor");
         saved.Rescore.State.Should().NotBe(RescoreState.Idle, "re-scoring was queued");
-        (await HistoryAsync()).First().Summary.Should().Contain("+Blazor (Remote)").And.Contain("Mindestbewertung 0 → 60");
+        (await HistoryAsync()).First().Summary.Should().Contain("+Blazor (Remote)").And.Contain("Mindestbewertung 40 → 60");
 
         var invalid = dto.Profile;
         invalid.TopN = 0;
@@ -99,6 +99,7 @@ public class SearchProfileApiTests(PostgresFixture postgres) : IntegrationTestBa
             Scored(Make(title: "Softwareentwickler C# (m/w/d)", location: "94469 Deggendorf"), 80),
             Scored(Make(title: "Java Developer (m/w/d)"), 10));
         var dto = await GetAsync();
+        dto.Profile.MinScore = 0;
         dto.Profile.Exclude.RemoveAll(k => k.Name == "Java");
 
         var preview = await Client.PostAsJsonAsync("/api/search-profile/preview", dto.Profile, ApiJson, CancellationToken);

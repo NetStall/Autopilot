@@ -11,7 +11,7 @@ public sealed class SearchProfileDefaults
 {
     public const string SectionName = "SearchProfileDefaults";
 
-    public int MinScore { get; set; }
+    public int MinScore { get; set; } = 40;
 
     public int TopN { get; set; } = 20;
 

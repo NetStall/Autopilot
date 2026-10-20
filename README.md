@@ -1,5 +1,9 @@
 # job-autopilot
 
+[![CI](https://github.com/NetStall/Autopilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NetStall/Autopilot/actions/workflows/ci.yml)
+
+<sub>The badge only renders for viewers with access while the repository is private.</sub>
+
 A personal tool for a structured job search in Germany: it fetches vacancies, ranks direct employers above
 recruitment agencies, drafts tailored cover letters with the Claude API, builds a matching CV, and tracks every
 application. The tool never sends anything: I review and approve each application's documents, submit them myself,
@@ -71,6 +75,10 @@ at a time), [ADR 0006](docs/decisions/0006-background-import-queue.md) (backgrou
 `.env` holds the local database credentials and the ports (copied from `.env.example` by `dev.ps1`; never
 committed). All ports are bound to `127.0.0.1` only — nothing is reachable from the network
 ([docs/SECURITY.md](docs/SECURITY.md)).
+
+> **JSON from PowerShell:** Windows PowerShell 5.1's `ConvertTo-Json` turns a one-element array into a plain value
+> (`places: [ { … } ]` becomes `places: { … }`, and the API answers 400). Use PowerShell 7 (`pwsh`), write the JSON as a
+> string (as in the examples below), or wrap arrays: `ConvertTo-Json -InputObject @($items) -Depth 10`.
 
 ### Use mode — everything in Docker
 
@@ -218,7 +226,7 @@ Decision and migration: [ADR 0009](docs/decisions/0009-search-profile.md).
 | Suche | search terms (each „Region + Remote", „Nur Region" or „Nur Remote"), places with radius, „Remote deutschlandweit", further places that count as my region, published within X days, sources Arbeitsagentur / Himalayas |
 | Remote und Arbeitgeber | Remote-Präferenz *egal* / *mindestens Hybrid* / *nur voll remote*; Personalvermittlung and Zeitarbeit: *zulassen* / *niedriger einordnen* / *ausblenden* |
 | Stack | Must-have, Nice-to-have, Ausschluss — keywords with weight, other spellings, group, „nur im Titel", case-sensitive, core stack; Titel-Ausschlüsse (skipped on import) |
-| Bewertung | default Mindestbewertung, N of „Nur Top N" and an optional default for „Deutsch erforderlich" for the list; fit penalties (0–50) |
+| Bewertung | default Mindestbewertung (40 in a fresh database), N of „Nur Top N" and an optional default for „Deutsch erforderlich" for the list; fit penalties (0–50) |
 | Rahmen | salary target, earliest start (orientation only, not scored yet) |
 
 While editing, a debounced preview shows „Mit diesen Einstellungen: 142 passende Stellen (davon 31 voll remote)"
