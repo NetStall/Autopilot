@@ -56,7 +56,7 @@ public static partial class FactGuard
         ArgumentNullException.ThrowIfNull(knownTechnologies);
 
         var warnings = new List<DraftWarning>();
-        CheckTechnologies(letter, profile, knownTechnologies, warnings);
+        CheckTechnologies(letter, input, profile, knownTechnologies, warnings);
         CheckNumbers(letter, input, profile, warnings);
         CheckGaps(letter, input, profile, warnings);
         CheckTone(letter, input, warnings);
@@ -65,8 +65,15 @@ public static partial class FactGuard
         return warnings;
     }
 
-    private static void CheckTechnologies(LetterDraft letter, CandidateProfile profile, IEnumerable<string> known, List<DraftWarning> warnings)
+    private static void CheckTechnologies(
+        LetterDraft letter, LetterInput input, CandidateProfile profile, IEnumerable<string> known, List<DraftWarning> warnings)
     {
+        // A technology named in one of my experience, achievement or project facts („von jQuery zu Vue migriert") is a
+        // fact, even when it is no skill of its own.
+        var factText = string.Join("\n", input.Facts
+            .Where(f => f.Kind is LetterFactKind.Experience or LetterFactKind.Achievement or LetterFactKind.Project or LetterFactKind.Summary)
+            .Select(f => f.Text));
+
         var skillsByName = new Dictionary<string, Skill>(StringComparer.Ordinal);
         foreach (var skill in profile.Skills)
         {
@@ -101,6 +108,11 @@ public static partial class FactGuard
                     var key = VacancyTerms.Normalize(term);
                     skillsByName.TryGetValue(key, out var skill);
                     if (honest || !reported.Add(key))
+                    {
+                        continue;
+                    }
+
+                    if (skill is null && new TermMatcher([term]).FindFirst(factText) is not null)
                     {
                         continue;
                     }

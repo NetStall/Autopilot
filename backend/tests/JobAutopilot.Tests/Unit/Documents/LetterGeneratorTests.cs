@@ -5,34 +5,40 @@ using System.Text.Json.Nodes;
 using FluentAssertions;
 using JobAutopilot.Core.Documents;
 using JobAutopilot.Infrastructure.Claude;
+using JobAutopilot.Infrastructure.Documents;
+using JobAutopilot.Infrastructure.Llm;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace JobAutopilot.Tests.Unit.Documents;
 
-/// <summary>The Claude client against scripted HTTP responses — never the real API.</summary>
-public sealed class ClaudeLetterGeneratorTests : IDisposable
+/// <summary>The letter generator with the Claude client against scripted HTTP responses — never the real API.</summary>
+public sealed class LetterGeneratorTests : IDisposable
 {
     private static readonly string[] Gaps = ["Angular"];
 
     private readonly ScriptedHandler _handler = new();
     private readonly HttpClient _http;
+    private readonly List<ClaudeLlmClient> _clients = [];
 
-    public ClaudeLetterGeneratorTests() => _http = new HttpClient(_handler);
+    public LetterGeneratorTests() => _http = new HttpClient(_handler);
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     public void Dispose()
     {
+        _clients.ForEach(c => c.Dispose());
         _http.Dispose();
         _handler.Dispose();
     }
 
-    private ClaudeLetterGenerator Generator(Action<ClaudeOptions>? configure = null)
+    private LetterGenerator Generator(Action<ClaudeOptions>? configure = null, LlmOptions? llm = null)
     {
         var options = new ClaudeOptions { ApiKey = "test-key", BaseUrl = "https://claude.test", MaxRetries = 0, TimeoutSeconds = 30 };
         configure?.Invoke(options);
-        return new ClaudeLetterGenerator(_http, Options.Create(options), NullLogger<ClaudeLetterGenerator>.Instance);
+        var client = new ClaudeLlmClient(_http, Options.Create(options), NullLogger<ClaudeLlmClient>.Instance);
+        _clients.Add(client);
+        return new LetterGenerator(new LlmRouter([client], Options.Create(llm ?? new LlmOptions()), Options.Create(options)), Options.Create(options));
     }
 
     private static string LetterJson(string? subject = null, string? paragraph = null, string[]? facts = null) => JsonSerializer.Serialize(new
@@ -63,7 +69,7 @@ public sealed class ClaudeLetterGeneratorTests : IDisposable
     public async Task Generates_a_letter_with_structured_output_and_counts_tokens()
     {
         _handler.Enqueue(HttpStatusCode.OK, MessageResponse(LetterJson()));
-        using var generator = Generator();
+        var generator = Generator();
 
         var result = await generator.GenerateAsync(DocumentTestData.Input(), Token);
 
@@ -78,10 +84,34 @@ public sealed class ClaudeLetterGeneratorTests : IDisposable
     }
 
     [Fact]
+    public async Task The_task_mapping_picks_provider_and_model()
+    {
+        _handler.Enqueue(HttpStatusCode.OK, MessageResponse(LetterJson()));
+        var llm = new LlmOptions { Tasks = { ["Letter"] = "claude:claude-mapped-model" } };
+        var generator = Generator(o => o.Model = "claude-default-model", llm);
+
+        var result = await generator.GenerateAsync(DocumentTestData.Input(), Token);
+
+        JsonNode.Parse(_handler.Requests.Single().Body)!["model"]!.GetValue<string>().Should().Be("claude-mapped-model");
+        result.Model.Should().Be("claude-mapped-model");
+    }
+
+    [Fact]
+    public async Task An_unknown_provider_is_a_configuration_error_without_any_call()
+    {
+        var generator = Generator(llm: new LlmOptions { Tasks = { ["Letter"] = "ollama:llama3" } });
+
+        var act = () => generator.GenerateAsync(DocumentTestData.Input(), Token);
+
+        (await act.Should().ThrowAsync<LetterGenerationException>()).Which.Error.Should().Be(LetterGenerationError.NotConfigured);
+        _handler.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Sends_model_limits_schema_and_key_from_configuration_but_no_temperature()
     {
         _handler.Enqueue(HttpStatusCode.OK, MessageResponse(LetterJson()));
-        using var generator = Generator(o => { o.Model = "claude-test-model"; o.MaxTokens = 1234; o.Effort = "low"; });
+        var generator = Generator(o => { o.Model = "claude-test-model"; o.MaxTokens = 1234; o.Effort = "low"; });
 
         await generator.GenerateAsync(DocumentTestData.Input(), Token);
 
@@ -103,7 +133,7 @@ public sealed class ClaudeLetterGeneratorTests : IDisposable
     public async Task Temperature_is_sent_only_when_configured()
     {
         _handler.Enqueue(HttpStatusCode.OK, MessageResponse(LetterJson()));
-        using var generator = Generator(o => o.Temperature = 0.3);
+        var generator = Generator(o => o.Temperature = 0.3);
 
         await generator.GenerateAsync(DocumentTestData.Input(), Token);
 
@@ -114,7 +144,7 @@ public sealed class ClaudeLetterGeneratorTests : IDisposable
     public async Task Injected_instructions_stay_data_in_the_request_and_markup_in_the_answer_stays_plain_text()
     {
         _handler.Enqueue(HttpStatusCode.OK, MessageResponse(LetterJson(subject: "<script>alert(1)</script>Bewerbung")));
-        using var generator = Generator();
+        var generator = Generator();
 
         var result = await generator.GenerateAsync(DocumentTestData.Input(description: LetterPromptTests.InjectionDescription), Token);
 
@@ -134,7 +164,7 @@ public sealed class ClaudeLetterGeneratorTests : IDisposable
     public async Task Api_errors_become_clear_generation_errors(HttpStatusCode status, LetterGenerationError expected)
     {
         _handler.Enqueue(status, """{"type":"error","error":{"type":"x","message":"secret details"}}""");
-        using var generator = Generator();
+        var generator = Generator();
 
         var act = () => generator.GenerateAsync(DocumentTestData.Input(), Token);
 
@@ -148,7 +178,7 @@ public sealed class ClaudeLetterGeneratorTests : IDisposable
     {
         _handler.Enqueue(HttpStatusCode.TooManyRequests, """{"type":"error","error":{"type":"rate_limit_error","message":"slow down"}}""", retryAfterSeconds: 0);
         _handler.Enqueue(HttpStatusCode.OK, MessageResponse(LetterJson()));
-        using var generator = Generator(o => o.MaxRetries = 1);
+        var generator = Generator(o => o.MaxRetries = 1);
 
         var result = await generator.GenerateAsync(DocumentTestData.Input(), Token);
 
@@ -161,7 +191,7 @@ public sealed class ClaudeLetterGeneratorTests : IDisposable
     {
         _handler.Delay = TimeSpan.FromSeconds(30);
         _handler.Enqueue(HttpStatusCode.OK, MessageResponse(LetterJson()));
-        using var generator = Generator(o => o.TimeoutSeconds = 1);
+        var generator = Generator(o => o.TimeoutSeconds = 1);
 
         var act = () => generator.GenerateAsync(DocumentTestData.Input(), Token);
 
@@ -173,7 +203,7 @@ public sealed class ClaudeLetterGeneratorTests : IDisposable
     {
         _handler.Delay = TimeSpan.FromSeconds(30);
         _handler.Enqueue(HttpStatusCode.OK, MessageResponse(LetterJson()));
-        using var generator = Generator();
+        var generator = Generator();
         using var cancel = CancellationTokenSource.CreateLinkedTokenSource(Token);
         cancel.CancelAfter(TimeSpan.FromMilliseconds(200));
 
@@ -189,7 +219,7 @@ public sealed class ClaudeLetterGeneratorTests : IDisposable
     public async Task Unusable_answers_are_invalid_responses(string text, string stopReason)
     {
         _handler.Enqueue(HttpStatusCode.OK, MessageResponse(text, stopReason));
-        using var generator = Generator();
+        var generator = Generator();
 
         var act = () => generator.GenerateAsync(DocumentTestData.Input(), Token);
 
@@ -200,7 +230,7 @@ public sealed class ClaudeLetterGeneratorTests : IDisposable
     public async Task A_refusal_is_reported()
     {
         _handler.Enqueue(HttpStatusCode.OK, MessageResponse("{}", "refusal"));
-        using var generator = Generator();
+        var generator = Generator();
 
         var act = () => generator.GenerateAsync(DocumentTestData.Input(), Token);
 
@@ -210,7 +240,7 @@ public sealed class ClaudeLetterGeneratorTests : IDisposable
     [Fact]
     public async Task Without_an_api_key_nothing_is_called()
     {
-        using var generator = Generator(o => o.ApiKey = null);
+        var generator = Generator(o => o.ApiKey = null);
 
         var act = () => generator.GenerateAsync(DocumentTestData.Input(), Token);
 
@@ -222,7 +252,7 @@ public sealed class ClaudeLetterGeneratorTests : IDisposable
     public async Task Rephrases_one_paragraph()
     {
         _handler.Enqueue(HttpStatusCode.OK, MessageResponse("""{"paragraph":"Neuer Absatz\nzwei","factsUsed":["exp0.b1"],"gapsMentioned":[]}"""));
-        using var generator = Generator();
+        var generator = Generator();
         var input = DocumentTestData.Input();
 
         var result = await generator.RephraseParagraphAsync(input, Fakes.FakeLetterGenerator.CleanLetter(input), 1, "kürzer", Token);

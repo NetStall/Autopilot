@@ -71,8 +71,13 @@ public static class DependencyInjection
 
         // No resilience handler here: the SDK retries 429/5xx itself (Claude:MaxRetries) and applies Claude:TimeoutSeconds
         // per attempt; the HttpClient's own timeout would cut retries short.
-        services.AddHttpClient<ClaudeLetterGenerator>(client => client.Timeout = Timeout.InfiniteTimeSpan);
-        services.AddTransient<ILetterGenerator>(sp => sp.GetRequiredService<ClaudeLetterGenerator>());
+        services.AddHttpClient<ClaudeLlmClient>(client => client.Timeout = Timeout.InfiniteTimeSpan);
+        services.AddTransient<Core.Llm.ILlmClient>(sp => sp.GetRequiredService<ClaudeLlmClient>());
+
+        // Which provider and model a task uses (Llm:Tasks:Letter = claude:<model>); letter code only sees the router.
+        services.AddOptions<Llm.LlmOptions>().Bind(configuration.GetSection(Llm.LlmOptions.SectionName));
+        services.AddTransient<Core.Llm.ILlmRouter, Llm.LlmRouter>();
+        services.AddTransient<ILetterGenerator, LetterGenerator>();
 
         services.AddSingleton<IDocumentRenderer, QuestPdfDocumentRenderer>();
         services.AddOptions<DocumentOptions>().Bind(configuration.GetSection(DocumentOptions.SectionName));

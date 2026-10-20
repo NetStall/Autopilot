@@ -40,7 +40,7 @@ Dependency rule: `Api → Infrastructure → Core`; Core references nothing. The
 
 **Applications and tracker import**
 1. `POST /api/vacancies/{id}/apply` or `/documents` creates an `Application` (status `Draft`).
-2. Documents: `ApplicationDocumentsService` → `ILetterGenerator` (Claude) + `CvBuilder`, checked by `FactGuard`;
+2. Documents: `ApplicationDocumentsService` → `ILetterGenerator` (`LetterGenerator` → `ILlmRouter` → Claude) + `CvBuilder`, checked by `FactGuard`;
    the user edits, previews and approves (`ApplicationWorkflow.Approve`), PDFs via `QuestPdfDocumentRenderer`.
 3. Sending is manual; `POST /api/applications/{id}/mark-sent` records it (`ApplicationWorkflow.MarkSent`).
 4. Status changes via `POST /api/applications/{id}/status`; follow-up = last action + 7 days.
@@ -52,7 +52,7 @@ Dependency rule: `Api → Infrastructure → Core`; Core references nothing. The
 |---|---|---|
 | Bundesagentur für Arbeit Jobsuche | `Infrastructure/Arbeitsagentur/ArbeitsagenturClient` | search + details, typed `HttpClient` |
 | Himalayas | `Infrastructure/Himalayas/HimalayasClient` | remote jobs, HTML → text (`HtmlText`) |
-| Claude API | `Infrastructure/Claude/ClaudeLetterGenerator` | letters only; key via user-secrets/env; prompt `Prompts/letter.v1.md` |
+| Claude API | `Infrastructure/Claude/ClaudeLlmClient` behind `ILlmRouter` (`Llm:Tasks`) | letters only; key via user-secrets/env; prompt `Prompts/letter.v1.md` |
 | Ollama | — | planned, not implemented |
 
 All are behind Core interfaces and faked in tests (`tests/.../Fakes`, stub `HttpMessageHandler`s).
@@ -84,5 +84,6 @@ Frontend CSP in `frontend/server/plugins/content-security-policy.ts`. Details: [
 - [0010](decisions/0010-application-documents.md) — application documents.
 - [0011](decisions/0011-requirement-importance-and-german.md) — requirement importance, required German.
 - [0012](decisions/0012-technology-catalog-and-reachability.md) — technology catalog, profile-gated keywords, reachability.
+- [0013](decisions/0013-llm-abstraction.md) — ILlmClient and task routing (`Llm:Tasks`).
 
 Schema: [schema.md](schema.md). Roadmap: [ROADMAP.md](ROADMAP.md).

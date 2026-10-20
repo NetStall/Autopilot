@@ -451,7 +451,9 @@ public sealed partial class ApplicationDocumentsService(
     {
         var (cv, cvPages) = FitCv(context, draft.CvOptions);
         var letterPages = renderer.RenderLetter(Print(context, draft.Letter, cv), RenderFormat.Png).Pages;
-        var known = fitOptions.Value.CommonRequirements.SelectMany(r => r.Terms.Append(r.Name));
+        // The configured requirements plus the technology catalog (05d): DevExpress claimed as experience is caught too.
+        var known = fitOptions.Value.CommonRequirements.SelectMany(r => r.Terms.Append(r.Name))
+            .Concat(Core.Fit.TechnologyCatalog.All.SelectMany(t => t.AllNames()));
         var warnings = FactGuard.Check(draft.Letter, context.Input, context.Profile, known, letterPages).ToList();
         if (cvPages > 1)
         {

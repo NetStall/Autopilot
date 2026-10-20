@@ -36,6 +36,19 @@ public class FactGuardTests
     }
 
     [Fact]
+    public void A_technology_from_the_catalog_claimed_as_experience_is_detected()
+    {
+        var known = Core.Fit.TechnologyCatalog.All.SelectMany(t => t.AllNames());
+
+        var warnings = FactGuard.Check(
+            WithParagraph(1, "Ich habe viele Oberflächen mit DevExpress und SignalR gebaut."), _input, DocumentTestData.Profile(), known, null);
+
+        warnings.Where(w => w.Code == DraftWarning.InventedTechnology).Select(w => w.Message)
+            .Should().Contain(m => m.Contains("DevExpress")).And.Contain(m => m.Contains("SignalR"));
+        FactGuard.Check(Clean, _input, DocumentTestData.Profile(), known, null).Select(w => w.Message).Should().BeEmpty("the clean letter stays clean with the catalog");
+    }
+
+    [Fact]
     public void A_known_gap_presented_as_experience_is_detected()
     {
         Check(WithParagraph(1, "Ich entwickle seit Jahren Oberflächen mit Angular."))
