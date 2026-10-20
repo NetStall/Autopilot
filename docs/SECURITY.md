@@ -12,10 +12,12 @@ Status: 2026-10-18 (task 03c, part B). Re-check before anything is reachable fro
 
 | Component | Where | Reachable from | Data |
 |---|---|---|---|
-| PostgreSQL 17 (`db`) | Docker, volume `pgdata` | `127.0.0.1:5432` | vacancies (public job postings), seen/interest state, **applications** (personal data: contacts, notes, salary); later: letters |
+| PostgreSQL 17 (`db`) | Docker, volume `pgdata` | `127.0.0.1:5432` | vacancies (public job postings), seen/interest state, **applications** (personal data: contacts, notes, salary), **letters and CV choices** (step 06) |
 | API (`api`, ASP.NET Core) | Docker or `dotnet watch` | `127.0.0.1:5080` | reads/writes the DB; calls the Bundesagentur für Arbeit Jobsuche API and the Himalayas jobs API (outbound HTTPS, read-only, no credentials; an optional Himalayas key only via user-secrets/environment) |
 | Frontend (`web`, Nuxt/Nitro) | Docker or `nuxt dev` | `127.0.0.1:3000` | no data of its own; the browser calls the API directly |
 | Backups | `./backups/*.sql` | local disk, git-ignored | full DB dump |
+| Approved PDFs | `./data/applications/{id}/` | local disk, git-ignored; the only folder the API writes to | Anschreiben + Lebenslauf (personal data) |
+| Claude API (step 06) | Anthropic, outbound HTTPS | — | per generation: the selected profile facts + the posting. The key comes only from user-secrets / environment, is never sent to the frontend or logged |
 
 Nothing listens on a non-loopback interface (compose binds every port to `127.0.0.1`; verified: the API does not
 answer on the machine's LAN address). Containers run as non-root users (`app`, UID 1654 / `node`, UID 1000).
@@ -33,7 +35,10 @@ answer on the machine's LAN address). Containers run as non-root users (`app`, U
 | Oversized or malformed input | Validation with limits on every parameter (text ≤ 200, page ≤ 1 000 000, pageSize ≤ 100, lists bounded), request bodies ≤ 64 KB (413), malformed JSON → 400 ProblemDetails |
 | Information leakage in errors | ProblemDetails everywhere; outside Development no exception messages or stack traces (tested) |
 | Secrets / personal data in git | `.env`, `appsettings.*.local.json`, `backups/`, `data/` (profile, tracker export) git-ignored; history checked (see findings) |
-| Personal data in logs or external calls (step 05) | Profile and applications are never logged — only file name, status, counts and ids; no external call uses them in this step; `./data` is mounted read-only into the API container; profile/application endpoints are localhost-only like everything else |
+| Personal data in logs or external calls (step 05) | Profile and applications are never logged — only file name, status, counts and ids; `./data` is mounted read-only into the API container (only `./data/applications` is writable, for the PDFs); profile/application endpoints are localhost-only like everything else |
+| Personal data sent to the Claude API (step 06) | Only on an explicit click (create / regenerate / rephrase), only the facts selected for that letter plus the posting; logs hold ids, model, prompt version, tokens, duration, status codes — never letter, profile, posting or the API's error body; daily call limit and per-draft token budget |
+| Prompt injection through a posting („ignore previous instructions …") | The posting is passed as data in a `<vacancy>` block with `<`/`>` replaced (cannot close or forge blocks), the system prompt forbids following instructions from it; structured JSON output; the answer is plain text, escaped by Vue (no `v-html`), PDFs render text only; tested with an injection fixture |
+| Sending without approval | Not possible: the tool has no sending at all; „Gesendet" is a record reachable only via „Als gesendet markieren" after „Freigeben", and any later change revokes the approval |
 | Vulnerable dependencies / insecure code | CI fails on high/critical (NuGet + npm, documented exceptions), Dependabot weekly, CodeQL (fails on findings with security-severity >= 7; results go to the Security tab once code scanning is available — public repository or GitHub Code Security — otherwise they are kept as a SARIF artifact) |
 
 Not in scope while localhost-only: authentication, TLS, encryption at rest (the Docker volume is protected by the
@@ -65,7 +70,7 @@ OS user account), multi-user separation.
 | 6 | Two imports at the same time could fail on the unique index (500) or double the load | medium | **fixed** — PostgreSQL advisory lock, 409 |
 | 7 | Import could be triggered without limit (outbound requests to a public API) | medium | **fixed** — rate limit 6/min, 429 with `Retry-After` |
 | 8 | No security headers / CSP on frontend and API | medium | **fixed** — headers on both, hash-based CSP (verified in the browser without violations) |
-| 9 | CORS allowed any header and method; a wildcard origin in config would have been accepted | low | **fixed** — GET/POST/PATCH (+ DELETE since step 05 for deleting an application), `Content-Type`, origins validated at start |
+| 9 | CORS allowed any header and method; a wildcard origin in config would have been accepted | low | **fixed** — GET/POST/PATCH (+ DELETE since step 05 for deleting an application, + PUT since step 06 — the Suchprofil save of 05b used PUT and was blocked by the browser), `Content-Type`, exposed `X-Page-Count`, origins validated at start |
 | 10 | Default request body limit 30 MB | low | **fixed** — 64 KB, 413 ProblemDetails |
 | 11 | `employerType` list unbounded | low | **fixed** — max 10 values |
 | 12 | Migrations bound to the environment name | low | **fixed** — `Database:MigrateOnStartup` |

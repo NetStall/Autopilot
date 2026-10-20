@@ -105,6 +105,8 @@ docker compose up -d                          # everything in Docker (use mode) 
 ./dev.ps1                                     # dev mode: db in Docker, API + frontend in one window
 ./scripts/backup-db.ps1                       # dump to ./backups (git-ignored)
 Invoke-RestMethod -Method Post http://localhost:5080/api/imports   # start a background import (202 + importId)
+dotnet user-secrets set "Claude:ApiKey" "<key>" --project backend/src/JobAutopilot.Api   # Claude key (never in appsettings)
+./scripts/draft-top-vacancies.ps1 -Count 3    # documents for the 3 best vacancies (3 Claude calls), output to console only
 docker compose up -d db                       # start PostgreSQL only
 dotnet build backend/JobAutopilot.sln
 dotnet test  backend/JobAutopilot.sln

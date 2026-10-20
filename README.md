@@ -1,8 +1,9 @@
 # job-autopilot
 
 A personal tool for a structured job search in Germany: it fetches vacancies, ranks direct employers above
-recruitment agencies, drafts tailored cover letters with the Claude API and tracks every application.
-Nothing is ever sent without explicit human approval of that exact application.
+recruitment agencies, drafts tailored cover letters with the Claude API, builds a matching CV, and tracks every
+application. The tool never sends anything: I review and approve each application's documents, submit them myself,
+and only record that they were sent.
 
 ## Quick start
 
@@ -15,7 +16,10 @@ docker compose up -d     # "use" mode: db + api + frontend in Docker → http://
 
 Dev mode additionally needs the .NET 10 SDK and Node 24; Ctrl+C stops API and frontend. Details below.
 
-**Status:** step 04 of the [roadmap](docs/ROADMAP.md) — vacancies from the Bundesagentur für Arbeit (region around
+**Status:** step 06 of the [roadmap](docs/ROADMAP.md) — application documents: a cover letter drafted by Claude from
+profile facts only (with a fact guard), a CV variant without AI, a review screen with live preview, approval and PDFs
+in the look of my current documents (see *Unterlagen* below). Before that: profile, fit check and applications (05),
+editable Suchprofil and score filters (05b), and from step 04 vacancies from the Bundesagentur für Arbeit (region around
 Deggendorf + home-office jobs in all of Germany, with full descriptions) and from the
 [Himalayas](https://himalayas.app) remote jobs API, **scored against the profile** (C#/.NET/Vue: relevant; Java,
 PHP, SAP, embedded …: not), with a remote level (voll remote / hybrid), detected recruitment agencies and merged
@@ -193,9 +197,10 @@ Copy-Item docs/profile.example.json data/profile.json   # then edit it
 | `personal` | name, email, phone, city, website/github/linkedin (http/https only) |
 | `summary` | short self-descriptions by focus, e.g. `fullstack`, `backend`, `ai` |
 | `experience[]` | company, title, `from`/`to` (`YYYY-MM`, `to` empty = today), bullets with `tags` |
-| `skills[]` | name, `aliases` (spellings in job ads), `level`: `Production` (at work) · `Project` (own projects) · `Learning` · `None` (a gap), optional `years`, `group` |
+| `skills[]` | name, `aliases` (spellings in job ads), `level`: `Production` (at work) · `Project` (own projects) · `Learning` · `None` (a gap), optional `years`, `group`, `cvGroup` (heading in the CV: `Backend`, `Frontend`, `Testing`, `DevOps & Tools` …) |
 | `knownGaps[]` | missing skill + an honest phrasing in `de` **and** `en` |
 | `projects[]`, `education[]`, `languages[]` (`A1`…`C2`, `Native`), `certificates[]` | |
+| German texts (optional) | for German CVs and letters: `summary["fullstack.de"]`, `titleDe`, `locationDe`, bullet `textDe`, `descriptionDe`, `degreeDe`, `institutionDe`, `notesDe`, language `nameDe`/`noteDe`. Missing ones fall back to the base text (the review shows how many) |
 | `preferences` | **deprecated** — moved to the Suchprofil. Read once to seed it; afterwards ignored (the API logs a hint while they are still in the file) |
 
 The page **Profil** shows the loaded profile and every validation problem (unknown level, `from` after `to`, missing
@@ -314,6 +319,73 @@ German status labels. Re-running is safe: rows are matched by `id` and updated, 
 in the tool after the export was made is kept. Unknown status or channel values, or an hourly wage in `gehalt`, end up
 in the notes and in the report's `warnings`. Imported applications are linked to stored vacancies by company + title.
 
+### Unterlagen (cover letter, CV, review)
+
+On a vacancy, **Unterlagen erstellen** creates an application in status *Entwurf* and, within about a minute:
+
+1. **Anschreiben** — drafted by Claude (one call) from *facts only*.
+   - The facts are numbered items from `profile.json`: matching experience bullets, skills with level, known gaps
+     with my honest phrasing, languages and links. Salary and earliest start from the Suchprofil are added only if
+     the posting asks for them.
+   - Language (German / English), „du"/„Sie" and the contact person („z. Hd. Frau …") are detected from the posting.
+   - Style: one page, 4–5 short paragraphs, my website in the first one, a „Ganz offen: …" paragraph for the gaps,
+     no clichés.
+   - Prompt: `backend/src/JobAutopilot.Infrastructure/Claude/Prompts/letter.v1.md`, versioned; the version is
+     stored with each draft.
+2. **Lebenslauf** — built without AI: the summary chosen by focus (full stack / backend / AI), a role line, bullets
+   ordered by overlap with the posting, skill groups. Always one page.
+3. **Faktenprüfung** — rules that run after every generation and save. They warn about:
+   - technologies claimed as experience but not in the profile (or only `Learning`/`None`);
+   - numbers or durations that appear in neither the profile nor the posting;
+   - required gaps that are not mentioned;
+   - „Sie" and „du" mixed, the wrong language;
+   - more than one page.
+
+   Hints: website missing, clichés.
+
+The review screen (`/unterlagen/{id}`, also via **Bewerbungen → Details → Unterlagen**) has:
+- **Editing:** every paragraph as a text area, with **Absatz neu formulieren** (one call), a character and page
+  indicator, and warnings next to their paragraph. CV: focus, show/hide and reorder bullets and skill groups.
+- **Live preview:** PNG of page 1 of both documents.
+- **Spickzettel** for application forms, with copy buttons: subject, a short e-mail text, salary, earliest start,
+  „Wie haben Sie uns gefunden?", German level, links, contact person.
+- **Verlauf:** every generation and save is a version; older versions can be restored.
+
+**Freigeben** writes the PDFs to `data/applications/{applicationId}/`, e.g.
+`Vitalii_Strashuk_Anschreiben_<Firma>.pdf` and `…_Lebenslauf_<Firma>.pdf`; the download buttons appear. With open
+warnings, approving needs a ticked confirmation, which is recorded in the history. A change after approval sets the
+application back to *Entwurf*.
+
+**Als gesendet markieren** (channel + date) is the only way to *Gesendet*, and only after the approval. The tool
+never sends anything; I submit the documents myself.
+
+The Claude API key comes only from user-secrets or the environment:
+
+```powershell
+dotnet user-secrets set "Claude:ApiKey" "<key>" --project backend/src/JobAutopilot.Api   # dev mode
+# Docker: CLAUDE_API_KEY=<key> in .env (git-ignored)
+```
+
+Without a key the API runs; documents cannot be generated (503 with a clear message).
+
+To try it on the best vacancies of the list (one Claude call each; prints time, tokens, cost, warnings and the letter
+to the console only):
+
+```powershell
+./scripts/draft-top-vacancies.ps1 -Count 3
+```
+
+| `Claude` setting | Default | |
+|---|---|---|
+| `Model` | `claude-sonnet-5-5` | see [ADR 0010](docs/decisions/0010-application-documents.md) |
+| `MaxTokens` | 8000 | per call, thinking included |
+| `Effort` | `medium` | `low` … `max`; empty = model default |
+| `Temperature` | empty | only sent when set — current models reject non-default values |
+| `TimeoutSeconds` / `MaxRetries` | 90 / 2 | per attempt; 429/5xx are retried with backoff |
+| `DailyCallLimit` | 30 | generations + rephrasings per day (German time) → 429 |
+| `DraftTokenBudget` | 120000 | tokens per draft → 429 |
+| `InputPricePerMTok` / `OutputPricePerMTok` | 2 / 10 | USD, only for the cost shown per draft |
+
 ### Create a vacancy by hand
 
 ```powershell
@@ -342,10 +414,21 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 | POST | `/api/applications` | record an application by hand → 201 (status *Gesendet*) |
 | PATCH | `/api/applications/{id}` | edit fields (not the status) |
 | DELETE | `/api/applications/{id}` | delete → 204 |
-| POST | `/api/applications/{id}/status` | `{ status, note?, at? }` → history event, last action = now |
+| POST | `/api/applications/{id}/status` | `{ status, note?, at? }` → history event, last action = now; *Entwurf*, *Freigegeben* and *Gesendet* cannot be set here (409) — a draft can only be withdrawn |
 | POST | `/api/vacancies/{id}/apply` | „Als beworben markieren" → 201, or 200 with the existing application |
 | POST | `/api/applications/import-tracker` | import `data/import/bewerbungen-export.json` (idempotent) → report; 400 if the file is missing/invalid |
 | GET | `/api/profile` | `{ status: Loaded\|Missing\|Invalid, fileName, errors, warnings, experienceYears, profile }` |
+| POST | `/api/vacancies/{id}/documents` | „Unterlagen erstellen" → **201** with the documents (new application in *Entwurf*), **200** if they exist; 409 if the vacancy's application is already sent; 422 without a profile; 429 at a limit; 503/504/502 when Claude is not configured / times out / fails — nothing is stored then |
+| POST | `/api/applications/{id}/documents` | the same for an existing *Entwurf* / *Freigegeben* application |
+| GET | `/api/applications/{id}/documents` | letter, CV options, built CV, warnings, pages, usage and cost, cheat sheet, revisions |
+| PUT | `/api/applications/{id}/documents` | `{ version, letter, cvOptions }` → saved + checked again; 409 on an old `version` |
+| POST | `/api/applications/{id}/documents/regenerate` | `{ version }` → new letter (one call) |
+| POST | `/api/applications/{id}/documents/paragraphs/{index}/rephrase` | `{ version, hint? }` → that paragraph rewritten (one call) |
+| POST | `/api/applications/{id}/documents/restore` | `{ version, revision }` → an older version as a new one |
+| POST | `/api/applications/{id}/documents/preview/{letter\|cv}` | `{ letter?, cvOptions? }` (unsaved state) → `image/png` of page 1, header `X-Page-Count` |
+| POST | `/api/applications/{id}/documents/approve` | `{ version, acceptWarnings }` → *Freigegeben*, PDFs written; 409 with open warnings unless `acceptWarnings` |
+| GET | `/api/applications/{id}/documents/{letter\|cv}.pdf` | the approved PDF (404 before approval) |
+| POST | `/api/applications/{id}/mark-sent` | `{ channel, at? }` → *Gesendet* (only after approval; 409 otherwise) |
 | PATCH | `/api/vacancies/{id}` | `{ "isSeen": bool, "interest": "None" \| "Starred" \| "Dismissed" }` (either or both) → 204; nothing else is patchable |
 | POST | `/api/vacancies/seen` | `{ "ids": [...] }` (1–100) → 204, marks them as seen |
 | POST | `/api/vacancies` | create a manual vacancy |
@@ -399,8 +482,11 @@ dotnet ef migrations add <DescriptiveName> --project backend/src/JobAutopilot.In
 
 ```powershell
 dotnet test backend/JobAutopilot.sln           # unit + integration tests
-cd frontend; npm test; npm run typecheck      # Vitest: URL filters, dates, URL safety, list states
+cd frontend; npm test; npm run typecheck      # Vitest: logic in Node + component tests in a Nuxt environment (happy-dom)
 ```
+
+The Claude client is tested against scripted HTTP responses (success, 429 with retry, 5xx, 401, timeout, cut-off and
+invalid answers, a prompt-injection posting); the API tests use a fake `ILetterGenerator`. No test calls Claude.
 
 Integration tests run the real API in memory (`WebApplicationFactory`) against **real PostgreSQL started by
 Testcontainers**, so constraints, enum mapping and migrations are tested exactly as they run in production.

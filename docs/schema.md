@@ -27,6 +27,26 @@ outdated version gets 409. `SearchProfileRevisions` holds one row per saved vers
 German `Summary` of the change, `SavedAt`); only the last 50 are kept. A rollback writes an old document as a new
 version. Seeded on first start from `appsettings.json` (+ once `preferences` from `profile.json`).
 
+## ApplicationDrafts, ApplicationDraftRevisions
+
+The documents of one application (step 06, [ADR 0010](decisions/0010-application-documents.md)) — personal data.
+
+| Column | Notes |
+|---|---|
+| `ApplicationId` | unique (one draft per application); deleting the application deletes the draft (cascade) and the API deletes its PDF folder |
+| `Letter` (jsonb) | `{ subject, salutation, paragraphs[], closing, language, formality, factsUsed[], gapsMentioned[] }` — plain text |
+| `CvOptions` (jsonb) | my CV choices: `focus`, `hiddenBullets`, `shownBullets`, `bulletOrder`, `hiddenSkillGroups`, `skillGroupOrder` (ids like `exp0.b3`) |
+| `Warnings` (jsonb) | fact guard + CV checks of the current state: `[{ code, message, paragraph, severity: Warning\|Hint }]` |
+| `PromptVersion`, `Model` | of the last generation (e.g. `letter.v1`, `claude-sonnet-5-5`) |
+| `InputTokens`, `OutputTokens`, `Calls` | summed over all model calls of this draft (budget `Claude:DraftTokenBudget`) |
+| `Version` | concurrency token — a save with an older version gets 409 |
+| `ApprovedAt`, `WarningsAccepted` | set by „Freigeben"; cleared by any later change |
+| `LetterFile`, `CvFile` | file names of the PDFs in `data/applications/{applicationId}/` |
+
+`ApplicationDraftRevisions`: one row per state (`Kind`: `Generated`, `Rephrased`, `Saved`, `Restored`) with letter,
+CV options and — for model calls — model, prompt version and tokens; `(DraftId, Number)` unique. Restoring copies an
+old revision into a new one. The daily call limit counts `Generated` + `Rephrased` rows since midnight (German time).
+
 ## ImportRuns
 
 One row per import; a filtered unique index on `IsActive` allows only one queued/running import (ADR 0005/0006).
