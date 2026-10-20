@@ -450,11 +450,20 @@ onBeforeUnmount(() => {
             <label for="pen-german">je fehlende Deutschstufe
               <input id="pen-german" v-model.number="form.penalties.germanPerLevel" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
             </label>
-            <label for="pen-exp">zu wenig Erfahrung
+            <label for="pen-exp">zu wenig Erfahrung („Senior" im Titel)
               <input id="pen-exp" v-model.number="form.penalties.experience" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
             </label>
-            <label for="pen-gap">je fehlende Pflicht-Technologie
+            <label for="pen-exp-strong">zu wenig Erfahrung, deutlich gefordert („langjährig", „5+ Jahre", „Lead")
+              <input id="pen-exp-strong" v-model.number="form.penalties.experienceStrong" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
+            </label>
+            <label for="pen-must">je fehlende Muss-Anforderung („Was du mitbringst")
+              <input id="pen-must" v-model.number="form.penalties.mustHaveGap" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
+            </label>
+            <label for="pen-gap">je fehlende sonstige Pflicht-Technologie
               <input id="pen-gap" v-model.number="form.penalties.requiredGap" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
+            </label>
+            <label for="pen-plus">je fehlendes „Plus" („von Vorteil", „kein Muss")
+              <input id="pen-plus" v-model.number="form.penalties.niceToHaveGap" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
             </label>
             <label for="pen-gap-max">höchstens für fehlende Technologien
               <input id="pen-gap-max" v-model.number="form.penalties.requiredGapMax" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">

@@ -27,7 +27,15 @@ public sealed class VacancyEnricher(
         var remote = remoteClassifier.Classify(vacancy.Title, vacancy.Description);
         vacancy.RemoteLevel = CombineRemote(remote.Level, vacancy.RemoteHint);
 
+        // Himalayas lists the hiring company itself: direct unless agency signals say otherwise.
+        if (employerHint == EmployerType.Unknown && vacancy.Source == VacancySource.Himalayas)
+        {
+            employerHint = EmployerType.Direct;
+        }
+
         var employerReason = ApplyEmployer(vacancy, employerHint);
+        var german = GermanRequirementDetector.Detect(vacancy.Title, vacancy.Description);
+        vacancy.RequiredGerman = german.Category;
 
         var relevance = scorers.Scorer.Score(vacancy.Title, vacancy.Description);
         vacancy.RelevanceScore = relevance.Score;
@@ -42,6 +50,11 @@ public sealed class VacancyEnricher(
         if (employerReason is not null)
         {
             reasons.Add(employerReason);
+        }
+
+        if (german.Reason is { } germanReason)
+        {
+            reasons.Add(germanReason);
         }
 
         // The ranking: relevance adjusted by the fit warnings against the profile.
@@ -71,7 +84,7 @@ public sealed class VacancyEnricher(
             return null;
         }
 
-        var employer = employerClassifier.Classify(vacancy.Company, vacancy.Description, hint);
+        var employer = employerClassifier.Classify(vacancy.Company, vacancy.Description, hint, SourceName(vacancy.Source));
         if (employer.Type != EmployerType.Unknown)
         {
             vacancy.EmployerType = employer.Type;
@@ -86,6 +99,12 @@ public sealed class VacancyEnricher(
             _ => null,
         };
     }
+
+    private static string SourceName(VacancySource source) => source switch
+    {
+        VacancySource.Himalayas => "Himalayas (einstellende Firma)",
+        _ => "Arbeitsagentur",
+    };
 
     /// <summary>
     /// An explicit phrase decides (full remote or hybrid — so a wrong „100 %" field cannot beat „anteilig Homeoffice");

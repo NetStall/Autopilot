@@ -433,6 +433,13 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(32)")
                         .HasDefaultValue("Unknown");
 
+                    b.Property<string>("RequiredGerman")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasDefaultValue("Unknown");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -460,6 +467,8 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.HasIndex("RelevanceLevel");
 
                     b.HasIndex("RemoteLevel");
+
+                    b.HasIndex("RequiredGerman");
 
                     b.HasIndex("Source", "ExternalId")
                         .IsUnique();

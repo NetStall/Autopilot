@@ -33,6 +33,13 @@ describe('highlightSegments', () => {
     expect(marked('Revue-Redakteur, Backendtechnik, Fullstackers')).toEqual([])
   })
 
+  it('never marks inside words, also for terms with special characters (05c)', () => {
+    expect(highlightSegments('Veröffentlicht heute', ['ute'])).toEqual([{ text: 'Veröffentlicht heute', highlight: false }])
+    expect(marked('C#x Entwickler, C# und C++')).toEqual(['C#'])
+    expect(marked('ASP.NET Core und .NET 8')).toEqual(['ASP.NET', '.NET'])
+    expect(marked('Fullstack-Remote')).toEqual(['Fullstack', 'Remote'])
+  })
+
   it('returns the whole text unmarked without keywords', () => {
     expect(highlightSegments('Softwareentwickler', [])).toEqual([{ text: 'Softwareentwickler', highlight: false }])
     expect(highlightSegments('', KEYWORDS)).toEqual([])

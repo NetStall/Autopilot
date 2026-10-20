@@ -19,8 +19,19 @@ public enum FitCoverage
     Gap,
 }
 
-/// <summary>One requirement found in the posting. <see cref="Note"/>: level, or the honest phrasing for a gap.</summary>
-public sealed record FitRequirement(string Name, FitCoverage Coverage, bool Optional, string Note);
+/// <summary>
+/// One requirement found in the posting. <see cref="Note"/>: level, or the honest phrasing for a gap.
+/// <see cref="Optional"/> = nice to have or an alternative; <see cref="Importance"/> decides a gap's penalty.
+/// </summary>
+public sealed record FitRequirement(
+    string Name,
+    FitCoverage Coverage,
+    bool Optional,
+    string Note,
+    RequirementImportance Importance = RequirementImportance.Required);
+
+/// <summary>Years of experience a posting asks for; <see cref="Strong"/> = more than „Senior" in the title alone.</summary>
+public sealed record ExperienceRequirement(int Years, string Phrase, bool Strong);
 
 public sealed record FitWarning(string Text, int Penalty);
 
@@ -41,9 +52,11 @@ public sealed record FitResult(
 /// <summary>
 /// Rule-based fit check of one vacancy against the profile — no AI. Requirements are the profile's skills (by name
 /// and aliases) and the configured common requirements found in title and description; each is covered, partial or
-/// a gap (with the honest phrasing from <c>knownGaps</c>). A requirement in a sentence with „von Vorteil" & co. is
-/// optional. German level and years of experience are compared with the profile and give warnings, never an
-/// exclusion. Pure and deterministic.
+/// a gap (with the honest phrasing from <c>knownGaps</c>). Skills count only by name or a specific alias, never by a
+/// generic one (<see cref="SkillTerms"/>). How important a requirement is comes from the posting's sections („Was du
+/// mitbringst" = must-have, „Ein Plus, aber kein Muss" = nice to have) and from markers in its sentence („von
+/// Vorteil", „(Must-have)"); a missing must-have costs more than a missing nice-to-have. German level and years of
+/// experience are compared with the profile and give warnings, never an exclusion. Pure and deterministic.
 /// </summary>
 public sealed partial class FitAnalyzer(FitOptions options)
 {
@@ -51,6 +64,14 @@ public sealed partial class FitAnalyzer(FitOptions options)
         [.. options.CommonRequirements.Select(r => (r, new TermMatcher(r.Terms.Append(r.Name))))];
 
     private readonly TermMatcher _optionalMarkers = new(options.OptionalMarkers);
+
+    private readonly TermMatcher _mustHaveMarkers = new(options.EffectiveMustHaveMarkers);
+
+    private readonly TermMatcher _mustHaveHeadings = new(options.EffectiveMustHaveHeadings);
+
+    private readonly TermMatcher _niceToHaveHeadings = new(options.EffectiveNiceToHaveHeadings);
+
+    private readonly TermMatcher _otherHeadings = new(options.EffectiveOtherHeadings);
 
     public FitResult Analyze(CandidateProfile profile, string title, string? description, EmployerType employerType, DateOnly today) =>
         Analyze(profile, new FitInput(title, description, employerType, null, RemoteLevel.Unknown), today, FitSettings.Neutral);
@@ -65,13 +86,14 @@ public sealed partial class FitAnalyzer(FitOptions options)
         ArgumentNullException.ThrowIfNull(title);
         var text = string.IsNullOrWhiteSpace(description) ? title : title + "\n" + description;
         var sentences = Sentences(text);
+        var sections = RequirementSections.Parse(text, _mustHaveHeadings, _niceToHaveHeadings, _otherHeadings);
         var requirements = new List<FitRequirement>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var covered = new TermMatcher(profile.Skills.Where(s => s.Level == SkillLevel.Production).SelectMany(s => s.AllNames()));
+        var covered = new TermMatcher(profile.Skills.Where(s => s.Level == SkillLevel.Production).SelectMany(SkillTerms.Evidence));
 
         foreach (var skill in profile.Skills.Where(s => !string.IsNullOrWhiteSpace(s.Name)))
         {
-            var matcher = new TermMatcher(skill.AllNames());
+            var matcher = new TermMatcher(SkillTerms.Evidence(skill));
             var hits = matcher.FindAll(text).ToList();
             if (hits.Count == 0 || !seen.Add(skill.Name))
             {
@@ -91,7 +113,8 @@ public sealed partial class FitAnalyzer(FitOptions options)
                 SkillLevel.Learning => (FitCoverage.Partial, gap?.De ?? "lerne ich gerade"),
                 _ => (FitCoverage.Gap, gap?.De ?? "keine Erfahrung"),
             };
-            requirements.Add(new FitRequirement(skill.Name, coverage, AllSoft(hits, sentences, coverage == FitCoverage.Gap ? covered : null), note));
+            var importance = ImportanceOf(hits, sentences, sections, coverage == FitCoverage.Gap ? covered : null);
+            requirements.Add(new FitRequirement(skill.Name, coverage, importance <= RequirementImportance.NiceToHave, note, importance));
         }
 
         var warnings = new List<FitWarning>();
@@ -111,24 +134,20 @@ public sealed partial class FitAnalyzer(FitOptions options)
             }
 
             var gap = GapFor(profile, rule.Terms.Append(rule.Name));
-            requirements.Add(new FitRequirement(rule.Name, FitCoverage.Gap, AllSoft(hits, sentences, covered), gap?.De ?? "nicht im Profil"));
+            var importance = ImportanceOf(hits, sentences, sections, covered);
+            requirements.Add(new FitRequirement(
+                rule.Name, FitCoverage.Gap, importance <= RequirementImportance.NiceToHave, gap?.De ?? "nicht im Profil", importance));
         }
 
         var penalties = settings.Penalties;
-        var requiredGaps = requirements.Where(r => r is { Coverage: FitCoverage.Gap, Optional: false }).ToList();
-        if (requiredGaps.Count > 0)
-        {
-            warnings.Add(new FitWarning(
-                $"Gefordert, aber nicht im Profil: {string.Join(", ", requiredGaps.Select(r => r.Name))}",
-                Math.Min(requiredGaps.Count * penalties.RequiredGap, penalties.RequiredGapMax)));
-        }
+        AddGapWarnings(requirements, penalties, warnings);
 
-        var german = RequiredGerman(text);
-        if (german is { } required && MyGerman(profile) is var mine && required.Level > mine)
+        var german = GermanRequirementDetector.Detect(title, description);
+        if (german.Level is { } level && MyGerman(profile) is var mine && level > mine)
         {
-            var steps = (int)required.Level - (int)mine;
+            var steps = (int)level - (int)mine;
             warnings.Add(new FitWarning(
-                $"Deutsch {required.Level} gefordert („{required.Phrase}“), im Profil: {mine}",
+                $"Deutsch {level} gefordert („{german.Phrase}“), im Profil: {mine}",
                 steps * penalties.GermanPerLevel));
         }
 
@@ -137,8 +156,9 @@ public sealed partial class FitAnalyzer(FitOptions options)
         if (years is { } needed && needed.Years > myYears)
         {
             warnings.Add(new FitWarning(
-                $"{needed.Phrase}: {needed.Years} Jahre erwartet, im Profil {myYears.ToString("0.#", CultureInfo.InvariantCulture)}",
-                penalties.Experience));
+                $"{needed.Phrase}: {needed.Years} Jahre erwartet, im Profil {myYears.ToString("0.#", CultureInfo.InvariantCulture)}"
+                + (needed.Strong ? " – deutliches Signal" : string.Empty),
+                needed.Strong ? penalties.ExperienceStrong : penalties.Experience));
         }
 
         if (OutsideRegions(settings, location, remoteLevel) is { } place)
@@ -162,7 +182,30 @@ public sealed partial class FitAnalyzer(FitOptions options)
             .ThenBy(r => r.Optional)
             .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        return new FitResult(ordered, warnings, german?.Level, years?.Years, warnings.Sum(w => w.Penalty));
+        return new FitResult(ordered, warnings, german.Level, years?.Years, warnings.Sum(w => w.Penalty));
+    }
+
+    /// <summary>Gap penalties by importance — must-have first — sharing one cap (<c>RequiredGapMax</c>).</summary>
+    private static void AddGapWarnings(List<FitRequirement> requirements, SearchPenalties penalties, List<FitWarning> warnings)
+    {
+        var budget = penalties.RequiredGapMax;
+        foreach (var (importance, perGap, label) in new[]
+                 {
+                     (RequirementImportance.MustHave, penalties.MustHaveGap, "Muss-Anforderung, nicht im Profil"),
+                     (RequirementImportance.Required, penalties.RequiredGap, "Gefordert, aber nicht im Profil"),
+                     (RequirementImportance.NiceToHave, penalties.NiceToHaveGap, "Ein Plus, nicht im Profil"),
+                 })
+        {
+            var gaps = requirements.Where(r => r.Coverage == FitCoverage.Gap && r.Importance == importance).ToList();
+            if (gaps.Count == 0)
+            {
+                continue;
+            }
+
+            var points = Math.Min(gaps.Count * perGap, Math.Max(budget, 0));
+            budget -= points;
+            warnings.Add(new FitWarning($"{label}: {string.Join(", ", gaps.Select(r => r.Name))}", points));
+        }
     }
 
     /// <summary>
@@ -194,7 +237,8 @@ public sealed partial class FitAnalyzer(FitOptions options)
         _ => null,
     };
 
-    [GeneratedRegex(@"\b(?:oder|or|bzw\.?|alternativ)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    /// <summary>„oder", „bzw." — and lists of examples („z. B. MSSQL, PostgreSQL, MySQL"): one of them is enough.</summary>
+    [GeneratedRegex(@"\b(?:oder|or|bzw\.?|alternativ\w*|beispielsweise|etwa)\b|\bz\.\s?B\.|\be\.\s?g\.|\bsuch\s+as\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex AlternativeWord();
 
     private static KnownGap? GapFor(CandidateProfile profile, IEnumerable<string> names)
@@ -204,19 +248,45 @@ public sealed partial class FitAnalyzer(FitOptions options)
     }
 
     /// <summary>
-    /// Optional only if every mention is soft: its sentence has an optional marker („von Vorteil"), or — for a gap —
-    /// offers it as an alternative to a skill I cover („Angular oder Vue.js").
+    /// The most important mention wins. Per mention: an alternative to a skill I cover („Angular oder Vue.js", gaps
+    /// only) costs nothing; a sentence with „von Vorteil" &amp; co. is nice to have, one with „(Must-have)" a must-have;
+    /// otherwise the section decides (must-have / nice-to-have heading), and without one it is required.
     /// </summary>
-    private bool AllSoft(
+    private RequirementImportance ImportanceOf(
         IEnumerable<(string Term, int Index)> hits,
         IReadOnlyList<(int Start, string Text)> sentences,
-        TermMatcher? coveredAlternatives) =>
-        hits.All(h =>
+        RequirementSections sections,
+        TermMatcher? coveredAlternatives)
+    {
+        var best = RequirementImportance.Alternative;
+        var offeredAsAlternative = false;
+        foreach (var (_, index) in hits)
         {
-            var sentence = SentenceAt(sentences, h.Index);
-            return _optionalMarkers.FindFirst(sentence) is not null
-                || (coveredAlternatives is not null && AlternativeWord().IsMatch(sentence) && coveredAlternatives.FindFirst(sentence) is not null);
-        });
+            var sentence = SentenceAt(sentences, index);
+            if (coveredAlternatives is not null && AlternativeWord().IsMatch(sentence) && coveredAlternatives.FindFirst(sentence) is not null)
+            {
+                offeredAsAlternative = true;
+                continue;
+            }
+
+            var importance =
+                _optionalMarkers.FindFirst(sentence) is not null ? RequirementImportance.NiceToHave
+                : _mustHaveMarkers.FindFirst(sentence) is not null ? RequirementImportance.MustHave
+                : sections.At(index) switch
+                {
+                    SectionKind.MustHave => RequirementImportance.MustHave,
+                    SectionKind.NiceToHave => RequirementImportance.NiceToHave,
+                    _ => RequirementImportance.Required,
+                };
+            if (importance > best)
+            {
+                best = importance;
+            }
+        }
+
+        // Accepted instead of a skill I have („Vue.js oder React") and nowhere required: not a gap that costs points.
+        return offeredAsAlternative && best <= RequirementImportance.NiceToHave ? RequirementImportance.Alternative : best;
+    }
 
     private static string SentenceAt(IReadOnlyList<(int Start, string Text)> sentences, int index)
     {
@@ -249,39 +319,23 @@ public sealed partial class FitAnalyzer(FitOptions options)
     private static LanguageLevel MyGerman(CandidateProfile profile) =>
         profile.Languages.FirstOrDefault(l => l.Name.Trim() is "Deutsch" or "German" || l.NameDe?.Trim() == "Deutsch")?.Level ?? LanguageLevel.A1;
 
+    /// <summary>The required German level and the phrase (see <see cref="GermanRequirementDetector"/>).</summary>
     public static (LanguageLevel Level, string Phrase)? RequiredGerman(string text)
     {
-        (LanguageLevel Level, string Phrase)? best = null;
-        foreach (Match match in GermanCefr().Matches(text))
-        {
-            var token = match.Groups["a"].Success ? match.Groups["a"].Value : match.Groups["b"].Value;
-            Consider(Enum.Parse<LanguageLevel>(token.ToUpperInvariant()), match.Value);
-        }
-
-        foreach (Match match in GermanC1Words().Matches(text))
-        {
-            Consider(LanguageLevel.C1, match.Value);
-        }
-
-        foreach (Match match in GermanB2Words().Matches(text))
-        {
-            Consider(LanguageLevel.B2, match.Value);
-        }
-
-        return best;
-
-        void Consider(LanguageLevel level, string phrase)
-        {
-            if (best is null || level > best.Value.Level)
-            {
-                best = (level, phrase.Trim());
-            }
-        }
+        var found = GermanRequirementDetector.Detect(text, null);
+        return found.Level is { } level ? (level, found.Phrase ?? string.Empty) : null;
     }
 
-    public static (int Years, string Phrase)? RequiredYears(string title, IReadOnlyList<(int Start, string Text)> sentences)
+    /// <summary>
+    /// Years of experience asked for. Strong signals: „langjährige Erfahrung", a number of five years or more („5+
+    /// Jahre"), Senior/Lead in an experience sentence („mehrjährige Erfahrung in der Senior-Softwareentwicklung") or
+    /// Lead/Principal/Staff in the title. „Senior" in the title alone is a weak signal (5 years).
+    /// </summary>
+    public static ExperienceRequirement? RequiredYears(string title, IReadOnlyList<(int Start, string Text)> sentences)
     {
-        (int Years, string Phrase)? best = null;
+        ArgumentNullException.ThrowIfNull(title);
+        ArgumentNullException.ThrowIfNull(sentences);
+        var signals = new List<ExperienceRequirement>();
         foreach (var (_, sentence) in sentences)
         {
             if (!ExperienceWord().IsMatch(sentence))
@@ -291,31 +345,51 @@ public sealed partial class FitAnalyzer(FitOptions options)
 
             foreach (Match match in YearsNumber().Matches(sentence))
             {
-                Consider(int.Parse(match.Groups["n"].Value, CultureInfo.InvariantCulture), match.Value);
+                var asked = int.Parse(match.Groups["n"].Value, CultureInfo.InvariantCulture);
+                Consider(asked, match.Value, asked >= 5);
             }
 
             if (Langjaehrig().Match(sentence) is { Success: true } many)
             {
-                Consider(5, many.Value);
+                Consider(5, many.Value, strong: true);
+            }
+
+            if (SeniorWord().Match(sentence) is { Success: true } seniority)
+            {
+                Consider(5, $"{(Mehrjaehrig().Match(sentence) is { Success: true } m ? m.Value + " … " : string.Empty)}{seniority.Value}-Erfahrung gefordert", strong: true);
             }
             else if (Mehrjaehrig().Match(sentence) is { Success: true } several)
             {
-                Consider(3, several.Value);
+                Consider(3, several.Value, strong: false);
             }
         }
 
-        if (SeniorTitle().Match(title) is { Success: true } senior)
+        if (LeadTitle().Match(title) is { Success: true } lead)
         {
-            Consider(5, $"„{senior.Value}\" im Titel");
+            Consider(5, $"„{lead.Value}\" im Titel", strong: true);
+        }
+        else if (SeniorTitle().Match(title) is { Success: true } senior)
+        {
+            Consider(5, $"„{senior.Value}\" im Titel", strong: false);
         }
 
-        return best;
-
-        void Consider(int years, string phrase)
+        if (signals.Count == 0)
         {
-            if (years is > 0 and <= 30 && (best is null || years > best.Value.Years))
+            return null;
+        }
+
+        // The most years asked for; with any strong signal the requirement is strong and names that signal.
+        var years = signals.Max(x => x.Years);
+        var strongest = signals.Where(x => x.Strong).OrderByDescending(x => x.Years).FirstOrDefault();
+        return strongest is not null
+            ? new ExperienceRequirement(years, strongest.Phrase, Strong: true)
+            : signals.OrderByDescending(x => x.Years).First();
+
+        void Consider(int years, string phrase, bool strong)
+        {
+            if (years is > 0 and <= 30)
             {
-                best = (years, phrase.Trim());
+                signals.Add(new ExperienceRequirement(years, phrase.Trim(), strong));
             }
         }
     }
@@ -323,19 +397,8 @@ public sealed partial class FitAnalyzer(FitOptions options)
     [GeneratedRegex(@"\n+|[•·▪]\s*|(?<=[a-zäöüß)\]])[.!?;](?=\s)", RegexOptions.None, 250)]
     private static partial Regex SentenceBoundary();
 
-    [GeneratedRegex(@"(?:deutsch(?:kenntnisse|kenntnissen|sprachkenntnisse|sprachig)?\b|german)[^.\n]{0,50}?\b(?<a>[ABC][12])\b|\b(?<b>[ABC][12])\b[^.\n]{0,30}?(?:deutsch(?:kenntnisse|kenntnissen|sprachkenntnisse|sprachig)?\b|german)",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
-    private static partial Regex GermanCefr();
 
-    [GeneratedRegex(
-        @"(?:verhandlungssicher|fließend|fliessend|sehr gut|exzellent|hervorragend|ausgezeichnet|perfekt)\w*\s+(?:\w+\s+){0,2}?deutsch(?:kenntnisse|kenntnissen|sprachkenntnisse|sprachig)?\b" +
-        @"|deutsch(?:kenntnisse|kenntnissen|sprachkenntnisse|sprachig)?\b\s+(?:\w+\s+){0,3}?(?:verhandlungssicher|fließend|fliessend|auf muttersprach\w*|muttersprachlich\w*)" +
-        @"|(?:fluent|business fluent|excellent|native)\s+(?:\w+\s+)?german|german\s*\(?(?:fluent|native)",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
-    private static partial Regex GermanC1Words();
 
-    [GeneratedRegex(@"\bgute\w*\s+(?:\w+\s+){0,2}?deutsch(?:kenntnisse|kenntnissen|sprachkenntnisse|sprachig)?\b|\bgood\s+german", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
-    private static partial Regex GermanB2Words();
 
     [GeneratedRegex(@"erfahrung|experience|berufserfahrung|praxis", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex ExperienceWord();
@@ -349,6 +412,13 @@ public sealed partial class FitAnalyzer(FitOptions options)
     [GeneratedRegex(@"\bmehrjährig\w*|\bseveral years\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex Mehrjaehrig();
 
-    [GeneratedRegex(@"\b(?:Senior|Sr\.|Lead|Principal)\b", RegexOptions.CultureInvariant, 250)]
+    [GeneratedRegex(@"\b(?:Senior|Sr\.)", RegexOptions.CultureInvariant, 250)]
     private static partial Regex SeniorTitle();
+
+    [GeneratedRegex(@"\b(?:Lead|Principal|Staff)\b|\bTeamleit\w*|\bTech[\s-]?Lead\b", RegexOptions.CultureInvariant, 250)]
+    private static partial Regex LeadTitle();
+
+    /// <summary>Seniority inside an experience sentence: „Erfahrung in der Senior Softwareentwicklung", „als Lead".</summary>
+    [GeneratedRegex(@"\b(?:Senior|Lead|Principal|Staff)\b|\bTeamleit\w*|\bFührungserfahrung\b", RegexOptions.CultureInvariant, 250)]
+    private static partial Regex SeniorWord();
 }

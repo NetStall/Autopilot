@@ -54,7 +54,9 @@ public sealed class EmployerClassifier
         _directPhrases = new TermMatcher(options.DirectPhrases);
     }
 
-    public EmployerClassification Classify(string company, string? description, EmployerType sourceHint = EmployerType.Unknown)
+    /// <param name="sourceName">Named in the reason of a direct hint („Direkter Arbeitgeber laut …").</param>
+    public EmployerClassification Classify(
+        string company, string? description, EmployerType sourceHint = EmployerType.Unknown, string sourceName = "Arbeitsagentur")
     {
         ArgumentNullException.ThrowIfNull(company);
 
@@ -87,7 +89,7 @@ public sealed class EmployerClassifier
         }
 
         return sourceHint == EmployerType.Direct
-            ? new(EmployerType.Direct, "Direkter Arbeitgeber laut Arbeitsagentur")
+            ? new(EmployerType.Direct, $"Direkter Arbeitgeber laut {sourceName}")
             : EmployerClassification.None;
     }
 }

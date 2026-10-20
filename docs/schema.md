@@ -13,7 +13,8 @@ stored as strings. Only what is not obvious from the entity classes is noted her
 | `RemoteHint` | the **sticky** source signal: Arbeitsagentur `homeofficeprozent`/`homeofficemoeglich`, Himalayas (= remote), found by a `RemoteOnly` search (≥ Hybrid). Only ever raised |
 | `RemoteLevel` | **recomputed** on every scoring: an explicit phrase in title/description wins, „kein Homeoffice" cannot undo a hint ≥ Hybrid, otherwise the hint |
 | `RelevanceScore`, `RelevanceLevel`, `RelevanceReasons` (text[]) | from the relevance rules; recomputed by re-scoring; `null` = not scored yet (counts as „Vielleicht") |
-| `EmployerType` | from Arbeitsagentur flags / known agencies / phrases; for manual vacancies the user's choice |
+| `EmployerType` | from Arbeitsagentur flags / known agencies / phrases; Himalayas (lists the hiring company) = `Direct` unless agency signals are found; for manual vacancies the user's choice |
+| `RequiredGerman` | `C1Plus` / `B2` / `B1OrLower` / `None` / `Unknown` — the German the posting asks for (filter „Deutsch erforderlich"), recomputed on every scoring; indexed. Rows from before step 05c are `Unknown` until the next re-scoring (runs at start-up) |
 | `DuplicateKey` | company + title normalised (no gender markers, no legal forms) — the same job from several sources is listed once |
 | `ExpiresAt` | Himalayas `expiryDate`. **Required by the Himalayas API terms** (remove jobs once they expire, ADR 0008): expired vacancies are hidden at once and deleted after the next import. `null` for the Arbeitsagentur |
 | `MatchedSearches` (text[]) | names of the searches that found the vacancy |

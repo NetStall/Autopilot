@@ -58,6 +58,12 @@ internal sealed class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
             .HasConversion<string>()
             .HasMaxLength(EnumMaxLength);
 
+        builder.Property(v => v.RequiredGerman)
+            .HasConversion<string>()
+            .HasMaxLength(EnumMaxLength)
+            .HasDefaultValue(RequiredGerman.Unknown)
+            .HasSentinel(RequiredGerman.Unknown);
+
         builder.Property(v => v.RelevanceReasons)
             .HasColumnType("text[]")
             .HasDefaultValueSql("'{}'::text[]")
@@ -69,6 +75,7 @@ internal sealed class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
         builder.HasIndex(v => v.RemoteLevel);
         builder.HasIndex(v => v.RelevanceLevel);
         builder.HasIndex(v => v.RankScore);
+        builder.HasIndex(v => v.RequiredGerman);
         builder.HasIndex(v => v.Interest);
         builder.HasIndex(v => v.FetchedAt);
     }

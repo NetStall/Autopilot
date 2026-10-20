@@ -42,7 +42,7 @@ public sealed class RelevanceScorer
         var corePlace = Place.None;
         foreach (var rule in _positive)
         {
-            var place = rule.Find(title, description);
+            var (place, matched) = rule.Find(title, description);
             if (place == Place.None)
             {
                 continue;
@@ -54,7 +54,7 @@ public sealed class RelevanceScorer
             }
 
             var points = rule.Rule.Weight * Factor(place);
-            contributions.Add((points, $"{rule.Rule.Name}{Where(place)} ✓ ({Signed(points)})"));
+            contributions.Add((points, $"{rule.Rule.Name}{Matched(rule.Rule.Name, matched)}{Where(place)} ✓ ({Signed(points)})"));
             anyPositive = true;
             if (rule.Rule.Group is { Length: > 0 } group)
             {
@@ -73,7 +73,7 @@ public sealed class RelevanceScorer
 
         foreach (var rule in _negative)
         {
-            var place = rule.Find(title, description);
+            var (place, matched) = rule.Find(title, description);
             if (place == Place.None)
             {
                 continue;
@@ -85,7 +85,7 @@ public sealed class RelevanceScorer
             var points = -rule.Rule.Weight * Factor(place) * (softened ? _options.SoftenedFactor : 1);
             var reason = softened
                 ? $"{rule.Rule.Name} neben C#/.NET{Where(place)} – abgeschwächt ({Signed(points)})"
-                : $"{rule.Rule.Reason ?? rule.Rule.Name}{Where(place)} ✗ ({Signed(points)})";
+                : $"{rule.Rule.Reason ?? rule.Rule.Name}{Matched(rule.Rule.Name, matched)}{Where(place)} ✗ ({Signed(points)})";
             contributions.Add((points, reason));
         }
 
@@ -121,6 +121,12 @@ public sealed class RelevanceScorer
 
     private static string Where(Place place) => place == Place.Title ? " im Titel" : string.Empty;
 
+    /// <summary>The text found, when it is not just the rule's name: „Vitest („Unit Tests“)" makes an alias match visible.</summary>
+    private static string Matched(string name, string? text) =>
+        text is null || string.Equals(Normalize(text), Normalize(name), StringComparison.OrdinalIgnoreCase) ? string.Empty : $" („{text.Trim()}“)";
+
+    private static string Normalize(string value) => string.Concat(value.Where(c => !char.IsWhiteSpace(c) && c != '-'));
+
     private static string Signed(double points)
     {
         var rounded = (int)Math.Round(points, MidpointRounding.AwayFromZero);
@@ -141,14 +147,16 @@ public sealed class RelevanceScorer
 
         public RelevanceRule Rule { get; } = rule;
 
-        public Place Find(string title, string? description)
+        public (Place Place, string? Text) Find(string title, string? description)
         {
-            if (_matcher.FindFirst(title) is not null)
+            if (_matcher.FindFirstMatch(title) is { } inTitle)
             {
-                return Place.Title;
+                return (Place.Title, inTitle.Text);
             }
 
-            return !Rule.TitleOnly && _matcher.FindFirst(description) is not null ? Place.Description : Place.None;
+            return !Rule.TitleOnly && _matcher.FindFirstMatch(description) is { } inText
+                ? (Place.Description, inText.Text)
+                : (Place.None, null);
         }
     }
 }

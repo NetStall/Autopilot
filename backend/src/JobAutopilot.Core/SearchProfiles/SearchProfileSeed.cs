@@ -79,7 +79,10 @@ public static class SearchProfileSeed
             {
                 GermanPerLevel = penalties.GermanPerLevel,
                 Experience = penalties.Experience,
+                ExperienceStrong = penalties.ExperienceStrong,
+                MustHaveGap = penalties.MustHaveGap,
                 RequiredGap = penalties.RequiredGap,
+                NiceToHaveGap = penalties.NiceToHaveGap,
                 RequiredGapMax = penalties.RequiredGapMax,
                 OutsideRegion = penalties.OutsideRegion,
                 EmployerType = penalties.AvoidedEmployerType,

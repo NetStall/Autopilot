@@ -66,6 +66,9 @@ public class Vacancy
     /// </summary>
     public int? RankScore { get; set; }
 
+    /// <summary>The German the posting asks for (filter „Deutsch erforderlich"); set on every (re-)scoring.</summary>
+    public RequiredGerman RequiredGerman { get; set; }
+
     /// <summary>Why the vacancy got its score, remote level and employer type (German, shown in the UI).</summary>
     public List<string> RelevanceReasons { get; set; } = [];
 

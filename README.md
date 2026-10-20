@@ -260,12 +260,41 @@ Arbeitsagentur flags (Arbeitnehmerüberlassung / private Arbeitsvermittlung), th
 
 **Passt zu mir?** On the detail page every vacancy is checked against the profile (rules only, no AI): which
 requirements I cover (✓ profile level `Production`), partly (~ `Project`/`Learning`) or not (✗, with the honest
-phrasing from `knownGaps`). A requirement only in a sentence with „von Vorteil"/„nice to have", or offered as an
-alternative to a skill I cover („Angular oder Vue.js"), is optional. Warnings: German level above mine („sehr gute
-Deutschkenntnisse" = C1), more years than mine („mehrjährig", „5 Jahre", „Senior"), not fully remote outside the
-Suchprofil's places, an employer type set to „niedriger einordnen", a missed Remote-Präferenz. The **default order**
-is the *rank* = relevance minus these penalties (Suchprofil „Fit-Abzüge", seeded from `Fit:Penalties`: German 8 per
-level, experience 8, required gap 6 each up to 18, region 15, employer type 10, remote wish 10).
+phrasing from `knownGaps`).
+
+- **Matching:** a skill counts only by its name or a specific alias. Generic aliases such as „CI/CD", „Unit Tests"
+  or „Container" are never evidence for GitHub Actions, Vitest or Docker; the Profil page warns about them. The
+  reasons show the text that matched, e.g. „Git („GitLab“) ✓".
+- **How important a requirement is** comes from the posting's sections and markers:
+  - *must-have*: headings like „Was du mitbringst", „Dein Profil", „Anforderungen", „Requirements", or
+    „(Must-have)" in the sentence;
+  - *nice to have*: „Ein Plus, aber kein Muss", „Wünschenswert", or „von Vorteil" / „idealerweise" in the
+    sentence;
+  - otherwise *required*;
+  - *no penalty* when it is offered as an alternative to a skill I cover („Angular oder Vue.js", „z. B. MSSQL,
+    PostgreSQL, MySQL").
+- **Warnings:**
+  - German level above mine (see *Deutsch erforderlich* below);
+  - more years than mine — „Senior" in the title alone is a weak signal; „langjährige Erfahrung", „5+ Jahre",
+    „Lead" or Senior inside the requirements is a strong one;
+  - not fully remote outside the Suchprofil's places (fully remote jobs never get this penalty);
+  - an employer type set to „niedriger einordnen";
+  - a missed Remote-Präferenz.
+- **Default order:** the *rank* = relevance minus these penalties. The penalties are the Suchprofil's „Fit-Abzüge",
+  seeded from `Fit:Penalties`:
+
+  | Penalty | Points |
+  |---|---|
+  | German, per level above mine | 8 |
+  | Experience, weak signal | 8 |
+  | Experience, strong signal | 10 |
+  | Missing must-have | 15 each |
+  | Other required gap | 6 each |
+  | Missing „Plus" | 4 each |
+  | All gaps together, at most | 18 |
+  | Outside the region | 15 |
+  | Employer type | 10 |
+  | Remote wish | 10 |
 
 **Score in the UI.** Every card and the detail page show the rank as a pill („87"), coloured high / medium / low by
 `Ui:ScoreHigh` (70) and `Ui:ScoreMedium` (45) — never by colour alone: the number is always visible, the screen reader

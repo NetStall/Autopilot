@@ -116,9 +116,20 @@ public sealed class SearchPenalties
 {
     public int GermanPerLevel { get; set; } = 8;
 
+    /// <summary>More years than mine — only „Senior" in the title.</summary>
     public int Experience { get; set; } = 8;
 
+    /// <summary>More years than mine with a strong signal: „langjährige Erfahrung", „5+ Jahre", „Lead", Senior in the requirements.</summary>
+    public int ExperienceStrong { get; set; } = 10;
+
+    /// <summary>Per gap in a must-have section („Was du mitbringst", „Anforderungen", „(Must-have)").</summary>
+    public int MustHaveGap { get; set; } = 15;
+
+    /// <summary>Per gap required elsewhere (title, tasks, no section found).</summary>
     public int RequiredGap { get; set; } = 6;
+
+    /// <summary>Per gap that is only nice to have („Ein Plus", „von Vorteil", „wünschenswert").</summary>
+    public int NiceToHaveGap { get; set; } = 4;
 
     public int RequiredGapMax { get; set; } = 18;
 

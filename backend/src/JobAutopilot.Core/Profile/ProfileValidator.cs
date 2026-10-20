@@ -96,6 +96,14 @@ public static class ProfileValidator
             {
                 errors.Add($"skills[{i}].years muss zwischen 0 und 50 liegen.");
             }
+
+            var ignored = SkillTerms.IgnoredAliases(skill).ToList();
+            if (ignored.Count > 0)
+            {
+                warnings.Add($"skills[{i}] ({skill.Name}): {string.Join(", ", ignored.Select(a => $"„{a.Trim()}“"))} "
+                    + (ignored.Count == 1 ? "ist ein allgemeiner Begriff und zählt" : "sind allgemeine Begriffe und zählen")
+                    + $" nicht als Nachweis für {skill.Name}.");
+            }
         }
 
         warnings.AddRange(profile.Skills

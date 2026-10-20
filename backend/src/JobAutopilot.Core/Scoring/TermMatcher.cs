@@ -47,6 +47,27 @@ public sealed class TermMatcher
         return null;
     }
 
+    /// <summary>
+    /// Like <see cref="FindFirst"/>, plus the text that actually matched (e.g. term „Full Stack", text „Full-Stack").
+    /// </summary>
+    public (string Term, string Text)? FindFirstMatch(string? text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return null;
+        }
+
+        foreach (var (term, pattern) in _terms)
+        {
+            if (pattern.Match(text) is { Success: true } match)
+            {
+                return (term, match.Value);
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>All positions where a configured term occurs, with the term that matched.</summary>
     public IEnumerable<(string Term, int Index)> FindAll(string? text)
     {

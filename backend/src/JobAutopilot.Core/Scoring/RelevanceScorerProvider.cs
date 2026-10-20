@@ -102,7 +102,8 @@ public sealed class ProfileRelevanceScorerProvider(
                 Weight = weight,
                 Group = skill.Group ?? weights.Group,
             };
-            rule.Terms.AddRange(skill.AllNames().Select(n => n.Trim()));
+            // Only the name and specific aliases: „CI/CD" in a posting is no evidence for GitHub Actions.
+            rule.Terms.AddRange(SkillTerms.Evidence(skill).Select(n => n.Trim()));
             yield return rule;
         }
     }

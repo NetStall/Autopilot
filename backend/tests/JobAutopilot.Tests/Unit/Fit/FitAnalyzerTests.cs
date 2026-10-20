@@ -147,12 +147,14 @@ public class FitAnalyzerTests
     }
 
     [Fact]
-    public void A_gap_only_mentioned_as_nice_to_have_costs_nothing()
+    public void A_gap_only_mentioned_as_nice_to_have_costs_only_a_little()
     {
         var result = Analyze("Backend Developer C#", "C# und .NET. Kenntnisse in Angular sind von Vorteil.");
 
-        result.Requirements.Single(r => r.Name == "Angular").Optional.Should().BeTrue();
-        result.Penalty.Should().Be(0);
+        var angular = result.Requirements.Single(r => r.Name == "Angular");
+        angular.Optional.Should().BeTrue();
+        angular.Importance.Should().Be(RequirementImportance.NiceToHave);
+        result.Warnings.Should().ContainSingle(w => w.Text == "Ein Plus, nicht im Profil: Angular").Which.Penalty.Should().Be(4);
     }
 
     [Fact]

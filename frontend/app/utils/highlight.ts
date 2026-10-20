@@ -3,16 +3,22 @@ export interface TextSegment {
   highlight: boolean
 }
 
-const WORD_CHAR = /[\p{L}\p{N}]/u
+const WORD_CHAR = /[\p{L}\p{N}_]/u
 
 function isWordChar(char: string | undefined): boolean {
   return char !== undefined && WORD_CHAR.test(char)
 }
 
+/** After a term, „#" and „+" also belong to the word: „C" is not in „C#", „C#" not in „C#x". */
+function continuesWord(char: string | undefined): boolean {
+  return isWordChar(char) || char === '#' || char === '+'
+}
+
 /**
  * Splits a title into plain and highlighted parts for the configured keywords (Ui:HighlightKeywords).
- * Case-insensitive; a keyword only counts as a whole token where it starts/ends with a letter or digit
- * („Vue" not in „Revue"; „.NET" also inside „ASP.NET"). Longer keywords win („ASP.NET" over „.NET").
+ * Case-insensitive and always whole words, like the backend's TermMatcher: no letter or digit right before the
+ * match, none (and no „#"/„+") right after it — „Vue" not in „Revue", „ute" not in „heute", „.NET" not inside
+ * „ASP.NET" (that is its own keyword), „C#" not in „C#x". Longer keywords win („ASP.NET" over „.NET").
  * Rendered with <mark> per segment — never as HTML.
  */
 export function highlightSegments(text: string, keywords: readonly string[]): TextSegment[] {
@@ -32,10 +38,7 @@ export function highlightSegments(text: string, keywords: readonly string[]): Te
       if (!lower.startsWith(t.toLocaleLowerCase('de-DE'), i)) {
         return false
       }
-      const startsWithWordChar = isWordChar(t[0])
-      const endsWithWordChar = isWordChar(t[t.length - 1])
-      return (!startsWithWordChar || !isWordChar(text[i - 1]))
-        && (!endsWithWordChar || !isWordChar(text[i + t.length]))
+      return !isWordChar(text[i - 1]) && !continuesWord(text[i + t.length])
     })
 
     if (term) {

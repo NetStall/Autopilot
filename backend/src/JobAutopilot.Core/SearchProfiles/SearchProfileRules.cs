@@ -136,7 +136,8 @@ public static class SearchProfileRules
         var p = profile.Penalties;
         foreach (var (value, name) in new[]
                  {
-                     (p.GermanPerLevel, "Deutsch je Stufe"), (p.Experience, "Erfahrung/Senior"), (p.RequiredGap, "Lücke"),
+                     (p.GermanPerLevel, "Deutsch je Stufe"), (p.Experience, "Erfahrung/Senior"), (p.ExperienceStrong, "Erfahrung (deutlich)"),
+                     (p.MustHaveGap, "Lücke Muss"), (p.RequiredGap, "Lücke"), (p.NiceToHaveGap, "Lücke Plus"),
                      (p.RequiredGapMax, "Lücken gesamt"), (p.OutsideRegion, "Außerhalb der Region"),
                      (p.EmployerType, "Arbeitgebertyp"), (p.RemotePreference, "Remote-Wunsch"),
                  })
@@ -286,7 +287,10 @@ public static class SearchProfileRules
         Value(parts, "Top N", before.TopN, after.TopN);
         Value(parts, "Abzug Deutsch", before.Penalties.GermanPerLevel, after.Penalties.GermanPerLevel);
         Value(parts, "Abzug Erfahrung", before.Penalties.Experience, after.Penalties.Experience);
+        Value(parts, "Abzug Erfahrung (deutlich)", before.Penalties.ExperienceStrong, after.Penalties.ExperienceStrong);
+        Value(parts, "Abzug Lücke Muss", before.Penalties.MustHaveGap, after.Penalties.MustHaveGap);
         Value(parts, "Abzug Lücke", before.Penalties.RequiredGap, after.Penalties.RequiredGap);
+        Value(parts, "Abzug Lücke Plus", before.Penalties.NiceToHaveGap, after.Penalties.NiceToHaveGap);
         Value(parts, "Abzug Lücken gesamt", before.Penalties.RequiredGapMax, after.Penalties.RequiredGapMax);
         Value(parts, "Abzug Region", before.Penalties.OutsideRegion, after.Penalties.OutsideRegion);
         Value(parts, "Abzug Arbeitgebertyp", before.Penalties.EmployerType, after.Penalties.EmployerType);

@@ -126,7 +126,7 @@ public class RelevanceScorerTests
 
         (plain.Score - lead.Score).Should().Be(20);
         lead.Level.Should().Be(RelevanceLevel.Maybe);
-        lead.Reasons.Should().Contain("Leitungsrolle im Titel ✗ (-20)");
+        lead.Reasons.Should().Contain("Leitungsrolle („Teamleiter“) im Titel ✗ (-20)", "the reason names the text that matched");
     }
 
     [Theory]

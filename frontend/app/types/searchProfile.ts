@@ -31,7 +31,10 @@ export interface StackKeyword {
 export interface SearchPenalties {
   germanPerLevel: number
   experience: number
+  experienceStrong: number
+  mustHaveGap: number
   requiredGap: number
+  niceToHaveGap: number
   requiredGapMax: number
   outsideRegion: number
   employerType: number
