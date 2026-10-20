@@ -1,0 +1,57 @@
+title: Senior Fullstack-Entwickler (m/w/d) – .NET & Angular oder Vue.js
+company: AraCom IT Services GmbH
+location: 81249 München
+source: Arbeitsagentur
+remoteHint: Unknown
+---
+**Gestalte moderne Webanwendungen mit uns**
+
+Du möchtest an anspruchsvollen Softwareprojekten arbeiten und moderne Technologien einsetzen? Dann bist du bei uns genau richtig! Wir suchen einen **Fullstack-Entwickler (m/w/d)**, der unser Entwicklungsteam mit Know-how im Backend und Frontend verstärkt.
+
+Gemeinsam gestalten AraCom, IDV, Milestone und Auel die digitale Zukunft, indem wir Individualsoftwarelösungen für unsere Kunden realisieren und diesen kompetent und zuverlässig zur Seite stehen. Mit innovativen Lösungen, spannenden Projekten und einem starken Team bieten wir vielfältige Karrierechancen in einer modernen Unternehmensgruppe.
+
+## Deine Aufgaben
+
+- Entwicklung und Weiterentwicklung moderner Webanwendungen
+- Implementierung performanter Backend-Services in **.NET / ASP.NET Core**
+- Entwicklung intuitiver Benutzeroberflächen mit **Angular oder** **Vue.js**
+- Mitarbeit an der technischen Architektur sowie an der kontinuierlichen Verbesserung unserer Anwendungen
+- Enge Zusammenarbeit mit dem Entwicklungsteam und weiteren Fachbereichen
+
+## Das bringst du mit
+
+### **Backend**
+
+- **Sehr gute Kenntnisse in .NET** *(Must-have)*
+- Erfahrung mit relationalen Datenbanken (z.B. **MSSQL,** **PostgreSQL, MySql**)
+- Kenntnisse mit **EntityFramework** sind ein Plus
+
+### **Frontend**
+
+- **Fundierte Erfahrung mit Angular oder Vue.js** *(Must-have)*
+- Kenntnisse in **einem** CSS-Framework wie **Tailwind** sind von Vorteil
+
+## Das solltest du außerdem mitbringen
+
+- Erfahrung im verantwortungsvollen Einsatz von KI in der Entwicklung
+- Erfahrung in der Entwicklung moderner Webanwendungen
+- Selbstständige, strukturierte und lösungsorientierte Arbeitsweise
+- Freude an Teamarbeit und am Austausch mit Kolleginnen und Kollegen
+- Interesse daran, neue Technologien kennenzulernen und bestehende Lösungen kontinuierlich zu verbessern
+
+## Das erwartet dich
+
+- **Karriere |** Persönliche sowie fachliche Weiterentwicklung durch Schulungen, internen Wissenstransfer, Karrieremodelle und abwechslungsreiche Projekte.
+- **Homeoffice |** Du entscheidest, wo und wann du arbeitest: vor Ort im Büro oder Remote im Homeoffice (bis zu 100% Homeoffice möglich).
+- **Urlaub |** Wir lieben die Arbeit, aber natürlich auch Urlaubstage - bei uns gibt es 30 Tage Urlaub, 1,5 AraCom Feiertage & Sonderurlaub.
+- **Workation |** Verbinde Arbeit mit Urlaub und arbeite zeitweise aus einem EU-Land deiner Wahl – Workation macht es möglich.
+- **Flexibilität |** Flexible Arbeitszeiten (inkl. bezahlten Überstunden und unbegrenztem Gleitzeitabbau) und Sabbatical-Option.
+- **Viel Freiraum |** Flache Hierarchien, kurze Entscheidungswege sowie viel Platz für Kreativität und den Austausch mit Kolleg:innen.
+- **Mobilität |** Firmenwagen und/oder Jobrad über die Firma? CHECK!
+- **Events |** Regelmäßig Firmenevents für jeden Gusto!
+- **Corporate Benefits |** Nutze exklusive Rabatte und Sonderangebote bei zahlreichen Partnerunternehmen und optimiere dein Gehalt mit unserem Netto-Entgelt-Optimierungsprogramm (NEO).
+- **Peripheriegerätekatalog |** Standard-Maus, Tastatur oder Headset? Nicht bei uns! Wir bieten dir eine Auswahl unterschiedlicher Modelle an.
+
+Haben wir dein Interesse geweckt? Deine Bewerbungsunterlagen kannst du uns unkompliziert über unsere Online-Bewerbungsplattform zukommen lassen. Wir freuen uns darauf, dich kennenzulernen!
+
+Weitere Informationen zu unserem Unternehmen sowie zu unseren Datenschutzbestimmungen, insb. über die Verarbeitung deiner personenbezogenen Daten und deine Rechte, entnehme bitte unserer Webseite unter: [https://aracom.de/impressum-datenschutz](https://aracom.de/impressum-datenschutz)

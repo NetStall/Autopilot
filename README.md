@@ -304,6 +304,9 @@ phrasing from `knownGaps`).
   | Employer type | 10 |
   | Remote wish | 10 |
 
+- **Regression safety:** real postings in `backend/tests/JobAutopilot.Tests/Fixtures/vacancies/` are ranked in
+  `RankingRegressionTests`, which fails when a rule change moves one of them out of its range.
+
 **Deutsch erforderlich.** Every vacancy gets the German level it asks for:
 
 | Value | Detected from |

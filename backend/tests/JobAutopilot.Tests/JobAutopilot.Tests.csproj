@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <None Include="Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures\**\*.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\..\docs\profile.example.json" Link="Fixtures\profile.example.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

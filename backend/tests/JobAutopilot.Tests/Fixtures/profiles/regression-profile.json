@@ -1,0 +1,67 @@
+{
+  // INVENTED test person for the ranking regression test: the shape of a real C#/.NET + Vue profile
+  // (levels, German B1, about 3.5 years of experience) — no real personal data.
+  "personal": {
+    "name": "Robin Regression",
+    "email": "robin@example.org",
+    "city": "Deggendorf",
+    "website": "https://example.org"
+  },
+  "summary": {
+    "fullstack": "Full-stack developer, C#/.NET and Vue 3.",
+    "backend": "Backend developer, REST APIs with ASP.NET Core."
+  },
+  "experience": [
+    {
+      "company": "Example Learning B.V.",
+      "title": "Full-Stack Developer",
+      "from": "2022-07",
+      "to": "2025-09",
+      "remote": true,
+      "bullets": [
+        { "text": "Built a REST API in C#/.NET for several client apps.", "tags": [ "csharp", "dotnet", "rest" ] },
+        { "text": "Migrated a KnockoutJS frontend to Vue 3 with TypeScript.", "tags": [ "vue", "typescript", "migration" ] }
+      ]
+    },
+    {
+      "company": "Example CRM Corp",
+      "title": "Salesforce Developer",
+      "from": "2022-04",
+      "to": "2022-07",
+      "remote": true,
+      "bullets": [ { "text": "Integrated Salesforce via REST and SOAP.", "tags": [ "salesforce", "rest" ] } ]
+    }
+  ],
+  "skills": [
+    { "name": "C#", "aliases": [ "CSharp" ], "level": "Production", "years": 3, "group": "dotnet" },
+    { "name": ".NET", "aliases": [ "dotnet", "ASP.NET Core", "ASP.NET" ], "level": "Production", "years": 3, "group": "dotnet" },
+    { "name": "Vue", "aliases": [ "Vue.js", "Vue 3" ], "level": "Production", "years": 3, "group": "frontend" },
+    { "name": "TypeScript", "aliases": [], "level": "Production", "years": 3, "group": "frontend" },
+    { "name": "JavaScript", "aliases": [], "level": "Production", "years": 3, "group": "frontend" },
+    { "name": "HTML/CSS", "aliases": [ "HTML", "CSS" ], "level": "Production" },
+    { "name": "SQL", "aliases": [], "level": "Production", "group": "data" },
+    { "name": "MySQL", "aliases": [], "level": "Production", "group": "data" },
+    { "name": "PostgreSQL", "aliases": [ "Postgres" ], "level": "Project", "group": "data" },
+    { "name": "Vitest", "aliases": [ "Unit-Tests", "Unit Tests", "unit testing" ], "level": "Production" },
+    { "name": "GitHub Actions", "aliases": [ "CI/CD", "CI", "Continuous Integration" ], "level": "Production" },
+    { "name": "Git", "aliases": [ "GitHub", "GitLab" ], "level": "Production" },
+    { "name": "Docker", "aliases": [ "Docker Compose", "Container" ], "level": "Project" },
+    { "name": "Azure", "aliases": [ "Microsoft Azure" ], "level": "Learning" },
+    { "name": "Angular", "aliases": [], "level": "None" },
+    { "name": "React", "aliases": [ "React.js", "Next.js" ], "level": "None" },
+    { "name": "Java", "aliases": [], "level": "None" },
+    { "name": "Kubernetes", "aliases": [ "K8s" ], "level": "None" }
+  ],
+  "knownGaps": [
+    { "skill": "Angular", "aliases": [], "de": "Angular noch nicht, aber Vue 3 und TypeScript.", "en": "No Angular yet, but Vue 3 and TypeScript." },
+    { "skill": "React", "aliases": [ "Next.js" ], "de": "React noch nicht, aber Vue 3.", "en": "No React yet, but Vue 3." }
+  ],
+  "languages": [
+    { "name": "Deutsch", "level": "B1" },
+    { "name": "Englisch", "level": "B2" }
+  ],
+  "preferences": {
+    "regions": [ "Deggendorf", "Straubing", "Passau", "Regensburg", "Landshut" ],
+    "remote": "Hybrid"
+  }
+}

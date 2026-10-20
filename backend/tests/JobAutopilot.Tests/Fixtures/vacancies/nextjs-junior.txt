@@ -1,0 +1,49 @@
+title: Junior Fullstack Entwickler Fokus Next.js
+company: Attek Solutions GmbH
+location: Remote (Deutschland)
+source: Himalayas
+remoteHint: FullRemote
+---
+Attek Solutions GmbH ist ein innovatives IT-Dienstleistungsunternehmen mit Sitz in Berlin. Mit unserem neuartigen Geschäftsmodell „Custom Software as a Service“ planen, entwickeln und betreiben wir moderne, sichere IT-Infrastrukturen und individuelle Anwendungen für unsere Kunden. Unser Ziel ist es, Unternehmen mit maßgeschneiderten Lösungen, modernen Technologien und höchsten Qualitätsstandards nachhaltig zu unterstützen.
+
+Wir suchen technische Allrounder, die Lust haben, sich in verschiedenste technische Probleme und Technologien hineinzudenken. Unser Umfeld ist extrem abwechslungsreich – von Großkonzernen bis zu Startups ist bei unseren Kunden alles vertreten.
+
+Aufgaben
+
+- Konzeption und Entwicklung von Fullstack-Anwendungen.
+
+- Implementierung und Optimierung von IT-Infrastrukturen.
+
+- Beratung unserer Kunden hinsichtlich effizienter Entwicklungs- und Betriebsprozesse.​
+
+- Optimierung und Performance-Steigerung bestehender Systeme.
+
+- Zusammenarbeit mit interdisziplinären Teams zur Umsetzung von Kundenanforderungen.
+
+- Integration von Drittanbieter-APIs und Services zur Erweiterung der Funktionalität.
+
+- Durchführung von Code-Reviews und Sicherstellung der Einhaltung von Best Practices in der Softwareentwicklung.
+
+Qualifikation
+
+- Abgeschlossenes Studium der Informatik oder eine vergleichbare Qualifikation
+
+- Erfahrung in der Entwicklung von Anwendungen
+
+- Fundierte Kenntnisse in Backend-Technologien (Node.js, Nest.js)
+
+- Erfahrung mit modernen Frontend-Frameworks (Next.js, React)
+
+- Analytisches Denkvermögen und eine lösungsorientierte Arbeitsweise.
+
+- Gute Kommunikationsfähigkeiten und Teamgeist
+
+Benefits
+
+Ein junges Team und coole Events im Ausland, zum Beispiel in Prag oder Mailand, die den Teamgeist stärken.
+
+Leistungsorientierte Boni.
+
+Umfassender Zertifizierungs- und Weiterentwicklungsplan.
+
+Originally posted on Himalayas
