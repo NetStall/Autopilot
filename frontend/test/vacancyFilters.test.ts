@@ -6,10 +6,13 @@ import {
   filtersToApiParams,
   filtersToQuery,
   countSuffix,
+  effectiveGerman,
   effectiveMinScore,
   hasActiveFilters,
   normalizeMinScore,
   remoteFacetCount,
+  sameGerman,
+  toggleGerman,
   totalLabel,
   type VacancyFilters,
 } from '../app/utils/vacancyFilters'
@@ -21,6 +24,7 @@ const full: VacancyFilters = {
   status: 'new',
   remote: 'full',
   relevance: ['Relevant'],
+  german: ['B2', 'B1OrLower'],
   sources: ['Arbeitsagentur'],
   minScore: 60,
   top: 20,
@@ -49,6 +53,7 @@ describe('filtersFromQuery', () => {
       status: 'new',
       remote: 'full',
       relevance: 'Relevant',
+      german: 'B2,B1OrLower',
       source: 'Arbeitsagentur',
       minScore: '60',
       top: '20',
@@ -109,6 +114,7 @@ describe('filtersToQuery', () => {
       remote: 'full',
       relevance: ['Relevant'],
       source: ['Arbeitsagentur'],
+      german: 'B2,B1OrLower',
       minScore: '60',
       top: '20',
       search: ['remote-dotnet', 'region-csharp'],
@@ -239,6 +245,7 @@ describe('filtersToApiParams', () => {
       remote: ['FullRemote'],
       relevance: ['Relevant'],
       source: ['Arbeitsagentur'],
+      german: ['B2', 'B1OrLower'],
       minScore: 60,
       top: 20,
       search: ['remote-dotnet', 'region-csharp'],
@@ -302,6 +309,37 @@ describe('source filter', () => {
   it('sends nothing when every source is selected', () => {
     expect(filtersToApiParams({ ...defaults(), sources: ['Manual', 'Himalayas', 'Arbeitsagentur'] }, 20).source)
       .toBeUndefined()
+  })
+})
+
+describe('german filter', () => {
+  it('reads comma-separated and repeated values, ignores unknown ones', () => {
+    expect(filtersFromQuery({ german: 'B2,B1OrLower' }).german).toEqual(['B2', 'B1OrLower'])
+    expect(filtersFromQuery({ german: ['None', 'C1Plus', 'C1Plus'] }).german).toEqual(['C1Plus', 'None'])
+    expect(filtersFromQuery({ german: 'A2,Fluent' }).german).toBeNull()
+    expect(filtersFromQuery({}).german).toBeNull()
+  })
+
+  it('writes one comma-separated value in a fixed order', () => {
+    expect(filtersToQuery({ ...defaults(), german: ['None', 'B2'] })).toEqual({ german: 'B2,None' })
+    expect(filtersToQuery({ ...defaults(), german: null })).toEqual({})
+  })
+
+  it('uses the Suchprofil default while the URL has none', () => {
+    expect(effectiveGerman(defaults(), { minScore: 0, german: ['B2', 'B1OrLower'] })).toEqual(['B2', 'B1OrLower'])
+    expect(filtersToApiParams(defaults(), 20, { minScore: 0, german: ['B2'] }).german).toEqual(['B2'])
+    expect(filtersToApiParams({ ...defaults(), german: ['C1Plus', 'B2', 'B1OrLower', 'None', 'Unknown'] }, 20, { minScore: 0, german: ['B2'] }))
+      .not.toHaveProperty('german')
+    expect(hasActiveFilters({ ...defaults(), german: ['B2'] })).toBe(true)
+  })
+
+  it('toggles from „all" and compares restrictions', () => {
+    expect(toggleGerman([], 'Unknown', false)).toEqual(['C1Plus', 'B2', 'B1OrLower', 'None'])
+    expect(toggleGerman(['B2'], 'None', true)).toEqual(['B2', 'None'])
+    expect(toggleGerman(['B2'], 'B2', false)).toEqual([])
+    expect(sameGerman(['C1Plus', 'B2', 'B1OrLower', 'None', 'Unknown'], [])).toBe(true)
+    expect(sameGerman(['B2', 'None'], ['None', 'B2'])).toBe(true)
+    expect(sameGerman(['B2'], [])).toBe(false)
   })
 })
 

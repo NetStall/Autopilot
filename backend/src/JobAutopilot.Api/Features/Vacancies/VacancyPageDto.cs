@@ -18,4 +18,5 @@ public sealed record VacancyFacetsDto(
     IReadOnlyDictionary<string, int> Source,
     IReadOnlyDictionary<string, int> RemoteLevel,
     IReadOnlyDictionary<string, int> EmployerType,
-    IReadOnlyDictionary<string, int> RelevanceLevel);
+    IReadOnlyDictionary<string, int> RelevanceLevel,
+    IReadOnlyDictionary<string, int> RequiredGerman);

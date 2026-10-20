@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ConfiguredSearch, EmployerType, RelevanceLevel, VacancyFacets, VacancySort, VacancySource } from '~/types/vacancy'
+import type { ConfiguredSearch, EmployerType, RelevanceLevel, RequiredGerman, VacancyFacets, VacancySort, VacancySource } from '~/types/vacancy'
 import type { RemoteFilter, StatusFilter, VacancyFilters } from '~/utils/vacancyFilters'
 
 const props = withDefaults(defineProps<{
@@ -12,9 +12,22 @@ const props = withDefaults(defineProps<{
   defaultMinScore?: number
   /** N of „Nur Top N" from the Suchprofil. */
   topN?: number
-}>(), { searches: () => [], facets: null, defaultMinScore: 0, topN: 20 })
+  /** „Deutsch erforderlich" of the Suchprofil, used while the URL has none. */
+  defaultGerman?: RequiredGerman[]
+}>(), { searches: () => [], facets: null, defaultMinScore: 0, topN: 20, defaultGerman: () => [] })
 
 const minScore = computed(() => effectiveMinScore(props.filters, { minScore: props.defaultMinScore }))
+const german = computed(() => effectiveGerman(props.filters, { minScore: 0, german: props.defaultGerman }))
+
+/** The Suchprofil's default is not written to the URL; all levels = no restriction. */
+function onGermanToggle(level: RequiredGerman, event: Event) {
+  const next = toggleGerman(german.value, level, (event.target as HTMLInputElement).checked)
+  if (next.length === 0) {
+    (event.target as HTMLInputElement).checked = true // at least one level stays selected
+    return
+  }
+  update({ german: sameGerman(next, props.defaultGerman) ? null : next })
+}
 
 function count(value: number | undefined): string {
   return countSuffix(props.facets, value)
@@ -307,6 +320,20 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
           @change="onRelevanceChange(level, $event)"
         >
         {{ relevanceLabel(level) }}{{ count(facets?.relevanceLevel[level]) }}
+      </label>
+    </fieldset>
+
+    <fieldset class="filters__group">
+      <legend>Deutsch erforderlich</legend>
+      <label v-for="level in REQUIRED_GERMAN" :key="level" class="filters__choice">
+        <input
+          type="checkbox"
+          name="german"
+          :value="level"
+          :checked="german.length === 0 || german.includes(level)"
+          @change="onGermanToggle(level, $event)"
+        >
+        {{ requiredGermanLabel(level) }}{{ count(facets?.requiredGerman?.[level]) }}
       </label>
     </fieldset>
 

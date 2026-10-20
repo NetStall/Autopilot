@@ -36,6 +36,9 @@ const newSinceLink = computed(() => (lastImport.value?.startedAt
         <NuxtLink to="/suchprofil" class="header__link" active-class="header__link--active">
           Suchprofil
         </NuxtLink>
+        <NuxtLink to="/statistik" class="header__link" active-class="header__link--active">
+          Statistik
+        </NuxtLink>
       </nav>
       <p v-if="lastImport" class="header__last">
         <span :title="lastImport.finishedAt ? formatDateTime(lastImport.finishedAt) : undefined">

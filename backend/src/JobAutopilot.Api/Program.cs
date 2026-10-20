@@ -6,6 +6,7 @@ using JobAutopilot.Api.Features.Health;
 using JobAutopilot.Api.Features.Profile;
 using JobAutopilot.Api.Features.Scoring;
 using JobAutopilot.Api.Features.SearchProfiles;
+using JobAutopilot.Api.Features.Statistics;
 using JobAutopilot.Core.Fit;
 using JobAutopilot.Core.Scoring;
 using JobAutopilot.Core.SearchProfiles;
@@ -120,5 +121,6 @@ app.MapProfileEndpoints();
 app.MapApplicationEndpoints(trackerImportPath);
 app.MapSearchProfileEndpoints();
 app.MapDocumentEndpoints();
+app.MapStatisticsEndpoints();
 
 await app.RunAsync();

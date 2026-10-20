@@ -287,6 +287,8 @@ function openedOriginal() {
         </dd>
         <dt>Remote</dt>
         <dd>{{ remoteLevelLabel(vacancy.remoteLevel) }}</dd>
+        <dt>Deutsch erforderlich</dt>
+        <dd>{{ requiredGermanLabel(vacancy.requiredGerman ?? 'Unknown') }}</dd>
         <dt>Relevanz</dt>
         <dd>{{ score ? `${score.description} (${score.detail})` : '–' }}</dd>
         <dt>Gefunden durch</dt>

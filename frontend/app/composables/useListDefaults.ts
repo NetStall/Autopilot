@@ -1,7 +1,10 @@
-/** What the list takes from the Suchprofil: default „Mindestbewertung" and N of „Nur Top N". */
+import type { RequiredGerman } from '~/types/vacancy'
+
+/** What the list takes from the Suchprofil: default „Mindestbewertung", N of „Nur Top N", default German filter. */
 export interface ListDefaultsState {
   minScore: number
   topN: number
+  german: RequiredGerman[]
 }
 
 let pending: Promise<ListDefaultsState> | null = null
@@ -12,8 +15,8 @@ let pending: Promise<ListDefaultsState> | null = null
  */
 export function loadListDefaults(): Promise<ListDefaultsState> {
   pending ??= useVacanciesApi().searchProfile()
-    .then(r => ({ minScore: r.profile.minScore, topN: r.profile.topN }))
-    .catch(() => ({ minScore: 0, topN: 20 }))
+    .then(r => ({ minScore: r.profile.minScore, topN: r.profile.topN, german: r.profile.germanFilter ?? [] }))
+    .catch(() => ({ minScore: 0, topN: 20, german: [] }))
   return pending
 }
 

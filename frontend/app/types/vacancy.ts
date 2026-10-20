@@ -19,6 +19,9 @@ export type RemoteLevel = 'FullRemote' | 'Hybrid' | 'OnSite' | 'Unknown'
 
 export type RelevanceLevel = 'Relevant' | 'Maybe' | 'Irrelevant'
 
+/** German the posting asks for (filter „Deutsch erforderlich"). */
+export type RequiredGerman = 'C1Plus' | 'B2' | 'B1OrLower' | 'None' | 'Unknown'
+
 /** „Merken" / „Ausblenden" */
 export type VacancyInterest = 'None' | 'Starred' | 'Dismissed'
 
@@ -51,6 +54,7 @@ export interface Vacancy {
   alsoFoundAt: VacancyLink[]
   /** „Beworben": an application exists for this job (or the same company with a similar title). */
   applied: AppliedInfo | null
+  requiredGerman: RequiredGerman
 }
 
 export interface PagedResponse<T> {
@@ -66,6 +70,7 @@ export interface VacancyFacets {
   remoteLevel: Partial<Record<RemoteLevel, number>>
   employerType: Partial<Record<EmployerType, number>>
   relevanceLevel: Partial<Record<RelevanceLevel, number>>
+  requiredGerman: Partial<Record<RequiredGerman, number>>
 }
 
 /** GET /api/vacancies */
@@ -88,6 +93,7 @@ export interface VacancyListParams {
   sort?: VacancySort
   remote?: RemoteLevel[]
   relevance?: RelevanceLevel[]
+  german?: RequiredGerman[]
   search?: string[]
   interest?: VacancyInterest[]
   includeDismissed?: boolean

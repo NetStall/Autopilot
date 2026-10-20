@@ -39,6 +39,11 @@ public static class VacancyQueryExtensions
             query = query.Where(v => (v.RankScore ?? v.RelevanceScore) >= minScore);
         }
 
+        if (filter.RequiredGerman is { Count: > 0 } german)
+        {
+            query = query.Where(v => german.Contains(v.RequiredGerman));
+        }
+
         if (filter.IsSeen is { } isSeen)
         {
             query = query.Where(v => v.IsSeen == isSeen);

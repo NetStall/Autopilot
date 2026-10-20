@@ -1,6 +1,6 @@
 // Mirrors JobAutopilot.Core.SearchProfiles (GET/PUT /api/search-profile).
 
-import type { ConfiguredSearch } from './vacancy'
+import type { ConfiguredSearch, RequiredGerman } from './vacancy'
 
 export type SearchTermScope = 'Both' | 'Region' | 'Remote'
 export type RemotePreference = 'Any' | 'AtLeastHybrid' | 'FullRemoteOnly'
@@ -57,6 +57,8 @@ export interface SearchProfile {
   sources: { arbeitsagentur: boolean, himalayas: boolean }
   minScore: number
   topN: number
+  /** Default of „Deutsch erforderlich" while the URL has none; empty = all. */
+  germanFilter: RequiredGerman[]
   penalties: SearchPenalties
   salaryMin: number | null
   salaryMax: number | null

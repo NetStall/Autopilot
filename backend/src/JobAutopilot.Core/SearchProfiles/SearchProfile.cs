@@ -191,6 +191,9 @@ public sealed class SearchProfile
     /// <summary>N of „Nur Top N".</summary>
     public int TopN { get; set; } = 20;
 
+    /// <summary>Default of the list filter „Deutsch erforderlich" while the URL has none; empty = all.</summary>
+    public List<Vacancies.RequiredGerman> GermanFilter { get; set; } = [];
+
     public SearchPenalties Penalties { get; set; } = new();
 
     public int? SalaryMin { get; set; }

@@ -128,6 +128,11 @@ public static class SearchProfileRules
             errors.Add("Mindestbewertung: 0 bis 100 in 5er-Schritten.");
         }
 
+        if (profile.GermanFilter.Any(g => !Enum.IsDefined(g)) || profile.GermanFilter.Count > Enum.GetValues<Vacancies.RequiredGerman>().Length)
+        {
+            errors.Add("Deutsch-Filter: unbekannter Wert.");
+        }
+
         if (profile.TopN is < 1 or > 200)
         {
             errors.Add("Top N: 1 bis 200.");
@@ -285,6 +290,7 @@ public static class SearchProfileRules
         Value(parts, "Himalayas", before.Sources.Himalayas, after.Sources.Himalayas);
         Value(parts, "Mindestbewertung", before.MinScore, after.MinScore);
         Value(parts, "Top N", before.TopN, after.TopN);
+        ListDiff(parts, "Deutsch-Filter", before.GermanFilter.Select(g => g.ToString()), after.GermanFilter.Select(g => g.ToString()));
         Value(parts, "Abzug Deutsch", before.Penalties.GermanPerLevel, after.Penalties.GermanPerLevel);
         Value(parts, "Abzug Erfahrung", before.Penalties.Experience, after.Penalties.Experience);
         Value(parts, "Abzug Erfahrung (deutlich)", before.Penalties.ExperienceStrong, after.Penalties.ExperienceStrong);

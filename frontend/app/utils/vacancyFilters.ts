@@ -3,6 +3,7 @@ import type {
   EmployerType,
   RelevanceLevel,
   RemoteLevel,
+  RequiredGerman,
   VacancyFacets,
   VacancyListParams,
   VacancySort,
@@ -18,6 +19,21 @@ export const RELEVANCE_LEVELS: readonly RelevanceLevel[] = ['Relevant', 'Maybe',
 export const DEFAULT_RELEVANCE: readonly RelevanceLevel[] = ['Relevant', 'Maybe']
 
 export const VACANCY_SOURCES: readonly VacancySource[] = ['Arbeitsagentur', 'Himalayas', 'Manual']
+
+/** „Deutsch erforderlich", strongest requirement first. */
+export const REQUIRED_GERMAN: readonly RequiredGerman[] = ['C1Plus', 'B2', 'B1OrLower', 'None', 'Unknown']
+
+const GERMAN_LABELS: Record<RequiredGerman, string> = {
+  C1Plus: 'C1 oder höher',
+  B2: 'B2',
+  B1OrLower: 'B1 oder niedriger',
+  None: 'Kein Deutsch nötig',
+  Unknown: 'Unbekannt',
+}
+
+export function requiredGermanLabel(value: RequiredGerman): string {
+  return GERMAN_LABELS[value]
+}
 
 /** Steps of the „Mindestbewertung" slider. */
 export const MIN_SCORE_STEP = 5
@@ -37,6 +53,8 @@ export interface VacancyFilters {
   remote: RemoteFilter
   /** Relevance levels shown; never empty (an empty selection means the default). */
   relevance: RelevanceLevel[]
+  /** „Deutsch erforderlich"; null = not in the URL (the Suchprofil's default applies). */
+  german: RequiredGerman[] | null
   /** Sources shown; empty = all. */
   sources: VacancySource[]
   /** „Mindestbewertung"; <c>null</c> = the default of the Suchprofil. */
@@ -62,6 +80,7 @@ export const DEFAULT_FILTERS: Readonly<VacancyFilters> = Object.freeze({
   status: 'all',
   remote: 'any',
   relevance: [...DEFAULT_RELEVANCE],
+  german: null,
   sources: [],
   minScore: null,
   top: null,
@@ -145,6 +164,7 @@ export function filtersFromQuery(query: LocationQuery): VacancyFilters {
     status: status === 'new' || status === 'seen' ? status : 'all',
     remote: parseRemote(firstValue(query.remote)),
     relevance: relevance.length > 0 ? relevance : [...DEFAULT_RELEVANCE],
+    german: parseGerman(query.german),
     sources: VACANCY_SOURCES.filter(s => allValues(query.source).includes(s)),
     minScore: minScore == null ? null : normalizeMinScore(minScore),
     top: parseInt0(firstValue(query.top), 1, 200),
@@ -184,6 +204,9 @@ export function filtersToQuery(filters: VacancyFilters): LocationQueryRaw {
   if (filters.sources.length > 0) {
     query.source = VACANCY_SOURCES.filter(s => filters.sources.includes(s))
   }
+  if (filters.german != null && filters.german.length > 0) {
+    query.german = REQUIRED_GERMAN.filter(g => filters.german!.includes(g)).join(',')
+  }
   if (filters.minScore != null) {
     query.minScore = String(filters.minScore)
   }
@@ -219,6 +242,38 @@ const remoteLevels: Record<Exclude<RemoteFilter, 'any'>, RemoteLevel[]> = {
 /** What the Suchprofil contributes when the URL does not say otherwise. */
 export interface ListDefaults {
   minScore: number
+  /** Suchprofil default of „Deutsch erforderlich"; empty = all. */
+  german?: readonly RequiredGerman[]
+}
+
+/** The German levels in effect: the URL's, else the Suchprofil's (empty = no restriction). */
+export function effectiveGerman(filters: VacancyFilters, defaults?: ListDefaults): RequiredGerman[] {
+  return [...(filters.german ?? defaults?.german ?? [])]
+}
+
+/** Toggles one level; an empty selection means „all", so unchecking starts from all five. */
+export function toggleGerman(current: readonly RequiredGerman[], level: RequiredGerman, checked: boolean): RequiredGerman[] {
+  const selected = new Set(current.length === 0 ? REQUIRED_GERMAN : current)
+  if (checked) {
+    selected.add(level)
+  }
+  else {
+    selected.delete(level)
+  }
+  return REQUIRED_GERMAN.filter(g => selected.has(g))
+}
+
+/** Same restriction; all five levels = none. */
+export function sameGerman(a: readonly RequiredGerman[], b: readonly RequiredGerman[]): boolean {
+  const norm = (list: readonly RequiredGerman[]) => (list.length === REQUIRED_GERMAN.length ? [] : REQUIRED_GERMAN.filter(g => list.includes(g)))
+  return JSON.stringify(norm(a)) === JSON.stringify(norm(b))
+}
+
+/** `german=B2,B1OrLower` or repeated keys; unknown values are dropped, null when nothing valid is left. */
+function parseGerman(value: QueryValue): RequiredGerman[] | null {
+  const values = allValues(value).flatMap(v => v.split(',')).map(v => v.trim())
+  const valid = REQUIRED_GERMAN.filter(g => values.includes(g))
+  return valid.length > 0 ? valid : null
 }
 
 /** The minimum score in effect: the URL's, else the Suchprofil's. */
@@ -251,6 +306,10 @@ export function filtersToApiParams(filters: VacancyFilters, pageSize: number, de
   if (filters.sources.length > 0 && filters.sources.length < VACANCY_SOURCES.length) {
     params.source = VACANCY_SOURCES.filter(s => filters.sources.includes(s))
   }
+  const german = effectiveGerman(filters, defaults)
+  if (german.length > 0 && german.length < REQUIRED_GERMAN.length) {
+    params.german = REQUIRED_GERMAN.filter(g => german.includes(g))
+  }
   const minScore = effectiveMinScore(filters, defaults)
   if (minScore > 0) {
     params.minScore = minScore
@@ -282,6 +341,7 @@ export function hasActiveFilters(filters: VacancyFilters): boolean {
     || filters.remote !== 'any'
     || !sameLevels(filters.relevance, DEFAULT_RELEVANCE)
     || filters.sources.length > 0
+    || filters.german != null
     || filters.minScore != null
     || filters.top != null
     || filters.searches.length > 0

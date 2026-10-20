@@ -15,7 +15,7 @@ const toasts = useToasts()
 const filters = computed(() => filtersFromQuery(route.query))
 const listQuery = computed(() => filtersToQuery(filters.value))
 
-const listDefaults = ref<ListDefaultsState>({ minScore: 0, topN: 20 })
+const listDefaults = ref<ListDefaultsState>({ minScore: 0, topN: 20, german: [] })
 const { data, status, error, refresh } = useAsyncData(
   'vacancy-list',
   async () => {
@@ -216,6 +216,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       :facets="data?.facets ?? null"
       :default-min-score="listDefaults.minScore"
       :top-n="listDefaults.topN"
+      :default-german="listDefaults.german"
       @change="changeFilters"
     />
 

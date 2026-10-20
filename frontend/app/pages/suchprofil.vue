@@ -442,6 +442,21 @@ onBeforeUnmount(() => {
           </label>
         </div>
         <fieldset>
+          <legend>Standard für „Deutsch erforderlich" in der Liste</legend>
+          <p class="sp__help">
+            Gilt, solange in der Liste nichts anderes gewählt ist. Keine Auswahl = alle Stellen.
+          </p>
+          <label v-for="level in REQUIRED_GERMAN" :key="level" class="sp__check">
+            <input
+              type="checkbox"
+              :value="level"
+              :checked="form.germanFilter.includes(level)"
+              @change="form.germanFilter = toggleListValue(form.germanFilter, level, ($event.target as HTMLInputElement).checked, REQUIRED_GERMAN)"
+            >
+            {{ requiredGermanLabel(level) }}
+          </label>
+        </fieldset>
+        <fieldset>
           <legend>Fit-Abzüge (0–{{ MAX_PENALTY }} Punkte)</legend>
           <p class="sp__help">
             Werden von der Relevanz abgezogen, wenn eine Stelle nicht zu mir passt.

@@ -67,7 +67,7 @@ public static partial class VacancyEndpoints
         return TypedResults.Ok(new VacancyPageDto(items, page, pageSize, totalCount, matching, request.Top, facets));
     }
 
-    private static IQueryable<Core.Vacancies.Vacancy> Filtered(AppDbContext db, Core.Vacancies.VacancyFilter filter)
+    internal static IQueryable<Core.Vacancies.Vacancy> Filtered(AppDbContext db, Core.Vacancies.VacancyFilter filter)
     {
         var pool = filter.Sources is { Count: > 0 } sources ? db.Vacancies.Where(v => sources.Contains(v.Source)) : db.Vacancies;
         return db.Vacancies.AsNoTracking().ApplyFilter(filter).CollapseDuplicates(pool);
@@ -83,13 +83,16 @@ public static partial class VacancyEndpoints
             .GroupBy(v => v.EmployerType).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
         var relevance = await Filtered(db, filter with { RelevanceLevels = null })
             .GroupBy(v => v.RelevanceLevel).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
+        var german = await Filtered(db, filter with { RequiredGerman = null })
+            .GroupBy(v => v.RequiredGerman).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
         return new VacancyFacetsDto(
             sources.ToDictionary(x => x.Key.ToString(), x => x.Count),
             remote.ToDictionary(x => x.Key.ToString(), x => x.Count),
             employers.ToDictionary(x => x.Key.ToString(), x => x.Count),
             // Not scored yet counts as „Maybe", like the filter.
             relevance.GroupBy(x => (x.Key ?? Core.Vacancies.RelevanceLevel.Maybe).ToString())
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.Count)));
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Count)),
+            german.ToDictionary(x => x.Key.ToString(), x => x.Count));
     }
 
     private static async Task<Results<Ok<VacancyDto>, NotFound>> GetVacancy(

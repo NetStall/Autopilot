@@ -61,6 +61,11 @@ public sealed class VacancyListQuery : IValidatableObject
     public string[]? Relevance { get; init; }
 
     /// <summary>Repeatable search name: vacancies found by any of them.</summary>
+    /// <summary>„Deutsch erforderlich": repeatable or comma-separated (<c>german=B2,B1OrLower</c>).</summary>
+    [FromQuery(Name = "german")]
+    [MaxLength(MaxEnumValues)]
+    public string[]? German { get; init; }
+
     [FromQuery(Name = "search")]
     [MaxLength(MaxSearchNames)]
     public string[]? Search { get; init; }
@@ -136,6 +141,16 @@ public sealed class VacancyListQuery : IValidatableObject
             }
         }
 
+        foreach (var value in Split(German))
+        {
+            if (!TryParseEnum<RequiredGerman>(value, out _))
+            {
+                yield return new ValidationResult(
+                    $"'{value}' is not a German level. Allowed: {string.Join(", ", Enum.GetNames<RequiredGerman>())}.",
+                    [nameof(German)]);
+            }
+        }
+
         foreach (var value in Interest ?? [])
         {
             if (!TryParseEnum<VacancyInterest>(value, out _))
@@ -175,7 +190,12 @@ public sealed class VacancyListQuery : IValidatableObject
         IncludeDismissed ?? false,
         FetchedSince,
         Relevance is { Length: > 0 } ? Relevance.Select(Parse<RelevanceLevel>).Distinct().ToList() : null,
-        MinScore: MinScore);
+        MinScore: MinScore,
+        RequiredGerman: German is { Length: > 0 } ? Split(German).Select(Parse<RequiredGerman>).Distinct().ToList() : null);
+
+    /// <summary>Repeated and comma-separated values alike.</summary>
+    private static IEnumerable<string> Split(string[]? values) =>
+        (values ?? []).SelectMany(v => (v ?? string.Empty).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
 
     private static T Parse<T>(string value)
         where T : struct, Enum =>

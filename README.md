@@ -218,7 +218,7 @@ Decision and migration: [ADR 0009](docs/decisions/0009-search-profile.md).
 | Suche | search terms (each „Region + Remote", „Nur Region" or „Nur Remote"), places with radius, „Remote deutschlandweit", further places that count as my region, published within X days, sources Arbeitsagentur / Himalayas |
 | Remote und Arbeitgeber | Remote-Präferenz *egal* / *mindestens Hybrid* / *nur voll remote*; Personalvermittlung and Zeitarbeit: *zulassen* / *niedriger einordnen* / *ausblenden* |
 | Stack | Must-have, Nice-to-have, Ausschluss — keywords with weight, other spellings, group, „nur im Titel", case-sensitive, core stack; Titel-Ausschlüsse (skipped on import) |
-| Bewertung | default Mindestbewertung and N of „Nur Top N" for the list; fit penalties (0–50) |
+| Bewertung | default Mindestbewertung, N of „Nur Top N" and an optional default for „Deutsch erforderlich" for the list; fit penalties (0–50) |
 | Rahmen | salary target, earliest start (orientation only, not scored yet) |
 
 While editing, a debounced preview shows „Mit diesen Einstellungen: 142 passende Stellen (davon 31 voll remote)"
@@ -295,6 +295,23 @@ phrasing from `knownGaps`).
   | Outside the region | 15 |
   | Employer type | 10 |
   | Remote wish | 10 |
+
+**Deutsch erforderlich.** Every vacancy gets the German level it asks for:
+
+| Value | Detected from |
+|---|---|
+| *C1 oder höher* | C1/C2, „verhandlungssicher", „sehr gute Deutschkenntnisse", „fließend Deutsch", „Muttersprache Deutsch" |
+| *B2* | B2, „gute Deutschkenntnisse", „sicher auf Deutsch" |
+| *B1 oder niedriger* | A1–B1, „Grundkenntnisse", „Deutschkenntnisse von Vorteil" |
+| *Kein Deutsch nötig* | „German is not required", „English is our working language", or an English posting without any German requirement |
+| *Unbekannt* | nothing found |
+
+- The strongest finding wins; a level next to another language („Englisch C1, Deutsch B2") does not count for German.
+- The reasons name the phrase.
+- **List filter** „Deutsch erforderlich", with counts, in the URL as `german=B2,B1OrLower`. An optional default for
+  it lives in the Suchprofil.
+- **Page Statistik** shows the distribution for the relevant vacancies (Passt + Vielleicht, rank ≥
+  Mindestbewertung), overall and by remote level and source.
 
 **Score in the UI.** Every card and the detail page show the rank as a pill („87"), coloured high / medium / low by
 `Ui:ScoreHigh` (70) and `Ui:ScoreMedium` (45) — never by colour alone: the number is always visible, the screen reader
@@ -435,7 +452,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 |---|---|---|
 | GET | `/health/live` | process is up: `{ "status": "ok", "checks": {} }` |
 | GET | `/health/ready` | ready to serve: `{ "status": "ok", "checks": { "database": "Healthy" } }`, 503 if the DB is unreachable |
-| GET | `/api/vacancies` | paged `{ items, page, pageSize, totalCount, totalMatching, top, facets: { source, remoteLevel, employerType, relevanceLevel } }`, filters below; each facet counts under all *other* filters |
+| GET | `/api/vacancies` | paged `{ items, page, pageSize, totalCount, totalMatching, top, facets: { source, remoteLevel, employerType, relevanceLevel, requiredGerman } }`, filters below; each facet counts under all *other* filters |
 | GET | `/api/vacancies/{id}` | one vacancy, 404 if unknown |
 | GET | `/api/vacancies/{id}/fit` | „Passt zu mir?": `{ profileStatus, hasDescription, requirements: [{ name, coverage: Covered\|Partial\|Gap, optional, note }], warnings: [{ text, penalty }], requiredGerman, requiredYears, penalty }` |
 | GET | `/api/applications?status=&channel=&followUpDue=true` | applications, newest first, with `statusLabel`, `followUpAt`, `isFollowUpDue` |
@@ -468,6 +485,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 | GET | `/api/imports?limit=10` | recent runs, newest first (limit 1–50) |
 | GET | `/api/imports/searches` | the configured searches (for the UI filter) |
 | GET | `/api/settings/ui` | `{ highlightKeywords, scoreHigh, scoreMedium }` from `Ui` |
+| GET | `/api/statistics/german` | `{ minScore, total, overall: [{ level, label, count, percent }], byRemoteLevel: [{ key, total, levels }], bySource: [...] }` for the relevant vacancies |
 | GET | `/api/search-profile` | `{ version, updatedAt, profile, searches }` (searches = generated import searches) |
 | PUT | `/api/search-profile` | `{ version, profile }` → `{ searchProfile, rescore }`; 400 ValidationProblem (`errors.profile`), 409 if `version` is not current |
 | POST | `/api/search-profile/preview` | a draft profile → `{ errors, matching, fullRemote, currentMatching, scored, searches }`; saves nothing |
@@ -486,6 +504,7 @@ Query parameters of `GET /api/vacancies`:
 | `source` | `Arbeitsagentur`, `Himalayas`, `Manual` — repeatable, matches any |
 | `remote` | `FullRemote`, `Hybrid`, `OnSite`, `Unknown` — repeatable |
 | `relevance` | `Relevant`, `Maybe`, `Irrelevant` — repeatable; not yet scored counts as `Maybe` |
+| `german` | `C1Plus`, `B2`, `B1OrLower`, `None`, `Unknown` — repeatable or comma-separated (`german=B2,B1OrLower`) |
 | `search` | name of a configured search — repeatable, matches any |
 | `interest` | `None`, `Starred`, `Dismissed` — repeatable; without it, dismissed vacancies are hidden |
 | `includeDismissed` | `true` = show dismissed vacancies too |

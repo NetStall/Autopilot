@@ -33,6 +33,18 @@ export const MAX_WEIGHTS = { mustHave: 50, niceToHave: 50, exclude: 100 } as con
 /** Bounds of the „Fit-Abzüge" inputs. */
 export const MAX_PENALTY = 50
 
+/** Adds or removes a value and keeps the order of `order`. */
+export function toggleListValue<T extends string>(list: readonly T[], value: T, checked: boolean, order: readonly T[]): T[] {
+  const selected = new Set(list)
+  if (checked) {
+    selected.add(value)
+  }
+  else {
+    selected.delete(value)
+  }
+  return order.filter(v => selected.has(v))
+}
+
 export function cloneProfile(profile: SearchProfile): SearchProfile {
   return JSON.parse(JSON.stringify(profile)) as SearchProfile
 }

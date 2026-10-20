@@ -20,6 +20,7 @@ import type {
 } from '~/types/searchProfile'
 import type { Application, ApplicationStatus, TrackerImportReport } from '~/types/application'
 import type { ApplicationDocuments, CvOptions, DocumentKind, DocumentPreview, Letter } from '~/types/documents'
+import type { GermanStatistics } from '~/types/statistics'
 
 /** All calls to the backend API. Base URL from runtime config (NUXT_PUBLIC_API_BASE). */
 export function useVacanciesApi() {
@@ -139,6 +140,11 @@ export function useVacanciesApi() {
 
     uiSettings() {
       return api<UiSettings>('/api/settings/ui')
+    },
+
+    /** Required German of the relevant vacancies, overall and by remote level / source. */
+    germanStatistics() {
+      return api<GermanStatistics>('/api/statistics/german')
     },
 
     /** „Unterlagen erstellen" for a vacancy: the existing documents, or a new draft application (one Claude call). */
