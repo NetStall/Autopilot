@@ -44,18 +44,22 @@ public sealed record FitResult(
     IReadOnlyList<FitWarning> Warnings,
     LanguageLevel? RequiredGerman,
     int? RequiredYears,
-    int Penalty)
+    int Penalty,
+    bool Unreachable = false)
 {
     public static readonly FitResult Empty = new([], [], null, null, 0);
 }
 
 /// <summary>
 /// Rule-based fit check of one vacancy against the profile — no AI. Requirements are the profile's skills (by name
-/// and aliases) and the configured common requirements found in title and description; each is covered, partial or
+/// and aliases), the configured common requirements and the technologies of <see cref="TechnologyCatalog"/> that
+/// the profile does not list, found in title and description; each is covered, partial or
 /// a gap (with the honest phrasing from <c>knownGaps</c>). Skills count only by name or a specific alias, never by a
 /// generic one (<see cref="SkillTerms"/>). How important a requirement is comes from the posting's sections („Was du
-/// mitbringst" = must-have, „Ein Plus, aber kein Muss" = nice to have) and from markers in its sentence („von
-/// Vorteil", „(Must-have)"); a missing must-have costs more than a missing nice-to-have. German level and years of
+/// mitbringst" = must-have, „Sprachen &amp; Technologien" = likely required, „Ein Plus, aber kein Muss" = nice to have)
+/// and from markers in its line („von Vorteil", „(Pflicht)", „mindestens"); a missing must-have costs more than a
+/// missing nice-to-have. A job outside my places that is not fully remote and has at most 60 % home office (or an
+/// unknown share) is practically not reachable. German level and years of
 /// experience are compared with the profile and give warnings, never an exclusion. Pure and deterministic.
 /// </summary>
 public sealed partial class FitAnalyzer(FitOptions options)
@@ -67,11 +71,10 @@ public sealed partial class FitAnalyzer(FitOptions options)
 
     private readonly TermMatcher _mustHaveMarkers = new(options.EffectiveMustHaveMarkers);
 
-    private readonly TermMatcher _mustHaveHeadings = new(options.EffectiveMustHaveHeadings);
+    private readonly Func<string, RequirementSections> _sections = RequirementSections.Parser(options);
 
-    private readonly TermMatcher _niceToHaveHeadings = new(options.EffectiveNiceToHaveHeadings);
-
-    private readonly TermMatcher _otherHeadings = new(options.EffectiveOtherHeadings);
+    private readonly IReadOnlyList<(Technology Technology, TermMatcher Matcher)> _technologies =
+        options.UseTechnologyCatalog ? TechnologyCatalog.Matchers : [];
 
     public FitResult Analyze(CandidateProfile profile, string title, string? description, EmployerType employerType, DateOnly today) =>
         Analyze(profile, new FitInput(title, description, employerType, null, RemoteLevel.Unknown), today, FitSettings.Neutral);
@@ -86,7 +89,7 @@ public sealed partial class FitAnalyzer(FitOptions options)
         ArgumentNullException.ThrowIfNull(title);
         var text = string.IsNullOrWhiteSpace(description) ? title : title + "\n" + description;
         var sentences = Sentences(text);
-        var sections = RequirementSections.Parse(text, _mustHaveHeadings, _niceToHaveHeadings, _otherHeadings);
+        var sections = _sections(text);
         var requirements = new List<FitRequirement>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var covered = new TermMatcher(profile.Skills.Where(s => s.Level == SkillLevel.Production).SelectMany(SkillTerms.Evidence));
@@ -126,7 +129,7 @@ public sealed partial class FitAnalyzer(FitOptions options)
                 continue;
             }
 
-            seen.Add(rule.Name);
+            seen.UnionWith(rule.Terms.Append(rule.Name));
             if (rule.WarningOnly)
             {
                 warnings.Add(new FitWarning($"{rule.Name} gefordert – bitte prüfen", 0));
@@ -138,6 +141,8 @@ public sealed partial class FitAnalyzer(FitOptions options)
             requirements.Add(new FitRequirement(
                 rule.Name, FitCoverage.Gap, importance <= RequirementImportance.NiceToHave, gap?.De ?? "nicht im Profil", importance));
         }
+
+        AddTechnologyGaps(profile, text, sentences, sections, covered, seen, requirements);
 
         var penalties = settings.Penalties;
         AddGapWarnings(requirements, penalties, warnings);
@@ -161,9 +166,15 @@ public sealed partial class FitAnalyzer(FitOptions options)
                 needed.Strong ? penalties.ExperienceStrong : penalties.Experience));
         }
 
+        var unreachable = false;
         if (OutsideRegions(settings, location, remoteLevel) is { } place)
         {
-            warnings.Add(new FitWarning($"Außerhalb meiner Regionen ({place}) und nicht voll remote", penalties.OutsideRegion));
+            var share = HomeOfficeShare.Find(text);
+            unreachable = share is null || share <= options.ReachableFromHomeOfficePercent;
+            var homeOffice = share is { } percent ? $"Homeoffice bis {percent.ToString(CultureInfo.InvariantCulture)} %" : "Homeoffice-Anteil unbekannt";
+            warnings.Add(unreachable
+                ? new FitWarning($"Praktisch nicht erreichbar: {place}, nicht voll remote, {homeOffice}", penalties.Unreachable)
+                : new FitWarning($"Außerhalb meiner Regionen ({place}) und nicht voll remote", penalties.OutsideRegion));
         }
 
         if (RemoteWishMissed(settings.RemotePreference, remoteLevel) is { } wish)
@@ -182,16 +193,60 @@ public sealed partial class FitAnalyzer(FitOptions options)
             .ThenBy(r => r.Optional)
             .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        return new FitResult(ordered, warnings, german.Level, years?.Years, warnings.Sum(w => w.Penalty));
+        return new FitResult(ordered, warnings, german.Level, years?.Years, warnings.Sum(w => w.Penalty), unreachable);
     }
 
-    /// <summary>Gap penalties by importance — must-have first — sharing one cap (<c>RequiredGapMax</c>).</summary>
+    /// <summary>
+    /// Technologies of the dictionary the profile does not list at all: a gap wherever they are asked for — not when
+    /// they only appear in the tasks, the offer or the company description.
+    /// </summary>
+    private void AddTechnologyGaps(
+        CandidateProfile profile,
+        string text,
+        IReadOnlyList<(int Start, string Text)> sentences,
+        RequirementSections sections,
+        TermMatcher covered,
+        HashSet<string> seen,
+        List<FitRequirement> requirements)
+    {
+        if (_technologies.Count == 0)
+        {
+            return;
+        }
+
+        var inProfile = new HashSet<string>(profile.Skills.SelectMany(s => s.AllNames()).Select(SkillTerms.Key), StringComparer.Ordinal);
+        foreach (var (technology, matcher) in _technologies)
+        {
+            if (technology.AllNames().Any(n => seen.Contains(n) || inProfile.Contains(SkillTerms.Key(n)))
+                || (technology.Parent is { } parent && (seen.Contains(parent) || requirements.Any(r => r.Name == parent))))
+            {
+                continue;
+            }
+
+            var hits = matcher.FindAll(text).Where(h => sections.At(h.Index) != SectionKind.Other).ToList();
+            if (hits.Count == 0)
+            {
+                continue;
+            }
+
+            seen.UnionWith(technology.AllNames());
+            var importance = ImportanceOf(hits, sentences, sections, covered);
+            requirements.Add(new FitRequirement(
+                technology.Name, FitCoverage.Gap, importance <= RequirementImportance.NiceToHave, "nicht im Profil", importance));
+        }
+    }
+
+    /// <summary>
+    /// Gap penalties by importance: must-have gaps up to <c>MustHaveGapMax</c>, all others sharing
+    /// <c>RequiredGapMax</c> (most important first).
+    /// </summary>
     private static void AddGapWarnings(List<FitRequirement> requirements, SearchPenalties penalties, List<FitWarning> warnings)
     {
         var budget = penalties.RequiredGapMax;
         foreach (var (importance, perGap, label) in new[]
                  {
                      (RequirementImportance.MustHave, penalties.MustHaveGap, "Muss-Anforderung, nicht im Profil"),
+                     (RequirementImportance.LikelyRequired, penalties.LikelyRequiredGap, "Im Tech-Stack, nicht im Profil"),
                      (RequirementImportance.Required, penalties.RequiredGap, "Gefordert, aber nicht im Profil"),
                      (RequirementImportance.NiceToHave, penalties.NiceToHaveGap, "Ein Plus, nicht im Profil"),
                  })
@@ -202,8 +257,17 @@ public sealed partial class FitAnalyzer(FitOptions options)
                 continue;
             }
 
-            var points = Math.Min(gaps.Count * perGap, Math.Max(budget, 0));
-            budget -= points;
+            int points;
+            if (importance == RequirementImportance.MustHave)
+            {
+                points = Math.Min(gaps.Count * perGap, Math.Max(penalties.MustHaveGapMax, 0));
+            }
+            else
+            {
+                points = Math.Min(gaps.Count * perGap, Math.Max(budget, 0));
+                budget -= points;
+            }
+
             warnings.Add(new FitWarning($"{label}: {string.Join(", ", gaps.Select(r => r.Name))}", points));
         }
     }
@@ -249,8 +313,9 @@ public sealed partial class FitAnalyzer(FitOptions options)
 
     /// <summary>
     /// The most important mention wins. Per mention: an alternative to a skill I cover („Angular oder Vue.js", gaps
-    /// only) costs nothing; a sentence with „von Vorteil" &amp; co. is nice to have, one with „(Must-have)" a must-have;
-    /// otherwise the section decides (must-have / nice-to-have heading), and without one it is required.
+    /// only) costs nothing; a sentence with „von Vorteil" &amp; co. is nice to have, one with „(Pflicht)", „zwingend",
+    /// „mindestens" a must-have — whatever the section; otherwise the section decides (must-have, stack = likely
+    /// required, nice to have), and without one it is required.
     /// </summary>
     private RequirementImportance ImportanceOf(
         IEnumerable<(string Term, int Index)> hits,
@@ -275,6 +340,7 @@ public sealed partial class FitAnalyzer(FitOptions options)
                 : sections.At(index) switch
                 {
                     SectionKind.MustHave => RequirementImportance.MustHave,
+                    SectionKind.Stack => RequirementImportance.LikelyRequired,
                     SectionKind.NiceToHave => RequirementImportance.NiceToHave,
                     _ => RequirementImportance.Required,
                 };

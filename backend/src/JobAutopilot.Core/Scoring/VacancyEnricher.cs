@@ -60,6 +60,7 @@ public sealed class VacancyEnricher(
         // The ranking: relevance adjusted by the fit warnings against the profile.
         var fitResult = fit?.Analyze(vacancy) ?? FitResult.Empty;
         vacancy.RankScore = Math.Clamp(relevance.Score - fitResult.Penalty, 0, 100);
+        vacancy.Unreachable = fitResult.Unreachable;
         foreach (var warning in fitResult.Warnings.Where(w => w.Penalty > 0))
         {
             reasons.Add($"Fit: {warning.Text} (−{warning.Penalty})");

@@ -1,0 +1,73 @@
+title: Full-Stack-Entwickler (m/w/d) – C#/.NET & Blazor
+company: Ing-Büro f Bauwesen Schmidt GmbH
+location: 57392 Schmallenberg
+source: Arbeitsagentur
+remoteHint: Hybrid
+---
+Homeoffice: bis zu 40 %
+
+# Deine Rolle:
+
+Du bist verantwortlich für die vollständige technische Umsetzung unserer Softwarelösungen – von der Backend-Architektur (C#/.NET, PostgreSQL) bis zur Frontend-Entwicklung (Blazor, DevExpress). Du arbeitest selbstständig an der Weiterentwicklung unserer Anwendungen, integrierst REST-APIs, optimierst Datenbanken und sorgst für eine nahtlose Nutzererfahrung.
+
+Sprachen & Technologien
+
+- Backend:
+    - C#/.NET (Core/Framework) – Mindestens 3 Jahre Berufserfahrung
+    - Datenbanken: PostgreSQL, alternativ SQL-Server oder MySQL
+    - Kommunikation: SignalR (Echtzeit-Austausch), gRPC (Dateiübertragung)
+    - ORM: DevExpress XPO
+- Frontend:
+    - Blazor (WASM) – Erfahrung in der UI-Entwicklung
+    - DevExpress (Pflicht)
+    - HTML/CSS/JS/TypeScript
+    - REST-API-Integration
+
+ Arbeitsweise
+
+- Agile Methoden (Scrum/Kanban)
+- Teamorientiert, selbstständig
+
+Das Ingenieurbüro Schmidt, unser Ursprung, ist mit über 112 Mitarbeitern das größte Ingenieurbüro in Südwestfalen und ein präqualifizierter Vertragspartner der Deutschen Bahn. In 60 Jahren haben wir uns zu einem führenden Unternehmen der Region entwickelt und sind in Bereichen wie Tragwerksplanung, Brückenbau, Verkehrsplanung und Abwassertechnik tätig.
+
+Unsere Entwicklungsabteilung versteht sich als dynamisches Start-up innerhalb des Unternehmens und arbeitet aktuell an einer zukunftsweisenden SAAS, die Ende 2025 den Markt erobern wird. Wir setzen auf moderne Entwicklungsstrategien nach dem Scrum-Framework und nutzen gezielt KI-Tools, wie Codium und GPT, um effiziente und innovative Lösungen zu schaffen. 
+
+Unser Produkt „pdm“ macht Ingenierbüros smarter, effizienter und digital vernetzt. Es vereint modernste KI-Technologie mit praxisnaher Ingenieursexpertise und schafft damit modernstes Projektdatenmanagement & Steuerung. Unsere Mission: Weniger Chaos, mehr Struktur. Weniger manuelle Abläufe, mehr intelligente Automatisierung und vieles mehr.
+
+# Deine Aufgaben:
+
+**Backend-Entwicklung & Architektur**
+
+- Weiterentwicklung der Backend-Architektur (C#, Blazor, PostgreSQL)
+- Betrieb und Optimierung der DevOps-Infrastruktur (CI/CD, Deployment, Monitoring)
+- Eigenständige Backend-Entwicklung (APIs, Microservices, Datenbankdesign)
+- Optimierung von PostgreSQL (Performance, Wartung, Updates)
+
+**Frontend-Entwicklung & UI/UX**
+
+- Entwicklung von Benutzeroberflächen mit Blazor
+- Integration von REST-APIs für die Kommunikation mit dem Backend
+- Umsetzung von Responsive Design für verschiedene Endgeräte
+- Optimierung der Nutzererfahrung (UX) und Benutzerfreundlichkeit (UI)
+
+**Qodequalität & Zusammenarbeit**
+
+- Code-Reviews und Beantwortung von Rückfragen
+- Dokumentation von Prozessen und Architekturentscheidungen 
+
+**Moderne Arbeitsmethoden**
+
+- Agile Zusammenarbeit (Scrum/Kanban) mit Fokus auf Skalierbarkeit & Wartbarkeit
+- Einsatz von KI-Tools zur Automatisierung und Effizienzsteigerung
+
+# Dein Profil (Nice to Have):
+
+- Erfahrung mit Docker/Kubernetes oder CI/CD-Pipelines
+- Kenntnisse in CSS-Frameworks (z. B. Bootstrap, Tailwind CSS)
+- Sicherheitsbewusstsein (z. B.  Authentifizierung, Datenverschlüsselung)
+- Nutzung von KI-Tools (z. B. GitHub Copilot) zur Effizienzsteigerung
+
+## Bewirb Dich jetzt!
+
+Zusendung der Bewerbungsunterlagen an:
+[bewerbung@bauing-schmidt.de](https://mailto:bewerbung@bauing-schmidt.de)

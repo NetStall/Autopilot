@@ -33,7 +33,8 @@ function profile(): SearchProfile {
     minScore: 40,
     topN: 20,
     germanFilter: [],
-    penalties: { germanPerLevel: 8, experience: 8, experienceStrong: 10, mustHaveGap: 15, requiredGap: 6, niceToHaveGap: 4, requiredGapMax: 18, outsideRegion: 15, employerType: 10, remotePreference: 10 },
+    hideUnreachable: true,
+    penalties: { germanPerLevel: 8, experience: 8, experienceStrong: 10, mustHaveGap: 15, requiredGap: 6, likelyRequiredGap: 10, niceToHaveGap: 4, mustHaveGapMax: 30, requiredGapMax: 18, outsideRegion: 15, unreachable: 35, employerType: 10, remotePreference: 10 },
     salaryMin: null,
     salaryMax: null,
     earliestStart: null,
@@ -88,6 +89,16 @@ describe('Suchprofil page', () => {
     await waitForPreview()
     expect(api.previewSearchProfile).toHaveBeenCalledWith(expect.objectContaining({ additionalPlaces: ['Plattling', 'Passau'] }))
     expect(wrapper.text()).toContain('Mit diesen Einstellungen: 142 passende Stellen (davon 31 voll remote) – 22 mehr als bisher')
+  })
+
+  it('sends „Nicht erreichbare Stellen ausblenden" with the preview', async () => {
+    const wrapper = await mountPage()
+    const checkbox = wrapper.find('input[type="checkbox"][data-test="hide-unreachable"]')
+    expect((checkbox.element as HTMLInputElement).checked).toBe(true)
+
+    await checkbox.setValue(false)
+    await waitForPreview()
+    expect(api.previewSearchProfile).toHaveBeenCalledWith(expect.objectContaining({ hideUnreachable: false }))
   })
 
   it('shows validation messages from the preview and blocks saving', async () => {

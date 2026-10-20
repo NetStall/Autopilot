@@ -79,6 +79,10 @@ public sealed class VacancyListQuery : IValidatableObject
     [FromQuery(Name = "includeDismissed")]
     public bool? IncludeDismissed { get; init; }
 
+    /// <summary>Show vacancies marked as not reachable although the Suchprofil hides them.</summary>
+    [FromQuery(Name = "includeUnreachable")]
+    public bool? IncludeUnreachable { get; init; }
+
     /// <summary>Only vacancies that entered the system at or after this moment, e.g. the start of the last import.</summary>
     [FromQuery(Name = "fetchedSince")]
     public DateTimeOffset? FetchedSince { get; init; }

@@ -1,0 +1,95 @@
+title: Software Engineer, Broadcast & Video Formats
+company: Vidispine
+location: Remote (Deutschland)
+source: Himalayas
+remoteHint: FullRemote
+---
+Purpose of the role
+
+We are looking for an engineer who knows the broadcast and video world in depth and can turn that knowledge into reliable software. You will be our go-to person for video formats, codecs, and broadcast-specific media handling within our MAM platform. You will work in a team on Kubernetes-based, GitOps-delivered services, with architectural guidance from our senior architects.
+
+Responsibilities
+
+- Implement and maintain media-handling features: ingest, analysis, transcoding, proxy generation, and delivery in broadcast-grade formats.
+
+- Analyze and resolve format-related issues (non-conformant files, interlace/frame-rate problems, audio channel mapping, timecode and metadata errors).
+
+- Integrate and tune transcoders and media tools (e.g. FFmpeg, MediaInfo, commercial transcoding engines) in containerized workflows.
+
+- Map and validate technical and descriptive metadata against broadcast standards and customer specifications.
+
+- Support customer projects and escalations with media-domain expertise.
+
+- Contribute to code quality and security (SonarQube, Mend) and to CI/CD pipelines.
+
+- Document format and workflow knowledge so it spreads across the team.
+
+Must-have
+
+- Hands-on experience in broadcast, post-production, or MAM environments.
+
+- Solid knowledge of the video formatsin everyday use:
+
+-
+Codecs: H.264/AVC, HEVC, MPEG-2, ProRes, DNxHD/DNxHR, XDCAM HD/IMX, AVC-Intra, JPEG 2000
+
+-
+Containers: MXF (OP1a, OPAtom), MP4/MOV, MPEG-TS, ideally IMF
+
+-
+Video fundamentals: interlaced vs. progressive, frame rates (incl. 29.97/59.94 and drop-frame timecode), aspect ratios, color spaces (BT.601/709/2020), basics of HDR (PQ/HLG)
+
+-
+Audio: channel layouts and mapping, sample rates, loudness (EBU R128)
+
+- Experience with media metadata and subtitle/caption formats (e.g. EBU Core, SMPTE, BWF, EBU-TT/STL, TTML, CEA-608/708).
+
+- Practical experience with FFmpeg and media analysis tooling.
+
+- Programming experience in [Java / .Net / C#] and comfort working with REST APIs.
+
+- Working knowledge of Kubernetes and Helm, plus Git-based workflows.
+
+- Structured, quality-conscious way of working; fluent English, German is a plus.
+
+Tooling and stack
+
+-
+Platform: Kubernetes, Helm, GitOps (Flux or Argo CD)
+
+-
+Cloud: AWS (working knowledge: S3, EKS, IAM basics)
+
+-
+CI/CD: Azure DevOps, GitHub
+
+-
+Quality & security: SonarQube, Mend (day-to-day use, fixing findings)
+
+-
+Media tooling: FFmpeg, MediaInfo, MXF analysis tools
+
+-
+Nice to know: OpenTelemetry/Grafana for debugging media pipelines
+
+Nice-to-have
+
+- Experience with Vidispine or similar MAM platforms (Avid, Dalet, Telestream, etc.)
+
+- Delivery specs such as AS-11 (UK DPP), IMF, or broadcaster-specific specifications (e.g. ARD/ZDF)
+
+- Knowledge of live and IP workflows (SMPTE ST 2110, SRT)
+
+- Experience with AI/ML-based media enrichment (speech-to-text, face/object detection)
+
+- Familiarity with AWS media services (MediaConvert, etc.)
+
+Soft skills
+
+- Curious and detail-oriented, enjoys getting to the root cause of a broken file
+
+- Explains media topics clearly to engineers who are not broadcast experts
+
+- Reliable team player who takes ownership of their area and asks early when blocked
+
+Originally posted on Himalayas

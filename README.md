@@ -286,7 +286,10 @@ phrasing from `knownGaps`).
   - German level above mine (see *Deutsch erforderlich* below);
   - more years than mine — „Senior" in the title alone is a weak signal; „langjährige Erfahrung", „5+ Jahre",
     „Lead" or Senior inside the requirements is a strong one;
-  - not fully remote outside the Suchprofil's places (fully remote jobs never get this penalty);
+  - not fully remote outside the Suchprofil's places (fully remote jobs never get this penalty); with at most 60 %
+    home office („Homeoffice bis zu 40 %", „2 Tage Homeoffice") or an unknown share the job is *practically not
+    reachable* — a bigger penalty, and hidden from the list while „Nicht erreichbare Stellen ausblenden" is on
+    (`includeUnreachable=true` shows them);
   - an employer type set to „niedriger einordnen";
   - a missed Remote-Präferenz.
 - **Default order:** the *rank* = relevance minus these penalties. The penalties are the Suchprofil's „Fit-Abzüge",
@@ -297,14 +300,23 @@ phrasing from `knownGaps`).
   | German, per level above mine | 8 |
   | Experience, weak signal | 8 |
   | Experience, strong signal | 10 |
-  | Missing must-have | 15 each |
+  | Missing must-have | 15 each, at most 30 |
+  | Missing in the tech stack („Sprachen & Technologien") | 10 each |
   | Other required gap | 6 each |
   | Missing „Plus" | 4 each |
-  | All gaps together, at most | 18 |
+  | All gaps except must-haves together, at most | 18 |
   | Outside the region | 15 |
+  | Practically not reachable (instead of „outside the region") | 35 |
   | Employer type | 10 |
   | Remote wish | 10 |
 
+- **Technologies I don't have** never score: a Suchprofil keyword that names a known technology counts only when
+  the profile has it (`Production`/`Project` fully, `Learning` half). The catalog
+  `backend/src/JobAutopilot.Core/Fit/technologies.json` (184 frameworks, UI libraries, ORMs, protocols, cloud
+  services, domain terms) turns every technology the profile does not list into a gap where it is asked for. Line
+  markers („(Pflicht)", „zwingend", „Voraussetzung", „mindestens", „required") make a line a must-have whatever its
+  section. Matches only under a nice-to-have heading count half; basics (HTML/CSS, Git, Scrum, REST, Docker …)
+  together at most 6 (`Relevance:BasicSkills`). Decision: [ADR 0012](docs/decisions/0012-technology-catalog-and-reachability.md).
 - **Regression safety:** real postings in `backend/tests/JobAutopilot.Tests/Fixtures/vacancies/` are ranked in
   `RankingRegressionTests`, which fails when a rule change moves one of them out of its range.
 
@@ -520,6 +532,7 @@ Query parameters of `GET /api/vacancies`:
 | `search` | name of a configured search — repeatable, matches any |
 | `interest` | `None`, `Starred`, `Dismissed` — repeatable; without it, dismissed vacancies are hidden |
 | `includeDismissed` | `true` = show dismissed vacancies too |
+| `includeUnreachable` | `true` = show practically unreachable vacancies although the Suchprofil hides them |
 | `fetchedSince` | ISO timestamp — only vacancies imported at/after it („Neu seit letztem Import") |
 | `minScore` | 0–100: rank (relevance minus fit penalties; relevance if not checked yet) at least this; unscored vacancies are left out when > 0 |
 | `top` | 1–200: only the best N by rank after all other filters; `totalCount` = min(N, `totalMatching`) |

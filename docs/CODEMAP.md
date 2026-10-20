@@ -34,23 +34,27 @@ Config: `Import:Details` (Enabled, MaxPerRun, DelayBetweenRequestsMs, SaveEvery)
 | Feature | Files | Key symbols | API | Tests |
 |---|---|---|---|---|
 | Relevance score | `Core/Scoring/RelevanceScorer.cs`, `RelevanceOptions.cs`, `RelevanceScorerProvider.cs`, `TermMatcher.cs` | `RelevanceScorer.Score`, `ProfileRelevanceScorerProvider`, `TermMatcher.FindFirstMatch` | — | `Unit/Scoring/RelevanceScorerTests.cs`, `TermMatcherTests.cs`, `Integration/RelevanceApiTests.cs` |
-| Enrich one vacancy | `Core/Scoring/VacancyEnricher.cs` | `VacancyEnricher.Apply` (relevance, remote, employer, German, rank) | — | via the tests above |
+| Enrich one vacancy | `Core/Scoring/VacancyEnricher.cs` | `VacancyEnricher.Apply` (relevance, remote, employer, German, rank, unreachable) | — | via the tests above |
+| Keywords gated by profile | `Core/Scoring/RelevanceScorerProvider.cs` | `ProfileRelevanceScorerProvider.ForProfile` | — | `Unit/Scoring/ProfileGatedKeywordsTests.cs` |
 | Re-score all | `Core/Scoring/VacancyRescoreService.cs`, `Api/Features/Scoring/RescoreCoordinator.cs`, `RescoreWorker.cs` | `RescoreAllAsync`, `RescoreCoordinator.Request` | `POST /api/vacancies/rescore`, `GET /api/vacancies/rescore` | `Integration/RelevanceApiTests.cs` |
 | Ranking regression | `Tests/Unit/Scoring/RankingRegressionTests.cs`, `RealWorldFixtures.cs`, `Tests/Fixtures/vacancies/*.txt`, `Tests/Fixtures/profiles/regression-profile.json` | rank ranges per posting | — | itself |
 | Shipped config check | `Tests/Unit/Scoring/ShippedConfig.cs` | loads real `appsettings.json` | — | — |
 
 Config: `Relevance` (BaseScore, TitleFactor, SoftenedFactor, RelevantFrom, MaybeFrom, RescoreOnStartup, GroupCaps,
-ProfileSkills, Positive, Negative). Validator: `Infra/RelevanceOptionsValidator.cs`.
+NiceToHaveFactor, LearningKeywordFactor, BasicSkills, BasicsGroup, ProfileSkills, Positive, Negative). Validator: `Infra/RelevanceOptionsValidator.cs`.
 
 ## Fit check („Passt zu mir?")
 
 | Feature | Files | Key symbols | API | Tests |
 |---|---|---|---|---|
 | Fit analysis + penalties | `Core/Fit/FitAnalyzer.cs`, `FitOptions.cs`, `FitSettings.cs`, `VacancyFitService.cs` | `FitAnalyzer.Analyze`, `FitResult`, `FitPenalties` | `GET /api/vacancies/{id}/fit` | `Unit/Fit/FitAnalyzerTests.cs`, `Integration/ProfileAndFitApiTests.cs` |
-| Must-have / nice-to-have | `Core/Fit/RequirementSections.cs` | `RequirementSections.Parse`, `RequirementImportance` | — | `Unit/Fit/RequirementImportanceTests.cs` |
+| Must-have / stack / nice-to-have | `Core/Fit/RequirementSections.cs` | `RequirementSections.Parser`, `RequirementImportance`, `SectionKind` | — | `Unit/Fit/RequirementImportanceTests.cs`, `Unit/Fit/TechnologyCatalogTests.cs` |
+| Technology catalog | `Core/Fit/technologies.json` (embedded), `Core/Fit/TechnologyCatalog.cs` | `TechnologyCatalog.All`, `Contains`, `Technology.Parent` | — | `Unit/Fit/TechnologyCatalogTests.cs` |
+| Reachability | `Core/Scoring/HomeOfficeShare.cs`, `FitAnalyzer` (`FitResult.Unreachable`), `Vacancy.Unreachable` | `HomeOfficeShare.Find` | `GET /api/vacancies?includeUnreachable=true` | `Unit/Fit/TechnologyCatalogTests.cs`, `Unit/Fit/FitAnalyzerTests.cs` |
 | Profile skills | `Core/Profile/CandidateProfile.cs`, `SkillTerms.cs`, `ProfileValidator.cs`, `Infra/Profile/FileCandidateProfileSource.cs` | `SkillTerms.Evidence`, `ProfileValidator` | `GET /api/profile` (`Api/Features/Profile/ProfileEndpoints.cs`) | `Unit/Profile/ProfileTests.cs` |
 
-Config: `Fit` (CommonRequirements, OptionalMarkers, Penalties; heading lists default in `FitOptions`), `Profile:Path`
+Config: `Fit` (CommonRequirements, OptionalMarkers, Penalties; heading/marker lists, `UseTechnologyCatalog`,
+`ReachableFromHomeOfficePercent` default in `FitOptions`), `Profile:Path`
 (default `data/profile.json`; example `docs/profile.example.json`).
 
 ## Remote, agency and German detection

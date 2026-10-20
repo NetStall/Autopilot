@@ -15,8 +15,16 @@ public class RankingRegressionTests
         { "aracom-dotnet-angular-vue", 80, 95 },
         // Senior C#/.NET, but AWS is a must-have gap, German B2 („sicher auf Deutsch"), strong seniority signal (05c).
         { "medifox-senior-aws", 33, 41 },
-        // C# but C1 German and hybrid outside my region („anteilig Homeoffice" beats the 100 % field).
-        { "ifm-prover-csharp", 28, 42 },
+        // C# but C1 German, and hybrid outside my region with an unknown home-office share: not reachable (05d).
+        { "ifm-prover-csharp", 5, 25 },
+        // C#/.NET in the title, but DevExpress (Pflicht), Blazor, SignalR, gRPC, XPO in the stack, 40 % home office in
+        // Schmallenberg: not reachable (05d).
+        { "schmidt-blazor-devexpress", 0, 35 },
+        // Broadcast/MAM domain, codecs, FFmpeg, MXF, Kubernetes/Helm required; C# only one of three languages (05d).
+        { "vidispine-broadcast", 0, 30 },
+        // Title only (no description fetched): my stack in my region.
+        { "tgw-fullstack-vue", 80, 95 },
+        { "meierhofer-dotnet-vue", 80, 95 },
         // Same company, other main language / framework: must stay at the bottom.
         { "aracom-java-angular-vue", 0, 10 },
         { "aracom-go-vue", 0, 10 },
@@ -46,6 +54,29 @@ public class RankingRegressionTests
         vacancy.EmployerType.Should().Be(EmployerType.Direct, "Himalayas lists the hiring company");
         vacancy.RequiredGerman.Should().Be(RequiredGerman.B2);
         vacancy.RemoteLevel.Should().Be(RemoteLevel.FullRemote);
+    }
+
+    [Fact]
+    public void Schmidt_counts_no_skill_i_do_not_have_and_is_not_reachable()
+    {
+        var vacancy = RealWorldFixtures.Scored("schmidt-blazor-devexpress");
+
+        vacancy.RelevanceReasons.Should().NotContain(r => r.StartsWith("Blazor", StringComparison.Ordinal), "Blazor is not in my profile");
+        vacancy.RelevanceReasons.Should().Contain(r => r.StartsWith("Fit: Muss-Anforderung, nicht im Profil: DevExpress", StringComparison.Ordinal));
+        vacancy.RelevanceReasons.Should().Contain(r => r.StartsWith("Fit: Im Tech-Stack, nicht im Profil:", StringComparison.Ordinal)
+            && r.Contains("Blazor", StringComparison.Ordinal) && r.Contains("SignalR", StringComparison.Ordinal) && r.Contains("gRPC", StringComparison.Ordinal));
+        vacancy.RelevanceReasons.Should().Contain(r => r.StartsWith("Fit: Praktisch nicht erreichbar", StringComparison.Ordinal) && r.Contains("bis 40 %", StringComparison.Ordinal));
+        vacancy.Unreachable.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Vidispine_domain_requirements_are_must_have_gaps()
+    {
+        var vacancy = RealWorldFixtures.Scored("vidispine-broadcast");
+
+        vacancy.RelevanceReasons.Should().Contain(r => r.StartsWith("Fit: Muss-Anforderung, nicht im Profil:", StringComparison.Ordinal)
+            && r.Contains("Broadcast", StringComparison.Ordinal) && r.Contains("FFmpeg", StringComparison.Ordinal) && r.Contains("MXF", StringComparison.Ordinal));
+        vacancy.Unreachable.Should().BeFalse("fully remote");
     }
 
     [Fact]

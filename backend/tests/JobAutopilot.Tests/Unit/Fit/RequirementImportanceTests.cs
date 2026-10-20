@@ -92,11 +92,15 @@ public class RequirementImportanceTests
     }
 
     [Fact]
-    public void All_gaps_share_one_cap()
+    public void Must_have_gaps_have_their_own_cap_and_all_other_gaps_share_one()
     {
-        var result = Analyze("Developer", "Was du mitbringst\n- AWS\n- Lambda\n- MSSQL");
+        var result = Analyze("Developer", "Was du mitbringst\n- AWS\n- Lambda\n- MSSQL\n\nTech-Stack\n- SignalR\n- gRPC");
 
-        result.Warnings.Should().ContainSingle().Which.Should().Be(new FitWarning("Muss-Anforderung, nicht im Profil: AWS, Lambda, SQL Server", 18));
+        result.Warnings.Should().BeEquivalentTo(
+        [
+            new FitWarning("Muss-Anforderung, nicht im Profil: AWS, Lambda, SQL Server", 30),
+            new FitWarning("Im Tech-Stack, nicht im Profil: SignalR, gRPC", 18),
+        ]);
     }
 
     [Fact]
@@ -169,10 +173,14 @@ public class RequirementImportanceTests
         var settings = new FitSettings(new SearchPenalties(), ["Deggendorf", "Regensburg"], RemoteGermany: true, RemotePreference.Any, []);
 
         var remote = Analyze("Developer", "C#. 100 % remote.", RemoteLevel.FullRemote, "20095 Hamburg", settings);
-        var hybrid = Analyze("Developer", "C#. 2 Tage Homeoffice.", RemoteLevel.Hybrid, "20095 Hamburg", settings);
+        var hybrid = Analyze("Developer", "C#. 4 Tage Homeoffice.", RemoteLevel.Hybrid, "20095 Hamburg", settings);
+        var twoDays = Analyze("Developer", "C#. 2 Tage Homeoffice.", RemoteLevel.Hybrid, "20095 Hamburg", settings);
 
-        remote.Warnings.Should().NotContain(w => w.Text.StartsWith("Außerhalb", StringComparison.Ordinal));
+        remote.Warnings.Should().NotContain(w => w.Text.StartsWith("Außerhalb", StringComparison.Ordinal) || w.Text.StartsWith("Praktisch", StringComparison.Ordinal));
+        remote.Unreachable.Should().BeFalse();
         hybrid.Warnings.Should().ContainSingle(w => w.Text.StartsWith("Außerhalb", StringComparison.Ordinal)).Which.Penalty.Should().Be(15);
+        twoDays.Warnings.Should().ContainSingle(w => w.Text.StartsWith("Praktisch nicht erreichbar", StringComparison.Ordinal)).Which.Penalty.Should().Be(35);
+        twoDays.Unreachable.Should().BeTrue();
     }
 
     [Fact]

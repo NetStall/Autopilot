@@ -1,0 +1,7 @@
+title: Full Stack Developer C# / Vue.js - Fokus Backend,Teunz,Regensburg
+company: TGW
+location: 93049 Regensburg
+source: Arbeitsagentur
+remoteHint: Unknown
+---
+

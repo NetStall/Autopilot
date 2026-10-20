@@ -142,8 +142,9 @@ public static class SearchProfileRules
         foreach (var (value, name) in new[]
                  {
                      (p.GermanPerLevel, "Deutsch je Stufe"), (p.Experience, "Erfahrung/Senior"), (p.ExperienceStrong, "Erfahrung (deutlich)"),
-                     (p.MustHaveGap, "Lücke Muss"), (p.RequiredGap, "Lücke"), (p.NiceToHaveGap, "Lücke Plus"),
-                     (p.RequiredGapMax, "Lücken gesamt"), (p.OutsideRegion, "Außerhalb der Region"),
+                     (p.MustHaveGap, "Lücke Muss"), (p.RequiredGap, "Lücke"), (p.LikelyRequiredGap, "Lücke Tech-Stack"),
+                     (p.NiceToHaveGap, "Lücke Plus"), (p.MustHaveGapMax, "Muss-Lücken gesamt"), (p.RequiredGapMax, "Lücken gesamt"),
+                     (p.OutsideRegion, "Außerhalb der Region"), (p.Unreachable, "Nicht erreichbar"),
                      (p.EmployerType, "Arbeitgebertyp"), (p.RemotePreference, "Remote-Wunsch"),
                  })
         {
@@ -156,6 +157,11 @@ public static class SearchProfileRules
         if (p.RequiredGapMax < p.RequiredGap)
         {
             errors.Add("Fit-Abzüge: „Lücken gesamt\" muss mindestens so groß sein wie „Lücke\".");
+        }
+
+        if (p.MustHaveGapMax < p.MustHaveGap)
+        {
+            errors.Add("Fit-Abzüge: „Muss-Lücken gesamt\" muss mindestens so groß sein wie „Lücke Muss\".");
         }
 
         if (profile.SalaryMin is < 0 || profile.SalaryMax is < 0 || profile.SalaryMin > profile.SalaryMax)
@@ -291,14 +297,18 @@ public static class SearchProfileRules
         Value(parts, "Mindestbewertung", before.MinScore, after.MinScore);
         Value(parts, "Top N", before.TopN, after.TopN);
         ListDiff(parts, "Deutsch-Filter", before.GermanFilter.Select(g => g.ToString()), after.GermanFilter.Select(g => g.ToString()));
+        Value(parts, "Nicht erreichbare ausblenden", before.HideUnreachable, after.HideUnreachable);
         Value(parts, "Abzug Deutsch", before.Penalties.GermanPerLevel, after.Penalties.GermanPerLevel);
         Value(parts, "Abzug Erfahrung", before.Penalties.Experience, after.Penalties.Experience);
         Value(parts, "Abzug Erfahrung (deutlich)", before.Penalties.ExperienceStrong, after.Penalties.ExperienceStrong);
         Value(parts, "Abzug Lücke Muss", before.Penalties.MustHaveGap, after.Penalties.MustHaveGap);
         Value(parts, "Abzug Lücke", before.Penalties.RequiredGap, after.Penalties.RequiredGap);
+        Value(parts, "Abzug Lücke Tech-Stack", before.Penalties.LikelyRequiredGap, after.Penalties.LikelyRequiredGap);
         Value(parts, "Abzug Lücke Plus", before.Penalties.NiceToHaveGap, after.Penalties.NiceToHaveGap);
+        Value(parts, "Abzug Muss-Lücken gesamt", before.Penalties.MustHaveGapMax, after.Penalties.MustHaveGapMax);
         Value(parts, "Abzug Lücken gesamt", before.Penalties.RequiredGapMax, after.Penalties.RequiredGapMax);
         Value(parts, "Abzug Region", before.Penalties.OutsideRegion, after.Penalties.OutsideRegion);
+        Value(parts, "Abzug nicht erreichbar", before.Penalties.Unreachable, after.Penalties.Unreachable);
         Value(parts, "Abzug Arbeitgebertyp", before.Penalties.EmployerType, after.Penalties.EmployerType);
         Value(parts, "Abzug Remote-Wunsch", before.Penalties.RemotePreference, after.Penalties.RemotePreference);
         Value(parts, "Gehalt von", before.SalaryMin, after.SalaryMin);

@@ -27,7 +27,7 @@ Dependency rule: `Api → Infrastructure → Core`; Core references nothing. The
 4. `VacancyDetailsService.FetchAsync` loads descriptions of new/changed vacancies (capped per run).
 5. `VacancyEnricher.Apply` sets relevance (`RelevanceScorer`), remote level (`RemoteClassifier`), employer type
    (`EmployerClassifier`), required German (`GermanRequirementDetector`) and rank = relevance − fit penalties
-   (`FitAnalyzer` via `VacancyFitService`).
+   (`FitAnalyzer` via `VacancyFitService`, with the technology catalog and the reachability rule → `Unreachable`).
 6. `GET /api/vacancies` filters/sorts in SQL (`VacancyQueryExtensions`), returns facets; the detail page asks
    `GET /api/vacancies/{id}/fit` for the full „Passt zu mir?" check.
 
@@ -83,5 +83,6 @@ Frontend CSP in `frontend/server/plugins/content-security-policy.ts`. Details: [
 - [0009](decisions/0009-search-profile.md) — Suchprofil.
 - [0010](decisions/0010-application-documents.md) — application documents.
 - [0011](decisions/0011-requirement-importance-and-german.md) — requirement importance, required German.
+- [0012](decisions/0012-technology-catalog-and-reachability.md) — technology catalog, profile-gated keywords, reachability.
 
 Schema: [schema.md](schema.md). Roadmap: [ROADMAP.md](ROADMAP.md).

@@ -8,7 +8,8 @@ namespace JobAutopilot.Core.Vacancies;
 /// moment (they are deleted with the next import). <see cref="MinScore"/> compares the rank score (relevance minus fit
 /// penalties); unscored vacancies are left out by any minimum above 0. <see cref="HiddenEmployerTypes"/> (Suchprofil
 /// „ausblenden") are left out unless <see cref="EmployerTypes"/> asks for them. <see cref="RequiredGerman"/> filters by
-/// the German the posting asks for („Deutsch erforderlich").
+/// the German the posting asks for („Deutsch erforderlich"). <see cref="HideUnreachable"/> leaves out vacancies marked
+/// as not reachable (Suchprofil „Nicht erreichbare Stellen ausblenden").
 /// </summary>
 public sealed record VacancyFilter(
     string? Text = null,
@@ -26,7 +27,8 @@ public sealed record VacancyFilter(
     DateTimeOffset? NotExpiredAt = null,
     int? MinScore = null,
     IReadOnlyCollection<EmployerType>? HiddenEmployerTypes = null,
-    IReadOnlyCollection<RequiredGerman>? RequiredGerman = null);
+    IReadOnlyCollection<RequiredGerman>? RequiredGerman = null,
+    bool HideUnreachable = false);
 
 public enum VacancySort
 {

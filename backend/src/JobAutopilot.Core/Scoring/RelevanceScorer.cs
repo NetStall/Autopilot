@@ -1,4 +1,6 @@
 using System.Globalization;
+using JobAutopilot.Core.Fit;
+using JobAutopilot.Core.Profile;
 using JobAutopilot.Core.Vacancies;
 
 namespace JobAutopilot.Core.Scoring;
@@ -7,18 +9,24 @@ namespace JobAutopilot.Core.Scoring;
 public sealed record RelevanceResult(int Score, RelevanceLevel Level, IReadOnlyList<string> Reasons);
 
 /// <summary>
-/// Scores a vacancy against the profile with the keyword rules of <see cref="RelevanceOptions"/>. Pure and
-/// deterministic: the same title, description and options always give the same result.
+/// Scores a vacancy against the profile with the keyword rules of <see cref="RelevanceOptions"/>. A match found only
+/// in a nice-to-have section counts less (<see cref="RelevanceOptions.NiceToHaveFactor"/>); basics share one small
+/// group cap. Pure and deterministic: the same title, description and options always give the same result.
 /// </summary>
 public sealed class RelevanceScorer
 {
     private readonly RelevanceOptions _options;
     private readonly CompiledRule[] _positive;
     private readonly CompiledRule[] _negative;
+    private readonly Func<string, RequirementSections> _sections;
 
     /// <param name="additionalPositive">More positive rules, e.g. from the candidate profile's skills. A rule whose
     /// name or terms are already covered by a configured rule is ignored, so a skill never counts twice.</param>
-    public RelevanceScorer(RelevanceOptions options, IEnumerable<RelevanceRule>? additionalPositive = null)
+    /// <param name="sections">Splits a description into sections; default: the default headings of <see cref="FitOptions"/>.</param>
+    public RelevanceScorer(
+        RelevanceOptions options,
+        IEnumerable<RelevanceRule>? additionalPositive = null,
+        Func<string, RequirementSections>? sections = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         _options = options;
@@ -28,9 +36,13 @@ public sealed class RelevanceScorer
             StringComparer.OrdinalIgnoreCase);
         var extra = (additionalPositive ?? [])
             .Where(r => !known.Contains(r.Name.Trim()) && !r.Terms.Any(t => known.Contains(t.Trim())));
-        _positive = [.. configured.Concat(extra).Select(r => new CompiledRule(r))];
-        _negative = [.. options.Negative.Select(r => new CompiledRule(r))];
+        var basics = new HashSet<string>(options.BasicSkills.Select(SkillTerms.Key), StringComparer.Ordinal);
+        _positive = [.. configured.Concat(extra).Select(r => new CompiledRule(r, basics.Contains(SkillTerms.Key(r.Name))))];
+        _negative = [.. options.Negative.Select(r => new CompiledRule(r, isBasic: false))];
+        _sections = sections ?? DefaultSections;
     }
+
+    private static readonly Func<string, RequirementSections> DefaultSections = RequirementSections.Parser(new FitOptions());
 
     public RelevanceResult Score(string title, string? description)
     {
@@ -40,6 +52,8 @@ public sealed class RelevanceScorer
         var anyPositive = false;
 
         var corePlace = Place.None;
+        var sections = string.IsNullOrWhiteSpace(description) ? null : _sections(description);
+        var found = new List<(CompiledRule Rule, double Points)>();
         foreach (var rule in _positive)
         {
             var (place, matched) = rule.Find(title, description);
@@ -53,12 +67,29 @@ public sealed class RelevanceScorer
                 corePlace = place;
             }
 
-            var points = rule.Rule.Weight * Factor(place);
-            contributions.Add((points, $"{rule.Rule.Name}{Matched(rule.Rule.Name, matched)}{Where(place)} ✓ ({Signed(points)})"));
+            // „Kenntnisse in Bootstrap" under „Dein Profil (Nice to Have)" is a weaker signal than the same under „Was du mitbringst".
+            var onlyNiceToHave = place == Place.Description && sections is not null && rule.OnlyIn(description!, sections, SectionKind.NiceToHave);
+            var points = rule.Rule.Weight * Factor(place) * (onlyNiceToHave ? _options.NiceToHaveFactor : 1);
+            contributions.Add((points, $"{rule.Rule.Name}{Matched(rule.Rule.Name, matched)}{Where(place)}{(onlyNiceToHave ? " (nur „Plus“)" : string.Empty)} ✓ ({Signed(points)})"));
             anyPositive = true;
-            if (rule.Rule.Group is { Length: > 0 } group)
+            found.Add((rule, points));
+        }
+
+        // Basics (HTML/CSS, Git, Scrum, REST …) are in almost every posting: together they count at most the basics
+        // cap. They are scaled down first and then still count in their own group, so the cap can only lower a score.
+        var basicsTotal = found.Where(f => f.Rule.IsBasic).Sum(f => f.Points);
+        var basicsScale = 1.0;
+        if (_options.GroupCaps.TryGetValue(_options.BasicsGroup, out var basicsCap) && basicsTotal > basicsCap)
+        {
+            basicsScale = basicsCap / basicsTotal;
+            contributions.Add((basicsCap - basicsTotal, $"Gruppe {_options.BasicsGroup} gedeckelt auf {basicsCap} ({Signed(basicsCap - basicsTotal)})"));
+        }
+
+        foreach (var (rule, points) in found)
+        {
+            if (rule.Rule.Group is { Length: > 0 } group && !(rule.IsBasic && string.Equals(group, _options.BasicsGroup, StringComparison.OrdinalIgnoreCase)))
             {
-                groupTotals[group] = groupTotals.GetValueOrDefault(group) + points;
+                groupTotals[group] = groupTotals.GetValueOrDefault(group) + (rule.IsBasic ? points * basicsScale : points);
             }
         }
 
@@ -141,11 +172,21 @@ public sealed class RelevanceScorer
         Title = 2,
     }
 
-    private sealed class CompiledRule(RelevanceRule rule)
+    private sealed class CompiledRule(RelevanceRule rule, bool isBasic)
     {
         private readonly TermMatcher _matcher = new(rule.Terms, rule.MatchCase);
 
         public RelevanceRule Rule { get; } = rule;
+
+        /// <summary>One of <see cref="RelevanceOptions.BasicSkills"/>.</summary>
+        public bool IsBasic { get; } = isBasic;
+
+        /// <summary>Every mention in the description lies in sections of this kind.</summary>
+        public bool OnlyIn(string description, RequirementSections sections, SectionKind kind)
+        {
+            var hits = _matcher.FindAll(description).ToList();
+            return hits.Count > 0 && hits.All(h => sections.At(h.Index) == kind);
+        }
 
         public (Place Place, string? Text) Find(string title, string? description)
         {

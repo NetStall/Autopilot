@@ -69,6 +69,12 @@ public class Vacancy
     /// <summary>The German the posting asks for (filter „Deutsch erforderlich"); set on every (re-)scoring.</summary>
     public RequiredGerman RequiredGerman { get; set; }
 
+    /// <summary>
+    /// Practically not reachable: outside my places, not fully remote, at most 60 % home office or an unknown share
+    /// (Suchprofil „Nicht erreichbare Stellen ausblenden"); set on every (re-)scoring.
+    /// </summary>
+    public bool Unreachable { get; set; }
+
     /// <summary>Why the vacancy got its score, remote level and employer type (German, shown in the UI).</summary>
     public List<string> RelevanceReasons { get; set; } = [];
 

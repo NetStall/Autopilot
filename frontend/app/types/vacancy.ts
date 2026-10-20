@@ -55,6 +55,8 @@ export interface Vacancy {
   /** „Beworben": an application exists for this job (or the same company with a similar title). */
   applied: AppliedInfo | null
   requiredGerman: RequiredGerman
+  /** Practically not reachable (outside my places, not fully remote, at most 60 % home office). */
+  unreachable: boolean
 }
 
 export interface PagedResponse<T> {

@@ -456,6 +456,10 @@ onBeforeUnmount(() => {
             {{ requiredGermanLabel(level) }}
           </label>
         </fieldset>
+        <label class="sp__check">
+          <input v-model="form.hideUnreachable" type="checkbox" data-test="hide-unreachable">
+          Nicht erreichbare Stellen ausblenden (außerhalb meiner Orte, nicht voll remote, höchstens 60 % Homeoffice)
+        </label>
         <fieldset>
           <legend>Fit-Abzüge (0–{{ MAX_PENALTY }} Punkte)</legend>
           <p class="sp__help">
@@ -477,14 +481,23 @@ onBeforeUnmount(() => {
             <label for="pen-gap">je fehlende sonstige Pflicht-Technologie
               <input id="pen-gap" v-model.number="form.penalties.requiredGap" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
             </label>
+            <label for="pen-stack">je fehlende Technologie im Tech-Stack („Sprachen &amp; Technologien")
+              <input id="pen-stack" v-model.number="form.penalties.likelyRequiredGap" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
+            </label>
             <label for="pen-plus">je fehlendes „Plus" („von Vorteil", „kein Muss")
               <input id="pen-plus" v-model.number="form.penalties.niceToHaveGap" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
             </label>
-            <label for="pen-gap-max">höchstens für fehlende Technologien
+            <label for="pen-must-max">höchstens für fehlende Muss-Anforderungen
+              <input id="pen-must-max" v-model.number="form.penalties.mustHaveGapMax" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
+            </label>
+            <label for="pen-gap-max">höchstens für alle anderen fehlenden Technologien
               <input id="pen-gap-max" v-model.number="form.penalties.requiredGapMax" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
             </label>
             <label for="pen-region">außerhalb der Region
               <input id="pen-region" v-model.number="form.penalties.outsideRegion" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
+            </label>
+            <label for="pen-unreachable">praktisch nicht erreichbar (höchstens 60 % Homeoffice)
+              <input id="pen-unreachable" v-model.number="form.penalties.unreachable" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
             </label>
             <label for="pen-employer">„niedriger einordnen"
               <input id="pen-employer" v-model.number="form.penalties.employerType" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">

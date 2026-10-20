@@ -44,6 +44,7 @@ public static partial class VacancyEndpoints
         {
             NotExpiredAt = timeProvider.GetUtcNow(),
             HiddenEmployerTypes = searchProfiles.Current.Profile.HiddenEmployerTypes(),
+            HideUnreachable = searchProfiles.Current.Profile.HideUnreachable && request.IncludeUnreachable != true,
         };
         var page = request.PageOrDefault;
         var pageSize = request.PageSizeOrDefault;

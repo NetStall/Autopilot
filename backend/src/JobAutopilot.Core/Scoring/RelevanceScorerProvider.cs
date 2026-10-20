@@ -1,3 +1,4 @@
+using JobAutopilot.Core.Fit;
 using JobAutopilot.Core.Profile;
 using JobAutopilot.Core.SearchProfiles;
 
@@ -19,7 +20,8 @@ public sealed class FixedRelevanceScorerProvider(RelevanceScorer scorer) : IRele
 /// The keywords of the Suchprofil (must-have, nice-to-have, exclusions) with the scoring mechanics of the configuration
 /// (base score, title factor, group caps, thresholds), plus the profile's skills as a small bonus (weight by level:
 /// Production > Project > Learning; <c>None</c> adds nothing). Rebuilt when the profile file or the Suchprofil
-/// changes. Without a Suchprofil the configured keyword lists are used.
+/// changes. Without a Suchprofil the configured keyword lists are used. A keyword that names a technology only scores
+/// when the profile has it (<see cref="ForProfile"/>).
 /// </summary>
 public sealed class ProfileRelevanceScorerProvider(
     RelevanceOptions options,
@@ -53,11 +55,6 @@ public sealed class ProfileRelevanceScorerProvider(
     public static RelevanceScorer Build(RelevanceOptions mechanics, SearchProfile? searchProfile, CandidateProfile? profile)
     {
         ArgumentNullException.ThrowIfNull(mechanics);
-        if (searchProfile is null)
-        {
-            return new RelevanceScorer(mechanics, RulesFrom(profile, mechanics.ProfileSkills));
-        }
-
         var effective = new RelevanceOptions
         {
             BaseScore = mechanics.BaseScore,
@@ -68,10 +65,69 @@ public sealed class ProfileRelevanceScorerProvider(
             GroupCaps = mechanics.GroupCaps,
             ProfileSkills = mechanics.ProfileSkills,
             RescoreOnStartup = mechanics.RescoreOnStartup,
+            NiceToHaveFactor = mechanics.NiceToHaveFactor,
+            LearningKeywordFactor = mechanics.LearningKeywordFactor,
+            BasicsGroup = mechanics.BasicsGroup,
         };
-        effective.Positive.AddRange(searchProfile.MustHave.Concat(searchProfile.NiceToHave).Select(k => k.ToRule()));
-        effective.Negative.AddRange(searchProfile.Exclude.Select(k => k.ToRule()));
+        effective.BasicSkills.AddRange(mechanics.BasicSkills);
+        var keywords = searchProfile is null
+            ? mechanics.Positive
+            : searchProfile.MustHave.Concat(searchProfile.NiceToHave).Select(k => k.ToRule());
+        effective.Positive.AddRange(ForProfile(keywords, profile, mechanics.LearningKeywordFactor));
+        effective.Negative.AddRange(searchProfile is null ? mechanics.Negative : searchProfile.Exclude.Select(k => k.ToRule()));
         return new RelevanceScorer(effective, RulesFrom(profile, mechanics.ProfileSkills));
+    }
+
+    /// <summary>
+    /// Keywords as the profile allows them: a skill at <c>Production</c>/<c>Project</c> scores fully, one I am
+    /// learning with <paramref name="learningFactor"/>, one at <c>None</c> not at all. A keyword that names a known
+    /// technology (<see cref="TechnologyCatalog"/>) the profile does not list does not score either — Blazor in the
+    /// Suchprofil is a requirement to check, not a match. Other keywords („Fullstack", „Softwareentwicklung") stay.
+    /// Without a profile every keyword stays.
+    /// </summary>
+    public static IEnumerable<RelevanceRule> ForProfile(IEnumerable<RelevanceRule> keywords, CandidateProfile? profile, double learningFactor)
+    {
+        ArgumentNullException.ThrowIfNull(keywords);
+        foreach (var keyword in keywords)
+        {
+            if (profile is null)
+            {
+                yield return keyword;
+                continue;
+            }
+
+            var names = new HashSet<string>(keyword.Terms.Append(keyword.Name).Select(SkillTerms.Key), StringComparer.Ordinal);
+            var skill = profile.Skills.FirstOrDefault(s => s.AllNames().Any(n => names.Contains(SkillTerms.Key(n))));
+            switch (skill?.Level)
+            {
+                case SkillLevel.Production or SkillLevel.Project:
+                    yield return keyword;
+                    break;
+                case SkillLevel.Learning:
+                    yield return WithWeight(keyword, Math.Max(1, (int)Math.Round(keyword.Weight * learningFactor, MidpointRounding.AwayFromZero)));
+                    break;
+                case null when !keyword.Terms.Append(keyword.Name).Any(TechnologyCatalog.Contains):
+                    yield return keyword;
+                    break;
+            }
+        }
+    }
+
+    private static RelevanceRule WithWeight(RelevanceRule rule, int weight)
+    {
+        var copy = new RelevanceRule
+        {
+            Name = rule.Name,
+            Weight = weight,
+            MatchCase = rule.MatchCase,
+            TitleOnly = rule.TitleOnly,
+            Core = rule.Core,
+            Group = rule.Group,
+            SoftenedByCore = rule.SoftenedByCore,
+            Reason = rule.Reason,
+        };
+        copy.Terms.AddRange(rule.Terms);
+        return copy;
     }
 
     public static IEnumerable<RelevanceRule> RulesFrom(CandidateProfile? profile, ProfileSkillWeights weights)

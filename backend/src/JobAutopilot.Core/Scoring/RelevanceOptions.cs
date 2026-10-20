@@ -39,6 +39,20 @@ public sealed class RelevanceOptions
     /// <summary>Re-score all vacancies when the API starts (picks up changed weights and phrases).</summary>
     public bool RescoreOnStartup { get; set; } = true;
 
+    /// <summary>A match found only in a nice-to-have section („Dein Profil (Nice to Have)") counts this much.</summary>
+    public double NiceToHaveFactor { get; set; } = 0.5;
+
+    /// <summary>A Suchprofil keyword for a skill I am only learning counts this much of its weight.</summary>
+    public double LearningKeywordFactor { get; set; } = 0.5;
+
+    /// <summary>
+    /// Basics every posting mentions (HTML/CSS, Git, Scrum, Code Reviews, REST, Docker …): together they count at most
+    /// the cap of <see cref="BasicsGroup"/> (in <see cref="GroupCaps"/>), on top of the cap of their own group.
+    /// </summary>
+    public List<string> BasicSkills { get; init; } = [];
+
+    public string BasicsGroup { get; set; } = "basics";
+
     /// <summary>Human-readable problems with the configuration; empty when it is valid.</summary>
     public IReadOnlyList<string> Validate()
     {
@@ -56,6 +70,11 @@ public sealed class RelevanceOptions
         if (SoftenedFactor is < 0 or > 1)
         {
             errors.Add("SoftenedFactor must be between 0 and 1.");
+        }
+
+        if (NiceToHaveFactor is < 0 or > 1 || LearningKeywordFactor is < 0 or > 1)
+        {
+            errors.Add("NiceToHaveFactor and LearningKeywordFactor must be between 0 and 1.");
         }
 
         if (MaybeFrom < 0 || RelevantFrom > 100 || MaybeFrom >= RelevantFrom)

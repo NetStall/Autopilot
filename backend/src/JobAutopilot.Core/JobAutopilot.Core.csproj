@@ -1,3 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <EmbeddedResource Include="Fit\technologies.json" LogicalName="JobAutopilot.Core.Fit.technologies.json" />
+  </ItemGroup>
+
 </Project>

@@ -44,6 +44,11 @@ public static class VacancyQueryExtensions
             query = query.Where(v => german.Contains(v.RequiredGerman));
         }
 
+        if (filter.HideUnreachable)
+        {
+            query = query.Where(v => !v.Unreachable);
+        }
+
         if (filter.IsSeen is { } isSeen)
         {
             query = query.Where(v => v.IsSeen == isSeen);

@@ -128,12 +128,22 @@ public sealed class SearchPenalties
     /// <summary>Per gap required elsewhere (title, tasks, no section found).</summary>
     public int RequiredGap { get; set; } = 6;
 
+    /// <summary>Per gap in a stack section without a marker („Sprachen &amp; Technologien", „Tech-Stack").</summary>
+    public int LikelyRequiredGap { get; set; } = 10;
+
     /// <summary>Per gap that is only nice to have („Ein Plus", „von Vorteil", „wünschenswert").</summary>
     public int NiceToHaveGap { get; set; } = 4;
 
+    /// <summary>Must-have gaps together at most this much.</summary>
+    public int MustHaveGapMax { get; set; } = 30;
+
+    /// <summary>All other gaps together at most this much.</summary>
     public int RequiredGapMax { get; set; } = 18;
 
     public int OutsideRegion { get; set; } = 15;
+
+    /// <summary>Outside my places, not fully remote and at most 60 % home office (or unknown): practically not reachable.</summary>
+    public int Unreachable { get; set; } = 35;
 
     /// <summary>For agencies / temporary work with policy <see cref="EmployerTypePolicy.RankLower"/>.</summary>
     public int EmployerType { get; set; } = 10;
@@ -193,6 +203,9 @@ public sealed class SearchProfile
 
     /// <summary>Default of the list filter „Deutsch erforderlich" while the URL has none; empty = all.</summary>
     public List<Vacancies.RequiredGerman> GermanFilter { get; set; } = [];
+
+    /// <summary>„Nicht erreichbare Stellen ausblenden": the list leaves out vacancies the fit check marks as not reachable.</summary>
+    public bool HideUnreachable { get; set; } = true;
 
     public SearchPenalties Penalties { get; set; } = new();
 

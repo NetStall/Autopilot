@@ -179,19 +179,24 @@ public class FitAnalyzerTests
     }
 
     [Theory]
-    [InlineData("24103 Kiel", RemoteLevel.Hybrid, true)]
-    [InlineData("94469 Deggendorf", RemoteLevel.Hybrid, false)]
-    [InlineData("93049 Regensburg", RemoteLevel.OnSite, false)]
-    [InlineData("24103 Kiel", RemoteLevel.FullRemote, false)]
-    [InlineData(null, RemoteLevel.Hybrid, false)]
-    public void Jobs_outside_my_regions_cost_points_unless_fully_remote(string? location, RemoteLevel remote, bool penalised)
+    [InlineData("24103 Kiel", RemoteLevel.Hybrid, "80 % Homeoffice", 15, false)]
+    [InlineData("24103 Kiel", RemoteLevel.Hybrid, "Homeoffice bis zu 40 %", 35, true)]
+    [InlineData("24103 Kiel", RemoteLevel.Hybrid, "Text", 35, true)]
+    [InlineData("24103 Kiel", RemoteLevel.OnSite, "Text", 35, true)]
+    [InlineData("94469 Deggendorf", RemoteLevel.Hybrid, "Text", 0, false)]
+    [InlineData("93049 Regensburg", RemoteLevel.OnSite, "Text", 0, false)]
+    [InlineData("24103 Kiel", RemoteLevel.FullRemote, "Text", 0, false)]
+    [InlineData(null, RemoteLevel.Hybrid, "Text", 0, false)]
+    public void Jobs_outside_my_regions_cost_points_unless_fully_remote_and_are_unreachable_with_little_home_office(
+        string? location, RemoteLevel remote, string description, int penalty, bool unreachable)
     {
         var settings = FitSettings.Neutral with { Places = ["Deggendorf", "Regensburg"], RemoteGermany = true };
 
-        var result = _analyzer.Analyze(Profile, new FitInput("Dev", "Text", EmployerType.Direct, location, remote), Today, settings);
+        var result = _analyzer.Analyze(Profile, new FitInput("Dev", description, EmployerType.Direct, location, remote), Today, settings);
 
-        result.Warnings.Any(w => w.Text.StartsWith("Außerhalb meiner Regionen", StringComparison.Ordinal) && w.Penalty == 15)
-            .Should().Be(penalised);
+        result.Warnings.Where(w => w.Text.StartsWith("Außerhalb meiner Regionen", StringComparison.Ordinal) || w.Text.StartsWith("Praktisch nicht erreichbar", StringComparison.Ordinal))
+            .Sum(w => w.Penalty).Should().Be(penalty);
+        result.Unreachable.Should().Be(unreachable);
     }
 
     [Theory]

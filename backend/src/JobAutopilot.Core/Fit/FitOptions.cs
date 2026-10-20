@@ -23,7 +23,16 @@ public sealed class FitOptions
     /// <summary>Headings that end a requirements section („Deine Aufgaben", „Wir bieten", „Benefits" …); empty = defaults.</summary>
     public List<string> OtherHeadings { get; init; } = [];
 
-    /// <summary>A requirement in the same sentence as one of these is a must-have („(Must-have)", „zwingend"); empty = defaults.</summary>
+    /// <summary>Headings of stack sections („Sprachen &amp; Technologien", „Tech-Stack") — likely required; empty = defaults.</summary>
+    public List<string> StackHeadings { get; init; } = [];
+
+    /// <summary>The dictionary of common technologies (<see cref="TechnologyCatalog"/>) finds requirements not in the profile.</summary>
+    public bool UseTechnologyCatalog { get; init; } = true;
+
+    /// <summary>Outside my places, not fully remote and at most this much home office (or unknown) = not reachable.</summary>
+    public int ReachableFromHomeOfficePercent { get; init; } = 60;
+
+    /// <summary>A requirement in the same sentence as one of these is a must-have („(Pflicht)", „zwingend"); empty = defaults.</summary>
     public List<string> MustHaveMarkers { get; init; } = [];
 
     /// <summary>Only seeds the Suchprofil's penalties on first start (step 05b); afterwards they are edited there.</summary>
@@ -51,11 +60,24 @@ public sealed class FitOptions
         "Responsibilities", "We offer", "What we offer", "About us", "Perks",
     ];
 
-    public static readonly string[] DefaultMustHaveMarkers = ["Must-have", "Must have", "zwingend", "unbedingt erforderlich", "required"];
+    public static readonly string[] DefaultStackHeadings =
+    [
+        "Sprachen & Technologien", "Technologien", "Technologie-Stack", "Tech-Stack", "Tech Stack", "Techstack", "Unser Stack",
+        "Unser Tech-Stack", "Tools & Technologien", "Tooling and stack", "Tooling & stack", "Our stack", "Our tech stack",
+        "Technologies", "Tech stack and tools",
+    ];
+
+    public static readonly string[] DefaultMustHaveMarkers =
+    [
+        "Must-have", "Must have", "must", "(Pflicht)", "Pflicht", "zwingend", "unbedingt erforderlich", "Voraussetzung",
+        "vorausgesetzt", "mindestens", "required",
+    ];
 
     public IReadOnlyList<string> EffectiveMustHaveHeadings => MustHaveHeadings.Count > 0 ? MustHaveHeadings : DefaultMustHaveHeadings;
 
     public IReadOnlyList<string> EffectiveNiceToHaveHeadings => NiceToHaveHeadings.Count > 0 ? NiceToHaveHeadings : DefaultNiceToHaveHeadings;
+
+    public IReadOnlyList<string> EffectiveStackHeadings => StackHeadings.Count > 0 ? StackHeadings : DefaultStackHeadings;
 
     public IReadOnlyList<string> EffectiveOtherHeadings => OtherHeadings.Count > 0 ? OtherHeadings : DefaultOtherHeadings;
 
@@ -90,14 +112,23 @@ public sealed class FitPenalties
     /// <summary>Per gap required elsewhere (title, tasks, no section found), e.g. Angular as the main framework …</summary>
     public int RequiredGap { get; set; } = 6;
 
+    /// <summary>Per gap in a stack section without a marker („Sprachen &amp; Technologien") — likely required.</summary>
+    public int LikelyRequiredGap { get; set; } = 10;
+
     /// <summary>Per gap that is only nice to have („Ein Plus", „von Vorteil").</summary>
     public int NiceToHaveGap { get; set; } = 4;
 
-    /// <summary>… up to this much in total.</summary>
+    /// <summary>Must-have gaps up to this much in total.</summary>
+    public int MustHaveGapMax { get; set; } = 30;
+
+    /// <summary>All other gaps up to this much in total.</summary>
     public int RequiredGapMax { get; set; } = 18;
 
     /// <summary>Not fully remote and the location is outside <c>preferences.regions</c> (a hybrid job in Kiel).</summary>
     public int OutsideRegion { get; set; } = 15;
+
+    /// <summary>… and at most <see cref="FitOptions.ReachableFromHomeOfficePercent"/> home office (or unknown): practically not reachable.</summary>
+    public int Unreachable { get; set; } = 35;
 
     /// <summary>Employer types listed in the profile's <c>preferences.avoidEmployerTypes</c> (e.g. Zeitarbeit).</summary>
     public int AvoidedEmployerType { get; set; } = 10;

@@ -34,9 +34,12 @@ export interface SearchPenalties {
   experienceStrong: number
   mustHaveGap: number
   requiredGap: number
+  likelyRequiredGap: number
   niceToHaveGap: number
+  mustHaveGapMax: number
   requiredGapMax: number
   outsideRegion: number
+  unreachable: number
   employerType: number
   remotePreference: number
 }
@@ -59,6 +62,8 @@ export interface SearchProfile {
   topN: number
   /** Default of „Deutsch erforderlich" while the URL has none; empty = all. */
   germanFilter: RequiredGerman[]
+  /** „Nicht erreichbare Stellen ausblenden": outside my places, not fully remote, at most 60 % home office. */
+  hideUnreachable: boolean
   penalties: SearchPenalties
   salaryMin: number | null
   salaryMax: number | null

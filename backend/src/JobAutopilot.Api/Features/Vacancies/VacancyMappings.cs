@@ -31,7 +31,8 @@ public static class VacancyMappings
         vacancy.DetailsFetchedAt,
         alsoFoundAt ?? [],
         applied,
-        vacancy.RequiredGerman);
+        vacancy.RequiredGerman,
+        vacancy.Unreachable);
 
     public static Vacancy ToManualVacancy(this CreateVacancyRequest request, DateTimeOffset now) =>
         Vacancy.CreateManual(

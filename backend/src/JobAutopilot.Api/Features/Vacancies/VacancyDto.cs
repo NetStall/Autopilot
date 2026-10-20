@@ -25,7 +25,8 @@ public sealed record VacancyDto(
     DateTimeOffset? DetailsFetchedAt,
     IReadOnlyList<VacancyLinkDto> AlsoFoundAt,
     AppliedDto? Applied,
-    RequiredGerman RequiredGerman = RequiredGerman.Unknown);
+    RequiredGerman RequiredGerman = RequiredGerman.Unknown,
+    bool Unreachable = false);
 
 /// <summary>I already applied — to this vacancy, or to the same company with a similar title („Beworben").</summary>
 public sealed record AppliedDto(Guid ApplicationId, Core.Applications.ApplicationStatus Status, string StatusLabel, DateTimeOffset AppliedAt);

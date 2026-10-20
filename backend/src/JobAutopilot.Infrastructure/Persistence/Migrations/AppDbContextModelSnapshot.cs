@@ -450,6 +450,11 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<bool>("Unreachable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Url")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
