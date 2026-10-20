@@ -29,7 +29,7 @@ public sealed class FitOptions
     /// <summary>The dictionary of common technologies (<see cref="TechnologyCatalog"/>) finds requirements not in the profile.</summary>
     public bool UseTechnologyCatalog { get; init; } = true;
 
-    /// <summary>Outside my places, not fully remote and at most this much home office (or unknown) = not reachable.</summary>
+    /// <summary>Outside my places, not fully remote and a stated home-office share of at most this much = not reachable.</summary>
     public int ReachableFromHomeOfficePercent { get; init; } = 60;
 
     /// <summary>A requirement in the same sentence as one of these is a must-have („(Pflicht)", „zwingend"); empty = defaults.</summary>
@@ -127,8 +127,11 @@ public sealed class FitPenalties
     /// <summary>Not fully remote and the location is outside <c>preferences.regions</c> (a hybrid job in Kiel).</summary>
     public int OutsideRegion { get; set; } = 15;
 
-    /// <summary>… and at most <see cref="FitOptions.ReachableFromHomeOfficePercent"/> home office (or unknown): practically not reachable.</summary>
+    /// <summary>… on site only or at most <see cref="FitOptions.ReachableFromHomeOfficePercent"/> home office: practically not reachable.</summary>
     public int Unreachable { get; set; } = 35;
+
+    /// <summary>… with an unknown home-office share („anteilig Homeoffice"): visible, a moderate penalty.</summary>
+    public int OutsideRegionUnknownShare { get; set; } = 20;
 
     /// <summary>Employer types listed in the profile's <c>preferences.avoidEmployerTypes</c> (e.g. Zeitarbeit).</summary>
     public int AvoidedEmployerType { get; set; } = 10;

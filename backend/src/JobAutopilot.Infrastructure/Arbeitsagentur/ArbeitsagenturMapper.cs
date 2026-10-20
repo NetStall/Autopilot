@@ -37,7 +37,8 @@ internal static partial class ArbeitsagenturMapper
             MapUrl(item.ExterneUrl, externalId),
             ParsePublishedAt(item.Veroeffentlichungszeitraum?.Von ?? item.DatumErsteVeroeffentlichung),
             RemoteHint: MapRemote(item.Homeofficemoeglich, item.Homeofficeprozent),
-            ChangedAt: ParseChangedAt(item.Aenderungsdatum));
+            ChangedAt: ParseChangedAt(item.Aenderungsdatum),
+            HomeOfficePercent: MapPercent(item.Homeofficeprozent));
     }
 
     public static VacancyDetails ToDetails(JobDetailsResponse details)
@@ -52,8 +53,13 @@ internal static partial class ArbeitsagenturMapper
         return new VacancyDetails(
             NormalizeDescription(details.StellenangebotsBeschreibung),
             MapRemote(details.Homeofficemoeglich, details.Homeofficeprozent),
-            employer);
+            employer,
+            MapPercent(details.Homeofficeprozent));
     }
+
+    /// <summary>The Jobbörse field „Homeoffice (bis zu 40 %)" (<c>homeofficetyp = ANGABE_IN_PROZENT</c>); 1–100 or none.</summary>
+    internal static int? MapPercent(double? percent) =>
+        percent is > 0 and <= 100 ? (int)Math.Round(percent.Value, MidpointRounding.AwayFromZero) : null;
 
     /// <summary>100 % stated → full remote; any home office (incl. "nach Vereinbarung") → hybrid.</summary>
     internal static RemoteLevel MapRemote(bool? homeOfficePossible, double? homeOfficePercent) =>

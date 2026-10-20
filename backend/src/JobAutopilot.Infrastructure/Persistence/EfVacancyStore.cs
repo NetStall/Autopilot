@@ -24,7 +24,9 @@ internal sealed class EfVacancyStore(AppDbContext db) : IVacancyStore
     {
         return await db.Vacancies
             .Where(v => v.Source == source && v.DetailsFetchedAt == null)
-            .OrderByDescending(v => v.FetchedAt)
+            // The most relevant first, so a backlog larger than one run never starves them (05d: TGW, Meierhofer).
+            .OrderByDescending(v => v.RankScore ?? v.RelevanceScore ?? 0)
+            .ThenByDescending(v => v.FetchedAt)
             .ThenByDescending(v => v.Id)
             .Take(max)
             .ToListAsync(cancellationToken);

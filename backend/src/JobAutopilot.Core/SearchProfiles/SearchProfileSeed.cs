@@ -88,6 +88,7 @@ public static class SearchProfileSeed
                 RequiredGapMax = penalties.RequiredGapMax,
                 OutsideRegion = penalties.OutsideRegion,
                 Unreachable = penalties.Unreachable,
+                OutsideRegionUnknownShare = penalties.OutsideRegionUnknownShare,
                 EmployerType = penalties.AvoidedEmployerType,
                 RemotePreference = defaults.RemotePreferencePenalty,
             },

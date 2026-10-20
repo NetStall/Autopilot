@@ -20,7 +20,7 @@ public sealed class VacancyFitService(
         return profiles.Current.Usable is { } profile
             ? analyzer.Analyze(
                 profile,
-                new FitInput(vacancy.Title, vacancy.Description, vacancy.EmployerType, vacancy.Location, vacancy.RemoteLevel),
+                new FitInput(vacancy.Title, vacancy.Description, vacancy.EmployerType, vacancy.Location, vacancy.RemoteLevel, vacancy.HomeOfficePercent),
                 DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime),
                 searchProfiles is null ? FitSettings.Neutral : FitSettings.From(searchProfiles.Current.Profile))
             : FitResult.Empty;

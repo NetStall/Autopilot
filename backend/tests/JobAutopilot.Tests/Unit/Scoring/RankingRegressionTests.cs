@@ -15,10 +15,11 @@ public class RankingRegressionTests
         { "aracom-dotnet-angular-vue", 80, 95 },
         // Senior C#/.NET, but AWS is a must-have gap, German B2 („sicher auf Deutsch"), strong seniority signal (05c).
         { "medifox-senior-aws", 33, 41 },
-        // C# but C1 German, and hybrid outside my region with an unknown home-office share: not reachable (05d).
-        { "ifm-prover-csharp", 5, 25 },
-        // C#/.NET in the title, but DevExpress (Pflicht), Blazor, SignalR, gRPC, XPO in the stack, 40 % home office in
-        // Schmallenberg: not reachable (05d).
+        // C# but C1 German, and hybrid outside my region with an unknown share („anteilig Homeoffice"): visible with a
+        // moderate penalty (−20), not hidden as unreachable (06a).
+        { "ifm-prover-csharp", 22, 38 },
+        // C#/.NET in the title, but DevExpress (Pflicht), Blazor, SignalR, gRPC, XPO in the stack, and the source's
+        // field says 40 % home office in Schmallenberg: not reachable (05d).
         { "schmidt-blazor-devexpress", 0, 35 },
         // Broadcast/MAM domain, codecs, FFmpeg, MXF, Kubernetes/Helm required; C# only one of three languages (05d).
         { "vidispine-broadcast", 0, 30 },

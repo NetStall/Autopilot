@@ -3,9 +3,8 @@ company: Ing-Büro f Bauwesen Schmidt GmbH
 location: 57392 Schmallenberg
 source: Arbeitsagentur
 remoteHint: Hybrid
+homeOfficePercent: 40
 ---
-Homeoffice: bis zu 40 %
-
 # Deine Rolle:
 
 Du bist verantwortlich für die vollständige technische Umsetzung unserer Softwarelösungen – von der Backend-Architektur (C#/.NET, PostgreSQL) bis zur Frontend-Entwicklung (Blazor, DevExpress). Du arbeitest selbstständig an der Weiterentwicklung unserer Anwendungen, integrierst REST-APIs, optimierst Datenbanken und sorgst für eine nahtlose Nutzererfahrung.

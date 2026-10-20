@@ -317,14 +317,20 @@ function openedOriginal() {
         <p v-if="vacancy.description" class="detail__text">
           {{ vacancy.description }}
         </p>
-        <p v-else-if="vacancy.source === 'Arbeitsagentur'" class="detail__note">
-          {{ vacancy.detailsFetchedAt
-            ? 'Die Arbeitsagentur liefert für diese Stelle keine Beschreibung mehr. Den Text findest du in der Originalanzeige.'
-            : 'Die Beschreibung wird beim nächsten Import geladen. Den vollständigen Text findest du in der Originalanzeige.' }}
+        <p v-if="vacancy.description && vacancy.descriptionIsManual" class="detail__note">
+          Von Hand eingefügt.
         </p>
-        <p v-else class="detail__note">
-          Keine Beschreibung hinterlegt.
-        </p>
+        <template v-if="!vacancy.description">
+          <p v-if="vacancy.source === 'Arbeitsagentur'" class="detail__note">
+            {{ vacancy.detailsFetchedAt
+              ? 'Externe Anzeige – keine Beschreibung verfügbar. Den Text findest du in der Originalanzeige.'
+              : 'Die Beschreibung wird beim nächsten Import geladen. Den vollständigen Text findest du in der Originalanzeige.' }}
+          </p>
+          <p v-else class="detail__note">
+            Keine Beschreibung hinterlegt.
+          </p>
+          <DescriptionPaste :vacancy-id="vacancy.id" @saved="v => (vacancy = v)" />
+        </template>
       </section>
     </article>
   </main>

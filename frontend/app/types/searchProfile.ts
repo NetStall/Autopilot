@@ -40,6 +40,7 @@ export interface SearchPenalties {
   requiredGapMax: number
   outsideRegion: number
   unreachable: number
+  outsideRegionUnknownShare: number
   employerType: number
   remotePreference: number
 }

@@ -58,4 +58,10 @@ Real profile and saved Suchprofil:
 
 - ifm prover („anteilig Homeoffice", Tettnang) is now not reachable and hidden by default; its regression range
   moved to 5–25.
+- **Revised in 06a:**
+  - Only on site or a *stated* share of at most 60 % counts as not reachable. An unknown share costs 20 and stays
+    visible, so ifm prover is at 30 and shown again.
+  - The share comes from the Arbeitsagentur field `homeofficeprozent` first, then from the text.
+  - Descriptions are fetched most relevant first. TGW and Meierhofer had a description at the source; they were
+    stuck behind newer vacancies in the queue (300 per run).
 - The catalog is code, not configuration: a change needs a commit and a re-scoring (which runs at start-up).

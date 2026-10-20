@@ -65,6 +65,7 @@ internal sealed class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
             .HasSentinel(RequiredGerman.Unknown);
 
         builder.Property(v => v.Unreachable).HasDefaultValue(false);
+        builder.Property(v => v.DescriptionIsManual).HasDefaultValue(false);
 
         builder.Property(v => v.RelevanceReasons)
             .HasColumnType("text[]")

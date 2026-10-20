@@ -51,6 +51,31 @@ public class VacancyDetailsServiceTests
     }
 
     [Fact]
+    public async Task The_most_relevant_vacancies_get_their_details_first()
+    {
+        Stored("old-relevant", minutesAfterBase: 0).RankScore = 88;
+        Stored("new-irrelevant", minutesAfterBase: 5).RankScore = 10;
+
+        await FetchAsync(Options with { MaxPerRun = 1 });
+
+        _details.Requested.Should().Equal("old-relevant");
+    }
+
+    [Fact]
+    public async Task A_pasted_description_is_kept_and_the_home_office_field_is_stored()
+    {
+        var vacancy = Stored("A");
+        vacancy.Description = "Von Hand eingefügt: C# und .NET.";
+        vacancy.DescriptionIsManual = true;
+        _details.Returns("A", new VacancyDetails("Text der Quelle", RemoteLevel.Hybrid, HomeOfficePercent: 40));
+
+        await FetchAsync();
+
+        vacancy.Description.Should().Be("Von Hand eingefügt: C# und .NET.");
+        vacancy.HomeOfficePercent.Should().Be(40);
+    }
+
+    [Fact]
     public async Task Vacancies_that_already_have_details_are_not_requested_again()
     {
         Stored("A").DetailsFetchedAt = _clock.GetUtcNow().AddDays(-1);

@@ -286,10 +286,11 @@ phrasing from `knownGaps`).
   - German level above mine (see *Deutsch erforderlich* below);
   - more years than mine — „Senior" in the title alone is a weak signal; „langjährige Erfahrung", „5+ Jahre",
     „Lead" or Senior inside the requirements is a strong one;
-  - not fully remote outside the Suchprofil's places (fully remote jobs never get this penalty); with at most 60 %
-    home office („Homeoffice bis zu 40 %", „2 Tage Homeoffice") or an unknown share the job is *practically not
-    reachable* — a bigger penalty, and hidden from the list while „Nicht erreichbare Stellen ausblenden" is on
-    (`includeUnreachable=true` shows them);
+  - not fully remote outside the Suchprofil's places (fully remote jobs never get this penalty). On site only or a
+    stated share of at most 60 % home office (the Arbeitsagentur field „Homeoffice (bis zu 40 %)", else the text:
+    „2 Tage Homeoffice") makes the job *practically not reachable* — a bigger penalty, hidden from the list while
+    „Nicht erreichbare Stellen ausblenden" is on (list filter „Nicht erreichbare anzeigen", `includeUnreachable=true`).
+    An unknown share stays visible with a moderate penalty;
   - an employer type set to „niedriger einordnen";
   - a missed Remote-Präferenz.
 - **Default order:** the *rank* = relevance minus these penalties. The penalties are the Suchprofil's „Fit-Abzüge",
@@ -306,6 +307,7 @@ phrasing from `knownGaps`).
   | Missing „Plus" | 4 each |
   | All gaps except must-haves together, at most | 18 |
   | Outside the region | 15 |
+  | Outside the region, home-office share unknown | 20 |
   | Practically not reachable (instead of „outside the region") | 35 |
   | Employer type | 10 |
   | Remote wish | 10 |

@@ -67,6 +67,8 @@ export interface VacancyFilters {
   starredOnly: boolean
   /** „Ausgeblendet anzeigen" — include dismissed vacancies (hidden by default). */
   showDismissed: boolean
+  /** „Nicht erreichbare anzeigen" — include vacancies the Suchprofil hides as not reachable. */
+  showUnreachable: boolean
   /** ISO timestamp for „Neu seit letztem Import"; empty = off. */
   since: string
   sort: VacancySort
@@ -87,6 +89,7 @@ export const DEFAULT_FILTERS: Readonly<VacancyFilters> = Object.freeze({
   searches: [],
   starredOnly: false,
   showDismissed: false,
+  showUnreachable: false,
   since: '',
   sort: 'relevance',
   page: 1,
@@ -170,6 +173,7 @@ export function filtersFromQuery(query: LocationQuery): VacancyFilters {
     top: parseInt0(firstValue(query.top), 1, 200),
     starredOnly: firstValue(query.starred) === 'true',
     showDismissed: firstValue(query.dismissed) === 'show',
+    showUnreachable: firstValue(query.unreachable) === 'show',
     since: isIsoTimestamp(firstValue(query.since)) ? firstValue(query.since) : '',
     searches: [...new Set(allValues(query.search).map(s => s.trim()).filter(s => s.length > 0))],
     sort: parseSort(firstValue(query.sort)),
@@ -221,6 +225,9 @@ export function filtersToQuery(filters: VacancyFilters): LocationQueryRaw {
   }
   if (filters.showDismissed) {
     query.dismissed = 'show'
+  }
+  if (filters.showUnreachable) {
+    query.unreachable = 'show'
   }
   if (filters.since) {
     query.since = filters.since
@@ -326,6 +333,9 @@ export function filtersToApiParams(filters: VacancyFilters, pageSize: number, de
   else if (filters.showDismissed) {
     params.includeDismissed = true
   }
+  if (filters.showUnreachable) {
+    params.includeUnreachable = true
+  }
   if (filters.since) {
     params.fetchedSince = filters.since
   }
@@ -347,6 +357,7 @@ export function hasActiveFilters(filters: VacancyFilters): boolean {
     || filters.searches.length > 0
     || filters.starredOnly
     || filters.showDismissed
+    || filters.showUnreachable
     || filters.since !== ''
 }
 

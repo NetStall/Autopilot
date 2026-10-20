@@ -49,6 +49,10 @@ export function useVacanciesApi() {
       await api(`/api/vacancies/${encodeURIComponent(id)}`, { method: 'PATCH', body: { interest } })
     },
 
+    /** „Beschreibung einfügen": stores the pasted text as manual and returns the re-scored vacancy. */
+    setDescription(id: string, description: string): Promise<Vacancy> {
+      return api<Vacancy>(`/api/vacancies/${encodeURIComponent(id)}/description`, { method: 'PUT', body: { description } })
+    },
     async markSeen(ids: string[]): Promise<void> {
       if (ids.length > 0) {
         await api('/api/vacancies/seen', { method: 'POST', body: { ids } })

@@ -118,6 +118,18 @@ public sealed class ArbeitsagenturDetailsTests : IDisposable
         candidate.RemoteHint.Should().Be(RemoteLevel.Hybrid);
         candidate.ChangedAt.Should().NotBeNull();
         candidate.Description.Should().BeNull("the search returns no description");
+        candidate.HomeOfficePercent.Should().BeNull("no share stated");
+    }
+
+    [Theory]
+    [InlineData(40d, 40)]
+    [InlineData(100d, 100)]
+    [InlineData(0d, null)]
+    [InlineData(null, null)]
+    [InlineData(250d, null)]
+    public void The_home_office_share_field_is_kept_as_a_percentage(double? field, int? expected)
+    {
+        ArbeitsagenturMapper.MapPercent(field).Should().Be(expected);
     }
 
     public void Dispose() => _services?.Dispose();

@@ -19,6 +19,7 @@ public static partial class VacancyEndpoints
         group.MapGet("/{id:guid}/fit", GetFit).WithName(nameof(GetFit));
         group.MapPost("/", CreateVacancy).WithName(nameof(CreateVacancy));
         group.MapPatch("/{id:guid}", UpdateVacancy).WithName(nameof(UpdateVacancy));
+        group.MapPut("/{id:guid}/description", SetDescription).WithName(nameof(SetDescription));
         group.MapPost("/seen", MarkSeen).WithName(nameof(MarkSeen));
         group.MapPost("/rescore", StartRescore)
             .WithName(nameof(StartRescore))
@@ -199,6 +200,41 @@ public static partial class VacancyEndpoints
         return TypedResults.CreatedAtRoute(vacancy.ToDto(), nameof(GetVacancy), new { id = vacancy.Id });
     }
 
+    /// <summary>
+    /// „Beschreibung einfügen": the text pasted from the original posting (plain text, no scraping). It is marked as
+    /// manual, so fetching details never replaces it, and the vacancy is scored again right away.
+    /// </summary>
+    private static async Task<Results<Ok<VacancyDto>, NotFound, ValidationProblem>> SetDescription(
+        Guid id,
+        SetDescriptionRequest request,
+        AppDbContext db,
+        Core.Scoring.VacancyEnricher enricher,
+        TimeProvider timeProvider,
+        CancellationToken cancellationToken)
+    {
+        var text = request.Description?.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
+        if (string.IsNullOrEmpty(text) || text.Length > Core.Vacancies.VacancyLimits.DescriptionMaxLength)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["description"] = [$"Die Beschreibung darf nicht leer sein und höchstens {Core.Vacancies.VacancyLimits.DescriptionMaxLength} Zeichen haben."],
+            });
+        }
+
+        var vacancy = await db.Vacancies.SingleOrDefaultAsync(v => v.Id == id, cancellationToken);
+        if (vacancy is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        vacancy.Description = text;
+        vacancy.DescriptionIsManual = true;
+        vacancy.DetailsFetchedAt ??= timeProvider.GetUtcNow();
+        enricher.Apply(vacancy);
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.Ok(vacancy.ToDto());
+    }
+
     /// <summary>Triage state only: <c>isSeen</c> and/or <c>interest</c>.</summary>
     private static async Task<Results<NoContent, NotFound>> UpdateVacancy(
         Guid id,
@@ -250,3 +286,6 @@ public static partial class VacancyEndpoints
     [LoggerMessage(Level = LogLevel.Information, Message = "Created manual vacancy {VacancyId}")]
     private static partial void LogManualVacancyCreated(ILogger logger, Guid vacancyId);
 }
+
+/// <summary>Body of <c>PUT /api/vacancies/{id}/description</c>.</summary>
+public sealed record SetDescriptionRequest(string? Description);

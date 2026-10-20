@@ -75,6 +75,12 @@ public class Vacancy
     /// </summary>
     public bool Unreachable { get; set; }
 
+    /// <summary>The home-office share stated by the source as a field (Arbeitsagentur <c>homeofficeprozent</c>), if any.</summary>
+    public int? HomeOfficePercent { get; set; }
+
+    /// <summary>The description was pasted by hand („Beschreibung einfügen"); fetching details never overwrites it.</summary>
+    public bool DescriptionIsManual { get; set; }
+
     /// <summary>Why the vacancy got its score, remote level and employer type (German, shown in the UI).</summary>
     public List<string> RelevanceReasons { get; set; } = [];
 

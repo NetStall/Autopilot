@@ -458,7 +458,7 @@ onBeforeUnmount(() => {
         </fieldset>
         <label class="sp__check">
           <input v-model="form.hideUnreachable" type="checkbox" data-test="hide-unreachable">
-          Nicht erreichbare Stellen ausblenden (außerhalb meiner Orte, nicht voll remote, höchstens 60 % Homeoffice)
+          Nicht erreichbare Stellen ausblenden (außerhalb meiner Orte und nur vor Ort oder höchstens 60 % Homeoffice)
         </label>
         <fieldset>
           <legend>Fit-Abzüge (0–{{ MAX_PENALTY }} Punkte)</legend>
@@ -496,7 +496,10 @@ onBeforeUnmount(() => {
             <label for="pen-region">außerhalb der Region
               <input id="pen-region" v-model.number="form.penalties.outsideRegion" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
             </label>
-            <label for="pen-unreachable">praktisch nicht erreichbar (höchstens 60 % Homeoffice)
+            <label for="pen-unknown-share">außerhalb der Region, Homeoffice-Anteil unbekannt
+              <input id="pen-unknown-share" v-model.number="form.penalties.outsideRegionUnknownShare" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
+            </label>
+            <label for="pen-unreachable">praktisch nicht erreichbar (nur vor Ort oder höchstens 60 % Homeoffice)
               <input id="pen-unreachable" v-model.number="form.penalties.unreachable" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
             </label>
             <label for="pen-employer">„niedriger einordnen"

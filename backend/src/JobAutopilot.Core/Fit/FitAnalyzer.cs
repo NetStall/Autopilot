@@ -35,8 +35,17 @@ public sealed record ExperienceRequirement(int Years, string Phrase, bool Strong
 
 public sealed record FitWarning(string Text, int Penalty);
 
-/// <summary>What the fit check looks at; location and remote level decide the region warning.</summary>
-public sealed record FitInput(string Title, string? Description, EmployerType EmployerType, string? Location, RemoteLevel RemoteLevel);
+/// <summary>
+/// What the fit check looks at; location, remote level and the home-office share (the source's field, else the text)
+/// decide the region warning.
+/// </summary>
+public sealed record FitInput(
+    string Title,
+    string? Description,
+    EmployerType EmployerType,
+    string? Location,
+    RemoteLevel RemoteLevel,
+    int? HomeOfficePercent = null);
 
 /// <summary>Result of <see cref="FitAnalyzer.Analyze"/>; <see cref="Penalty"/> is subtracted for the ranking.</summary>
 public sealed record FitResult(
@@ -58,8 +67,8 @@ public sealed record FitResult(
 /// generic one (<see cref="SkillTerms"/>). How important a requirement is comes from the posting's sections („Was du
 /// mitbringst" = must-have, „Sprachen &amp; Technologien" = likely required, „Ein Plus, aber kein Muss" = nice to have)
 /// and from markers in its line („von Vorteil", „(Pflicht)", „mindestens"); a missing must-have costs more than a
-/// missing nice-to-have. A job outside my places that is not fully remote and has at most 60 % home office (or an
-/// unknown share) is practically not reachable. German level and years of
+/// missing nice-to-have. A job outside my places that is not fully remote is practically not reachable when it is on
+/// site only or states at most 60 % home office; with an unknown share it only costs a moderate penalty. German level and years of
 /// experience are compared with the profile and give warnings, never an exclusion. Pure and deterministic.
 /// </summary>
 public sealed partial class FitAnalyzer(FitOptions options)
@@ -84,7 +93,7 @@ public sealed partial class FitAnalyzer(FitOptions options)
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(settings);
-        var (title, description, employerType, location, remoteLevel) = input;
+        var (title, description, employerType, location, remoteLevel, homeOfficePercent) = input;
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(title);
         var text = string.IsNullOrWhiteSpace(description) ? title : title + "\n" + description;
@@ -169,11 +178,13 @@ public sealed partial class FitAnalyzer(FitOptions options)
         var unreachable = false;
         if (OutsideRegions(settings, location, remoteLevel) is { } place)
         {
-            var share = HomeOfficeShare.Find(text);
-            unreachable = share is null || share <= options.ReachableFromHomeOfficePercent;
-            var homeOffice = share is { } percent ? $"Homeoffice bis {percent.ToString(CultureInfo.InvariantCulture)} %" : "Homeoffice-Anteil unbekannt";
-            warnings.Add(unreachable
-                ? new FitWarning($"Praktisch nicht erreichbar: {place}, nicht voll remote, {homeOffice}", penalties.Unreachable)
+            var share = homeOfficePercent ?? HomeOfficeShare.Find(text);
+            unreachable = remoteLevel == RemoteLevel.OnSite || share <= options.ReachableFromHomeOfficePercent;
+            warnings.Add(
+                unreachable ? new FitWarning(
+                    $"Praktisch nicht erreichbar: {place}, {(share is { } percent ? $"Homeoffice bis {percent.ToString(CultureInfo.InvariantCulture)} %" : "nur vor Ort")}",
+                    penalties.Unreachable)
+                : share is null ? new FitWarning($"Außerhalb meiner Regionen ({place}), Homeoffice-Anteil unbekannt", penalties.OutsideRegionUnknownShare)
                 : new FitWarning($"Außerhalb meiner Regionen ({place}) und nicht voll remote", penalties.OutsideRegion));
         }
 

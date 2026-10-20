@@ -7,6 +7,7 @@ namespace JobAutopilot.Core.Import;
 /// details are fetched later, see <see cref="IVacancyDetailsSource"/>).</param>
 /// <param name="RemoteHint">What the source itself says about home office (e.g. Arbeitsagentur
 /// <c>homeofficeprozent</c>).</param>
+/// <param name="HomeOfficePercent">The home-office share the source states as a field („Homeoffice (bis zu 40 %)").</param>
 /// <param name="ChangedAt">When the posting was last changed at the source; a newer value refetches the details.</param>
 /// <param name="ExpiresAt">When the source takes the posting down; expired vacancies are removed (Himalayas terms).</param>
 /// <param name="ExclusionReason">Set by the source when the posting must not be stored (e.g. „only for applicants in
@@ -22,4 +23,5 @@ public sealed record VacancyCandidate(
     RemoteLevel RemoteHint = RemoteLevel.Unknown,
     DateTimeOffset? ChangedAt = null,
     DateTimeOffset? ExpiresAt = null,
-    string? ExclusionReason = null);
+    string? ExclusionReason = null,
+    int? HomeOfficePercent = null);

@@ -27,7 +27,8 @@ public sealed class InMemoryVacancyStore : IVacancyStore
     {
         IReadOnlyList<Vacancy> found = Saved
             .Where(v => v.Source == source && v.DetailsFetchedAt is null)
-            .OrderByDescending(v => v.FetchedAt)
+            .OrderByDescending(v => v.RankScore ?? v.RelevanceScore ?? 0)
+            .ThenByDescending(v => v.FetchedAt)
             .Take(max)
             .ToList();
         return Task.FromResult(found);

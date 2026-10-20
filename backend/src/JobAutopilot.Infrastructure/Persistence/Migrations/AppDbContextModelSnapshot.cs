@@ -357,6 +357,11 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                         .HasMaxLength(20000)
                         .HasColumnType("character varying(20000)");
 
+                    b.Property<bool>("DescriptionIsManual")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<DateTimeOffset?>("DetailsFetchedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -379,6 +384,9 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTimeOffset>("FetchedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("HomeOfficePercent")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Interest")
                         .IsRequired()

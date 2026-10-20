@@ -142,8 +142,11 @@ public sealed class SearchPenalties
 
     public int OutsideRegion { get; set; } = 15;
 
-    /// <summary>Outside my places, not fully remote and at most 60 % home office (or unknown): practically not reachable.</summary>
+    /// <summary>Outside my places, on site only or at most 60 % home office stated: practically not reachable.</summary>
     public int Unreachable { get; set; } = 35;
+
+    /// <summary>Outside my places with an unknown home-office share.</summary>
+    public int OutsideRegionUnknownShare { get; set; } = 20;
 
     /// <summary>For agencies / temporary work with policy <see cref="EmployerTypePolicy.RankLower"/>.</summary>
     public int EmployerType { get; set; } = 10;

@@ -31,6 +31,7 @@ const full: VacancyFilters = {
   searches: ['remote-dotnet', 'region-csharp'],
   starredOnly: false,
   showDismissed: false,
+  showUnreachable: false,
   since: '',
   sort: 'fetched',
   page: 3,
@@ -204,6 +205,16 @@ describe('interest and since filters', () => {
 
     expect(filters).toMatchObject({ starredOnly: true, showDismissed: true, since: '2026-10-19T05:00:12.345Z' })
     expect(filtersToQuery(filters)).toEqual(query)
+  })
+
+  it('reads, writes and sends „Nicht erreichbare anzeigen"', () => {
+    const filters = filtersFromQuery({ unreachable: 'show' })
+
+    expect(filters.showUnreachable).toBe(true)
+    expect(filtersToQuery(filters)).toEqual({ unreachable: 'show' })
+    expect(filtersToApiParams(filters, 20).includeUnreachable).toBe(true)
+    expect(filtersToApiParams(defaults(), 20)).not.toHaveProperty('includeUnreachable')
+    expect(hasActiveFilters(filters)).toBe(true)
   })
 
   it('ignores a malformed since value', () => {

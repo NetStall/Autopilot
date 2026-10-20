@@ -60,6 +60,29 @@ public class VacancyEndpointsTests(PostgresFixture postgres) : IntegrationTestBa
     }
 
     [Fact]
+    public async Task A_pasted_description_is_stored_as_manual_and_scored()
+    {
+        var created = await (await Client.PostAsJsonAsync(
+            "/api/vacancies", new CreateVacancyRequest { Title = "Softwareentwickler (m/w/d)", Company = "TGW", EmployerType = EmployerType.Direct }, JsonOptions, CancellationToken))
+            .Content.ReadFromJsonAsync<VacancyDto>(JsonOptions, CancellationToken);
+
+        var response = await Client.PutAsJsonAsync(
+            $"/api/vacancies/{created!.Id}/description", new { description = "Wir entwickeln mit C# und .NET.\r\n100 % remote." }, JsonOptions, CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var updated = await response.Content.ReadFromJsonAsync<VacancyDto>(JsonOptions, CancellationToken);
+        updated!.Description.Should().Be("Wir entwickeln mit C# und .NET.\n100 % remote.");
+        updated.DescriptionIsManual.Should().BeTrue();
+        updated.RelevanceReasons.Should().Contain(r => r.StartsWith("C#", StringComparison.Ordinal));
+        updated.RemoteLevel.Should().Be(RemoteLevel.FullRemote);
+
+        (await Client.PutAsJsonAsync($"/api/vacancies/{created.Id}/description", new { description = "  " }, JsonOptions, CancellationToken))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await Client.PutAsJsonAsync($"/api/vacancies/{Guid.NewGuid()}/description", new { description = "Text" }, JsonOptions, CancellationToken))
+            .StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task Create_accepts_a_published_date_with_a_non_utc_offset()
     {
         var publishedAt = new DateTimeOffset(2026, 10, 9, 0, 0, 0, TimeSpan.FromHours(2));

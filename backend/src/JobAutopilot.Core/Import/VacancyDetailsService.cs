@@ -99,7 +99,12 @@ public sealed class VacancyDetailsService(IVacancyStore store, VacancyEnricher e
 
     private void Apply(Vacancy vacancy, VacancyDetails details)
     {
-        if (!string.IsNullOrWhiteSpace(details.Description))
+        if (details.HomeOfficePercent is { } percent)
+        {
+            vacancy.HomeOfficePercent = percent;
+        }
+
+        if (!vacancy.DescriptionIsManual && !string.IsNullOrWhiteSpace(details.Description))
         {
             vacancy.Description = TextLimits.Truncate(details.Description.Trim(), VacancyLimits.DescriptionMaxLength);
         }

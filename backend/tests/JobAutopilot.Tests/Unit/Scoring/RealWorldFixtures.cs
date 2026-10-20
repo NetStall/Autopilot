@@ -10,7 +10,8 @@ using Microsoft.Extensions.Configuration;
 namespace JobAutopilot.Tests.Unit.Scoring;
 
 /// <summary>
-/// Real postings (<c>Fixtures/vacancies/*.txt</c>: a header with title, company, location, source, remote hint, then
+/// Real postings (<c>Fixtures/vacancies/*.txt</c>: a header with title, company, location, source, remote hint and
+/// optionally the source's home-office share (<c>homeOfficePercent</c>), then
 /// <c>---</c> and the description) scored like in production: the shipped configuration, the Suchprofil seeded from
 /// it, and an invented profile with the shape of the real one (<c>Fixtures/profiles/regression-profile.json</c>).
 /// </summary>
@@ -66,6 +67,7 @@ internal static class RealWorldFixtures
             Location = header["location"],
             Url = "https://example.org/" + name,
             Description = text[(split + 5)..],
+            HomeOfficePercent = header.TryGetValue("homeOfficePercent", out var percent) ? int.Parse(percent, System.Globalization.CultureInfo.InvariantCulture) : null,
         };
         return (vacancy, Enum.Parse<RemoteLevel>(header["remoteHint"]));
     }

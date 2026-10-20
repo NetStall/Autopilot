@@ -25,7 +25,8 @@ Config: `Arbeitsagentur` (BaseUrl, ApiKey, PageSize, MaxPages, DelayBetweenPages
 
 | Feature | Files | Key symbols | API | Tests |
 |---|---|---|---|---|
-| Descriptions of new/changed vacancies | `Core/Import/VacancyDetailsService.cs`, `IVacancyDetailsSource.cs`; called from `ImportWorker` | `VacancyDetailsService.FetchAsync` | — | `Unit/Import/VacancyDetailsServiceTests.cs`, `Unit/Arbeitsagentur/ArbeitsagenturDetailsTests.cs`, `Fakes/FakeDetailsSource.cs` |
+| Descriptions of new/changed vacancies (most relevant first; a pasted one is kept) | `Core/Import/VacancyDetailsService.cs`, `IVacancyDetailsSource.cs`, `Infra/Persistence/EfVacancyStore.cs` (`FindWithoutDetailsAsync`); called from `ImportWorker` | `VacancyDetailsService.FetchAsync` | — |
+| „Beschreibung einfügen" | `Api/Features/Vacancies/VacancyEndpoints.cs` (`SetDescription`), `fe/app/components/DescriptionPaste.vue` | `Vacancy.DescriptionIsManual` | `PUT /api/vacancies/{id}/description` | `Integration/VacancyEndpointsTests.cs`, `fe/test/nuxt/descriptionPaste.test.ts` | `Unit/Import/VacancyDetailsServiceTests.cs`, `Unit/Arbeitsagentur/ArbeitsagenturDetailsTests.cs`, `Fakes/FakeDetailsSource.cs` |
 
 Config: `Import:Details` (Enabled, MaxPerRun, DelayBetweenRequestsMs, SaveEvery).
 
@@ -50,7 +51,7 @@ NiceToHaveFactor, LearningKeywordFactor, BasicSkills, BasicsGroup, ProfileSkills
 | Fit analysis + penalties | `Core/Fit/FitAnalyzer.cs`, `FitOptions.cs`, `FitSettings.cs`, `VacancyFitService.cs` | `FitAnalyzer.Analyze`, `FitResult`, `FitPenalties` | `GET /api/vacancies/{id}/fit` | `Unit/Fit/FitAnalyzerTests.cs`, `Integration/ProfileAndFitApiTests.cs` |
 | Must-have / stack / nice-to-have | `Core/Fit/RequirementSections.cs` | `RequirementSections.Parser`, `RequirementImportance`, `SectionKind` | — | `Unit/Fit/RequirementImportanceTests.cs`, `Unit/Fit/TechnologyCatalogTests.cs` |
 | Technology catalog | `Core/Fit/technologies.json` (embedded), `Core/Fit/TechnologyCatalog.cs` | `TechnologyCatalog.All`, `Contains`, `Technology.Parent` | — | `Unit/Fit/TechnologyCatalogTests.cs` |
-| Reachability | `Core/Scoring/HomeOfficeShare.cs`, `FitAnalyzer` (`FitResult.Unreachable`), `Vacancy.Unreachable` | `HomeOfficeShare.Find` | `GET /api/vacancies?includeUnreachable=true` | `Unit/Fit/TechnologyCatalogTests.cs`, `Unit/Fit/FitAnalyzerTests.cs` |
+| Reachability | `Core/Scoring/HomeOfficeShare.cs`, `FitAnalyzer` (`FitResult.Unreachable`), `Vacancy.Unreachable`, `Vacancy.HomeOfficePercent` (`ArbeitsagenturMapper.MapPercent`) | `HomeOfficeShare.Find` | `GET /api/vacancies?includeUnreachable=true` | `Unit/Fit/TechnologyCatalogTests.cs`, `Unit/Fit/FitAnalyzerTests.cs`, `Unit/Arbeitsagentur/ArbeitsagenturDetailsTests.cs` |
 | Profile skills | `Core/Profile/CandidateProfile.cs`, `SkillTerms.cs`, `ProfileValidator.cs`, `Infra/Profile/FileCandidateProfileSource.cs` | `SkillTerms.Evidence`, `ProfileValidator` | `GET /api/profile` (`Api/Features/Profile/ProfileEndpoints.cs`) | `Unit/Profile/ProfileTests.cs` |
 
 Config: `Fit` (CommonRequirements, OptionalMarkers, Penalties; heading/marker lists, `UseTechnologyCatalog`,

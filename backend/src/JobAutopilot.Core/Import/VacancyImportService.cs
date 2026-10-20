@@ -232,6 +232,7 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
         ExpiresAt = candidate.ExpiresAt,
         Description = candidate.Description,
         DetailsFetchedAt = candidate.Description is null ? null : now,
+        HomeOfficePercent = candidate.HomeOfficePercent,
         EmployerType = EmployerType.Unknown,
         FetchedAt = now,
         IsSeen = false,
@@ -244,7 +245,16 @@ public sealed class VacancyImportService(IVacancyStore store, TimeProvider timeP
     /// </summary>
     private void Refresh(Vacancy vacancy, VacancyCandidate candidate)
     {
-        if (candidate.Description is not null)
+        if (candidate.HomeOfficePercent is { } percent)
+        {
+            vacancy.HomeOfficePercent = percent;
+        }
+
+        if (vacancy.DescriptionIsManual)
+        {
+            // Pasted by hand: neither the search result nor a later details fetch replaces it.
+        }
+        else if (candidate.Description is not null)
         {
             if (!string.Equals(vacancy.Description, candidate.Description, StringComparison.Ordinal))
             {

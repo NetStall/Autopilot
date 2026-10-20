@@ -7,7 +7,8 @@ namespace JobAutopilot.Core.Import;
 public sealed record VacancyDetails(
     string? Description,
     RemoteLevel RemoteHint = RemoteLevel.Unknown,
-    EmployerType EmployerHint = EmployerType.Unknown);
+    EmployerType EmployerHint = EmployerType.Unknown,
+    int? HomeOfficePercent = null);
 
 /// <summary>A source whose search results lack the description, so it is fetched per posting.</summary>
 public interface IVacancyDetailsSource

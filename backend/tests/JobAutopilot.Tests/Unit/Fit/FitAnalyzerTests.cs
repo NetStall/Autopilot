@@ -181,13 +181,14 @@ public class FitAnalyzerTests
     [Theory]
     [InlineData("24103 Kiel", RemoteLevel.Hybrid, "80 % Homeoffice", 15, false)]
     [InlineData("24103 Kiel", RemoteLevel.Hybrid, "Homeoffice bis zu 40 %", 35, true)]
-    [InlineData("24103 Kiel", RemoteLevel.Hybrid, "Text", 35, true)]
+    [InlineData("24103 Kiel", RemoteLevel.Hybrid, "Text", 20, false)]
+    [InlineData("24103 Kiel", RemoteLevel.Unknown, "Text", 20, false)]
     [InlineData("24103 Kiel", RemoteLevel.OnSite, "Text", 35, true)]
     [InlineData("94469 Deggendorf", RemoteLevel.Hybrid, "Text", 0, false)]
     [InlineData("93049 Regensburg", RemoteLevel.OnSite, "Text", 0, false)]
     [InlineData("24103 Kiel", RemoteLevel.FullRemote, "Text", 0, false)]
     [InlineData(null, RemoteLevel.Hybrid, "Text", 0, false)]
-    public void Jobs_outside_my_regions_cost_points_unless_fully_remote_and_are_unreachable_with_little_home_office(
+    public void Jobs_outside_my_regions_cost_points_unless_fully_remote_and_are_unreachable_on_site_or_with_little_home_office(
         string? location, RemoteLevel remote, string description, int penalty, bool unreachable)
     {
         var settings = FitSettings.Neutral with { Places = ["Deggendorf", "Regensburg"], RemoteGermany = true };
@@ -197,6 +198,18 @@ public class FitAnalyzerTests
         result.Warnings.Where(w => w.Text.StartsWith("Außerhalb meiner Regionen", StringComparison.Ordinal) || w.Text.StartsWith("Praktisch nicht erreichbar", StringComparison.Ordinal))
             .Sum(w => w.Penalty).Should().Be(penalty);
         result.Unreachable.Should().Be(unreachable);
+    }
+
+    [Fact]
+    public void The_sources_home_office_field_wins_over_the_text()
+    {
+        var settings = FitSettings.Neutral with { Places = ["Deggendorf"], RemoteGermany = true };
+
+        var result = _analyzer.Analyze(
+            Profile, new FitInput("Dev", "80 % Homeoffice", EmployerType.Direct, "57392 Schmallenberg", RemoteLevel.Hybrid, HomeOfficePercent: 40), Today, settings);
+
+        result.Unreachable.Should().BeTrue();
+        result.Warnings.Should().Contain(w => w.Text == "Praktisch nicht erreichbar: 57392 Schmallenberg, Homeoffice bis 40 %" && w.Penalty == 35);
     }
 
     [Theory]

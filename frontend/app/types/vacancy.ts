@@ -57,6 +57,10 @@ export interface Vacancy {
   requiredGerman: RequiredGerman
   /** Practically not reachable (outside my places, not fully remote, at most 60 % home office). */
   unreachable: boolean
+  /** The home-office share the source states as a field, e.g. 40 for „Homeoffice (bis zu 40 %)". */
+  homeOfficePercent: number | null
+  /** The description was pasted by hand („Beschreibung einfügen"). */
+  descriptionIsManual: boolean
 }
 
 export interface PagedResponse<T> {
@@ -99,6 +103,7 @@ export interface VacancyListParams {
   search?: string[]
   interest?: VacancyInterest[]
   includeDismissed?: boolean
+  includeUnreachable?: boolean
   /** ISO timestamp: only vacancies that entered the system at or after it. */
   fetchedSince?: string
   page?: number

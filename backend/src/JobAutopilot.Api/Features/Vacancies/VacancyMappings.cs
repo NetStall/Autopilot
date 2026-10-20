@@ -32,7 +32,9 @@ public static class VacancyMappings
         alsoFoundAt ?? [],
         applied,
         vacancy.RequiredGerman,
-        vacancy.Unreachable);
+        vacancy.Unreachable,
+        vacancy.HomeOfficePercent,
+        vacancy.DescriptionIsManual);
 
     public static Vacancy ToManualVacancy(this CreateVacancyRequest request, DateTimeOffset now) =>
         Vacancy.CreateManual(

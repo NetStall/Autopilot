@@ -139,7 +139,7 @@ function onSearchChange(event: Event) {
   update({ searches: value ? [value] : [] })
 }
 
-function onFlagChange(flag: 'starredOnly' | 'showDismissed', event: Event) {
+function onFlagChange(flag: 'starredOnly' | 'showDismissed' | 'showUnreachable', event: Event) {
   update({ [flag]: (event.target as HTMLInputElement).checked })
 }
 
@@ -375,6 +375,10 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
           @change="onFlagChange('showDismissed', $event)"
         >
         Ausgeblendete anzeigen
+      </label>
+      <label class="filters__choice">
+        <input type="checkbox" name="unreachable" :checked="filters.showUnreachable" @change="onFlagChange('showUnreachable', $event)">
+        Nicht erreichbare anzeigen
       </label>
     </fieldset>
 
