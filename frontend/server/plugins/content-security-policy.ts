@@ -4,6 +4,7 @@
  * - script-src: only own files plus the SHA-256 of each inline script Nuxt renders into the page (runtime config,
  *   hydration) — no 'unsafe-inline' for scripts. Hashes are computed from the final HTML, so they always match.
  * - connect-src: the API origin from the runtime config (NUXT_PUBLIC_API_BASE), which is only known at start-up.
+ * - img-src blob: for the PDF previews (images the page itself creates from API responses; no remote images).
  * - Skipped in dev mode: Vite's HMR client needs inline scripts and websockets.
  */
 const INLINE_SCRIPT = /<script(?![^>]*\ssrc=)(?![^>]*type="application\/json")[^>]*>([\s\S]*?)<\/script>/gi
@@ -45,7 +46,8 @@ export async function buildContentSecurityPolicy(html: string, apiBase: string):
     `script-src 'self' ${scriptHashes.join(' ')}`.trim(),
     // Nuxt inlines component CSS into the HTML; styles cannot execute code.
     `style-src 'self' 'unsafe-inline'`,
-    `img-src 'self' data:`,
+    // blob: — the document previews (PNG fetched from the API and shown via URL.createObjectURL).
+    `img-src 'self' data: blob:`,
     `font-src 'self'`,
     `connect-src 'self' ${originOf(apiBase)}`.trim(),
     `object-src 'none'`,

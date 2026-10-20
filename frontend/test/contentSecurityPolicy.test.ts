@@ -33,6 +33,12 @@ describe('buildContentSecurityPolicy', () => {
     expect(csp).toContain(`connect-src 'self' http://localhost:5080;`)
   })
 
+  it('allows images only from itself, data: and blob: (document previews)', async () => {
+    const csp = await buildContentSecurityPolicy(html, 'http://localhost:5080')
+
+    expect(csp).toContain(`img-src 'self' data: blob:;`)
+  })
+
   it('forbids framing, plugins and foreign form targets', async () => {
     const csp = await buildContentSecurityPolicy(html, 'http://localhost:5080')
 

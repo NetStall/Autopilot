@@ -100,6 +100,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
             <template v-else>
               –
             </template>
+            <NuxtLink :to="`/unterlagen/${application.id}`" class="drawer__vacancy">
+              Unterlagen (Anschreiben, Lebenslauf)
+            </NuxtLink>
             <NuxtLink v-if="application.vacancyId" :to="`/vacancies/${application.vacancyId}`" class="drawer__vacancy">
               Stelle im Tool
             </NuxtLink>
@@ -121,7 +124,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           <h3>Status ändern</h3>
           <label for="drawer-status">Neuer Status</label>
           <select id="drawer-status" v-model="newStatus" class="input">
-            <option v-for="option in APPLICATION_STATUSES" :key="option.value" :value="option.value">
+            <option v-for="option in manualStatusOptions(application.status)" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
           </select>

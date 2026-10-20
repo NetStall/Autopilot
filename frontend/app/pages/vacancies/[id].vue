@@ -50,6 +50,32 @@ async function markApplied() {
 }
 const actionError = ref<string | null>(null)
 
+/** A draft application of this vacancy whose documents are still being prepared. */
+const draftApplicationId = computed(() => {
+  const applied = vacancy.value?.applied
+  return applied && (applied.status === 'Draft' || applied.status === 'Approved') ? applied.applicationId : null
+})
+const creatingDocuments = ref(false)
+
+/** „Unterlagen erstellen": one Claude call for the letter, the CV is built without AI; then the review screen. */
+async function createDocuments() {
+  if (!vacancy.value) {
+    return
+  }
+  creatingDocuments.value = true
+  actionError.value = null
+  try {
+    const documents = await api.createDocumentsForVacancy(vacancy.value.id)
+    await navigateTo(`/unterlagen/${documents.applicationId}`)
+  }
+  catch (e: unknown) {
+    actionError.value = `Unterlagen konnten nicht erstellt werden: ${describeApiError(e)}`
+  }
+  finally {
+    creatingDocuments.value = false
+  }
+}
+
 async function setSeen(isSeen: boolean) {
   if (!vacancy.value) {
     return
@@ -153,10 +179,23 @@ function openedOriginal() {
         >
           Originalanzeige öffnen<span class="visually-hidden"> (neuer Tab)</span>
         </a>
-        <button v-if="!vacancy.applied" type="button" class="button" :disabled="applying" @click="markApplied">
+        <button
+          v-if="!vacancy.applied"
+          type="button"
+          class="button"
+          :disabled="creatingDocuments"
+          :aria-busy="creatingDocuments"
+          @click="createDocuments"
+        >
+          {{ creatingDocuments ? 'Unterlagen werden erstellt (bis zu 1 Minute) …' : 'Unterlagen erstellen' }}
+        </button>
+        <NuxtLink v-else-if="draftApplicationId" :to="`/unterlagen/${draftApplicationId}`" class="button">
+          Unterlagen öffnen · {{ vacancy.applied.statusLabel }}
+        </NuxtLink>
+        <button v-if="!vacancy.applied" type="button" class="button button--secondary" :disabled="applying" @click="markApplied">
           Als beworben markieren
         </button>
-        <NuxtLink v-else to="/bewerbungen" class="status status--open detail__applied">
+        <NuxtLink v-else-if="!draftApplicationId" to="/bewerbungen" class="status status--open detail__applied">
           Beworben am {{ formatDate(vacancy.applied.appliedAt) }} · {{ vacancy.applied.statusLabel }}
         </NuxtLink>
         <button type="button" class="button button--secondary" :disabled="saving" @click="setSeen(!vacancy.isSeen)">

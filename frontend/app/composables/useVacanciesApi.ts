@@ -19,6 +19,7 @@ import type {
   SearchProfileRevision,
 } from '~/types/searchProfile'
 import type { Application, ApplicationStatus, TrackerImportReport } from '~/types/application'
+import type { ApplicationDocuments, CvOptions, DocumentKind, DocumentPreview, Letter } from '~/types/documents'
 
 /** All calls to the backend API. Base URL from runtime config (NUXT_PUBLIC_API_BASE). */
 export function useVacanciesApi() {
@@ -139,7 +140,72 @@ export function useVacanciesApi() {
     uiSettings() {
       return api<UiSettings>('/api/settings/ui')
     },
+
+    /** „Unterlagen erstellen" for a vacancy: the existing documents, or a new draft application (one Claude call). */
+    createDocumentsForVacancy(vacancyId: string) {
+      return api<ApplicationDocuments>(`/api/vacancies/${encodeURIComponent(vacancyId)}/documents`, { method: 'POST' })
+    },
+
+    createDocuments(applicationId: string) {
+      return api<ApplicationDocuments>(`${documentsPath(applicationId)}`, { method: 'POST' })
+    },
+
+    documents(applicationId: string) {
+      return api<ApplicationDocuments>(documentsPath(applicationId))
+    },
+
+    /** 409 when the documents were changed elsewhere (other tab). */
+    saveDocuments(applicationId: string, version: number, letter: Letter, cvOptions: CvOptions) {
+      return api<ApplicationDocuments>(documentsPath(applicationId), { method: 'PUT', body: { version, letter, cvOptions } })
+    },
+
+    /** „Neu erstellen": a new letter (one Claude call). */
+    regenerateLetter(applicationId: string, version: number) {
+      return api<ApplicationDocuments>(`${documentsPath(applicationId)}/regenerate`, { method: 'POST', body: { version } })
+    },
+
+    /** „Absatz neu formulieren" (0-based index, one Claude call). */
+    rephraseParagraph(applicationId: string, version: number, index: number, hint?: string) {
+      return api<ApplicationDocuments>(`${documentsPath(applicationId)}/paragraphs/${index}/rephrase`, { method: 'POST', body: { version, hint } })
+    },
+
+    restoreDocuments(applicationId: string, version: number, revision: number) {
+      return api<ApplicationDocuments>(`${documentsPath(applicationId)}/restore`, { method: 'POST', body: { version, revision } })
+    },
+
+    /** „Freigeben": writes the PDFs; with open warnings only with acceptWarnings. */
+    approveDocuments(applicationId: string, version: number, acceptWarnings: boolean) {
+      return api<ApplicationDocuments>(`${documentsPath(applicationId)}/approve`, { method: 'POST', body: { version, acceptWarnings } })
+    },
+
+    /** „Als gesendet markieren" — I submitted the approved documents myself. */
+    markSent(applicationId: string, channel: string, at?: string) {
+      return api<ApplicationDocuments>(`/api/applications/${encodeURIComponent(applicationId)}/mark-sent`, { method: 'POST', body: { channel, at } })
+    },
+
+    /** PNG of page 1 of the unsaved state, as an object URL (revoke it when replaced). */
+    async previewDocument(applicationId: string, kind: DocumentKind, letter: Letter, cvOptions: CvOptions, signal?: AbortSignal): Promise<DocumentPreview> {
+      const response = await api.raw<Blob>(`${documentsPath(applicationId)}/preview/${kind}`, {
+        method: 'POST',
+        body: kind === 'letter' ? { letter, cvOptions } : { cvOptions },
+        responseType: 'blob',
+        signal,
+      })
+      return {
+        url: URL.createObjectURL(response._data as Blob),
+        pages: Number(response.headers.get('X-Page-Count') ?? '1'),
+      }
+    },
+
+    /** Download link of an approved PDF. */
+    documentPdfUrl(applicationId: string, kind: DocumentKind) {
+      return `${config.public.apiBase}${documentsPath(applicationId)}/${kind}.pdf`
+    },
   }
+}
+
+function documentsPath(applicationId: string): string {
+  return `/api/applications/${encodeURIComponent(applicationId)}/documents`
 }
 
 /** Bumped after every finished import so open lists and the header refresh themselves. */

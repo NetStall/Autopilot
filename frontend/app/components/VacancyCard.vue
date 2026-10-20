@@ -51,7 +51,15 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
       <div class="card__heading">
         <ScoreBadge :vacancy="vacancy" />
         <NuxtLink
-          v-if="vacancy.applied"
+          v-if="vacancy.applied && canEditDocuments(vacancy.applied.status)"
+          :to="`/unterlagen/${vacancy.applied.applicationId}`"
+          class="status status--open"
+          title="Unterlagen in Vorbereitung – noch nicht gesendet"
+        >
+          Unterlagen · {{ vacancy.applied.statusLabel }}
+        </NuxtLink>
+        <NuxtLink
+          v-else-if="vacancy.applied"
           to="/bewerbungen"
           class="status status--open"
           :title="`Beworben am ${formatDate(vacancy.applied.appliedAt)} – ${vacancy.applied.statusLabel}`"

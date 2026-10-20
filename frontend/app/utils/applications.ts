@@ -42,6 +42,18 @@ export function statusLabel(status: ApplicationStatus): string {
   return APPLICATION_STATUSES.find(s => s.value === status)?.label ?? status
 }
 
+const PREPARATION: readonly ApplicationStatus[] = ['Draft', 'Approved', 'Sent']
+
+/**
+ * Statuses the generic „Status ändern" may set (mirrors the API): Entwurf, Freigegeben and Gesendet only come from
+ * „Unterlagen erstellen", „Freigeben" and „Als gesendet markieren"; a draft can only be withdrawn.
+ */
+export function manualStatusOptions(current: ApplicationStatus): { value: ApplicationStatus, label: string }[] {
+  const draft = current === 'Draft' || current === 'Approved'
+  return APPLICATION_STATUSES.filter(s =>
+    s.value === current || (draft ? s.value === 'Withdrawn' : !PREPARATION.includes(s.value)))
+}
+
 /** Filters of the „Bewerbungen" page, kept in the URL. */
 export interface ApplicationFilters {
   status: ApplicationStatus | ''
