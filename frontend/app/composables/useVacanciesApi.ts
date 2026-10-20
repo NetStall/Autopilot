@@ -3,7 +3,7 @@ import type {
   FitResponse,
   ImportRun,
   ImportStarted,
-  PagedResponse,
+  VacancyPage,
   RescoreStatus,
   UiSettings,
   Vacancy,
@@ -11,6 +11,13 @@ import type {
   VacancyListParams,
 } from '~/types/vacancy'
 import type { ProfileResponse } from '~/types/profile'
+import type {
+  SaveSearchProfileResponse,
+  SearchProfile,
+  SearchProfilePreview,
+  SearchProfileResponse,
+  SearchProfileRevision,
+} from '~/types/searchProfile'
 import type { Application, ApplicationStatus, TrackerImportReport } from '~/types/application'
 
 /** All calls to the backend API. Base URL from runtime config (NUXT_PUBLIC_API_BASE). */
@@ -20,7 +27,7 @@ export function useVacanciesApi() {
 
   return {
     list(params: VacancyListParams) {
-      return api<PagedResponse<Vacancy>>('/api/vacancies', { query: { ...params } })
+      return api<VacancyPage>('/api/vacancies', { query: { ...params } })
     },
 
     get(id: string) {
@@ -95,6 +102,33 @@ export function useVacanciesApi() {
     /** Imports data/import/bewerbungen-export.json (idempotent). */
     importTracker() {
       return api<TrackerImportReport>('/api/applications/import-tracker', { method: 'POST' })
+    },
+
+    searchProfile() {
+      return api<SearchProfileResponse>('/api/search-profile')
+    },
+
+    /** 409 when the Suchprofil was saved elsewhere in the meantime. */
+    saveSearchProfile(version: number, profile: SearchProfile) {
+      return api<SaveSearchProfileResponse>('/api/search-profile', { method: 'PUT', body: { version, profile } })
+    },
+
+    /** Scores everything with these settings without saving; also validates. */
+    previewSearchProfile(profile: SearchProfile) {
+      return api<SearchProfilePreview>('/api/search-profile/preview', { method: 'POST', body: profile })
+    },
+
+    searchProfileHistory() {
+      return api<SearchProfileRevision[]>('/api/search-profile/history')
+    },
+
+    rollbackSearchProfile(version: number, expectedVersion: number) {
+      return api<SaveSearchProfileResponse>('/api/search-profile/rollback', { method: 'POST', body: { version, expectedVersion } })
+    },
+
+    /** URL of the JSON download. */
+    searchProfileExportUrl() {
+      return `${config.public.apiBase}/api/search-profile/export`
     },
 
     /** The loaded candidate profile with its validation problems. */

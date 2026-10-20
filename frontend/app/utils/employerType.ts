@@ -8,7 +8,7 @@ const employerTypeLabels: Record<EmployerType, string> = {
 }
 
 const sourceLabels: Record<VacancySource, string> = {
-  Arbeitsagentur: 'Bundesagentur für Arbeit',
+  Arbeitsagentur: 'Arbeitsagentur',
   Himalayas: 'Himalayas',
   Manual: 'Manuell erfasst',
 }

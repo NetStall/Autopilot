@@ -252,21 +252,29 @@ a {
   border: 1px solid var(--color-border);
   color: var(--color-muted);
 
-  &--relevant {
+  /* Tones of the rank score; the number is always visible, so colour is only a cue (contrast ≥ 4.5:1 in both themes). */
+  &--high {
     background: var(--color-new-bg);
     color: var(--color-new-text);
-    border-color: transparent;
+    border-color: var(--color-new-text);
   }
 
-  &--maybe {
-    background: var(--color-badge);
-    color: var(--color-badge-text);
-    border-color: transparent;
+  &--medium {
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
+    border-color: var(--color-warning-text);
   }
 
-  &--irrelevant {
+  &--low,
+  &--unscored {
     background: var(--color-surface-muted);
+    color: var(--color-muted);
   }
+}
+
+.badge--source {
+  font-size: 0.75rem;
+  margin-right: var(--space-2);
 }
 
 mark.highlight {

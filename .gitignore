@@ -40,3 +40,6 @@ Thumbs.db
 
 # ---- Database dumps (contain personal data) ----
 backups/
+
+# Suchprofil exports (places, salary)
+suchprofil*.json

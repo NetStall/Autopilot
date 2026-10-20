@@ -19,6 +19,14 @@ stored as strings. Only what is not obvious from the entity classes is noted her
 | `MatchedSearches` (text[]) | names of the searches that found the vacancy |
 | `Interest`, `IsSeen` | user triage; imports never change them |
 
+## SearchProfiles, SearchProfileRevisions
+
+The Suchprofil ([ADR 0009](decisions/0009-search-profile.md)): **one row** in `SearchProfiles` (`Id` = 1) with the
+whole profile as jsonb `Document` (camelCase, enums as strings). `Version` is the concurrency token — a save with an
+outdated version gets 409. `SearchProfileRevisions` holds one row per saved version (`Version` unique, `Document`,
+German `Summary` of the change, `SavedAt`); only the last 50 are kept. A rollback writes an old document as a new
+version. Seeded on first start from `appsettings.json` (+ once `preferences` from `profile.json`).
+
 ## ImportRuns
 
 One row per import; a filtered unique index on `IsActive` allows only one queued/running import (ADR 0005/0006).

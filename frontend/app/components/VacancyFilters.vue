@@ -1,12 +1,49 @@
 <script setup lang="ts">
-import type { ConfiguredSearch, EmployerType, RelevanceLevel, VacancySort, VacancySource } from '~/types/vacancy'
+import type { ConfiguredSearch, EmployerType, RelevanceLevel, VacancyFacets, VacancySort, VacancySource } from '~/types/vacancy'
 import type { RemoteFilter, StatusFilter, VacancyFilters } from '~/utils/vacancyFilters'
 
 const props = withDefaults(defineProps<{
   filters: VacancyFilters
   /** Configured searches for the „Suche" select; empty while loading. */
   searches?: ConfiguredSearch[]
-}>(), { searches: () => [] })
+  /** Counts per option under the other active filters. */
+  facets?: VacancyFacets | null
+  /** „Mindestbewertung" of the Suchprofil, used while the URL has none. */
+  defaultMinScore?: number
+  /** N of „Nur Top N" from the Suchprofil. */
+  topN?: number
+}>(), { searches: () => [], facets: null, defaultMinScore: 0, topN: 20 })
+
+const minScore = computed(() => effectiveMinScore(props.filters, { minScore: props.defaultMinScore }))
+
+function count(value: number | undefined): string {
+  return countSuffix(props.facets, value)
+}
+
+function remoteCount(option: RemoteFilter): string {
+  return countSuffix(props.facets, props.facets ? remoteFacetCount(props.facets.remoteLevel, option) : undefined)
+}
+
+/** Slider and number input share one value; the default of the Suchprofil is not written to the URL. */
+function onMinScore(event: Event) {
+  const value = normalizeMinScore(Number((event.target as HTMLInputElement).value))
+  update({ minScore: value === props.defaultMinScore ? null : value })
+}
+
+function onTop(event: Event) {
+  update({ top: (event.target as HTMLInputElement).checked ? props.topN : null })
+}
+
+function onSourceToggle(source: VacancySource, event: Event) {
+  const selected = new Set(props.filters.sources)
+  if ((event.target as HTMLInputElement).checked) {
+    selected.add(source)
+  }
+  else {
+    selected.delete(source)
+  }
+  update({ sources: VACANCY_SOURCES.filter(s => selected.has(s)) })
+}
 
 const emit = defineEmits<{
   /** `replace`: update the URL without a new history entry (used while typing). */
@@ -115,10 +152,6 @@ function onRelevanceChange(level: RelevanceLevel, event: Event) {
   update({ relevance: RELEVANCE_LEVELS.filter(l => selected.has(l)) })
 }
 
-function onSourceChange(event: Event) {
-  const value = (event.target as HTMLSelectElement).value
-  update({ source: (VACANCY_SOURCES as readonly string[]).includes(value) ? value as VacancySource : '' })
-}
 
 /** A search name from the URL that is no longer configured still shows up, so the filter stays visible. */
 const searchOptions = computed(() => {
@@ -211,22 +244,57 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
       <label for="filter-remote">Arbeitsort</label>
       <select id="filter-remote" class="input" :value="filters.remote" @change="onRemoteChange">
         <option v-for="option in remoteOptions" :key="option.value" :value="option.value">
-          {{ option.label }}
+          {{ option.label }}{{ remoteCount(option.value) }}
         </option>
       </select>
     </div>
 
-    <div class="filters__field">
-      <label for="filter-source">Quelle</label>
-      <select id="filter-source" class="input" :value="filters.source" @change="onSourceChange">
-        <option value="">
-          Alle Quellen
-        </option>
-        <option v-for="source in VACANCY_SOURCES" :key="source" :value="source">
-          {{ sourceLabel(source) }}
-        </option>
-      </select>
+    <div class="filters__field filters__score">
+      <label for="filter-min-score">Mindestbewertung</label>
+      <div class="filters__score-inputs">
+        <input
+          id="filter-min-score"
+          type="range"
+          min="0"
+          max="100"
+          step="5"
+          :value="minScore"
+          aria-describedby="filter-min-score-hint"
+          @change="onMinScore"
+        >
+        <input
+          class="input filters__score-number"
+          type="number"
+          min="0"
+          max="100"
+          step="5"
+          :value="minScore"
+          aria-label="Mindestbewertung als Zahl"
+          @change="onMinScore"
+        >
+      </div>
+      <span id="filter-min-score-hint" class="filters__hint">
+        {{ filters.minScore == null ? `Standard aus dem Suchprofil (${defaultMinScore})` : 'Eigener Wert' }}
+      </span>
+      <label class="filters__choice">
+        <input type="checkbox" name="top" :checked="filters.top != null" @change="onTop">
+        Nur Top {{ filters.top ?? topN }}
+      </label>
     </div>
+
+    <fieldset class="filters__group filters__group--inline">
+      <legend>Quelle</legend>
+      <label v-for="source in VACANCY_SOURCES" :key="source" class="filters__choice">
+        <input
+          type="checkbox"
+          name="source"
+          :value="source"
+          :checked="filters.sources.includes(source)"
+          @change="onSourceToggle(source, $event)"
+        >
+        {{ sourceLabel(source) }}{{ count(facets?.source[source]) }}
+      </label>
+    </fieldset>
 
     <fieldset class="filters__group filters__group--inline">
       <legend>Relevanz</legend>
@@ -238,7 +306,7 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
           :checked="filters.relevance.includes(level)"
           @change="onRelevanceChange(level, $event)"
         >
-        {{ relevanceLabel(level) }}
+        {{ relevanceLabel(level) }}{{ count(facets?.relevanceLevel[level]) }}
       </label>
     </fieldset>
 
@@ -251,7 +319,7 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
           :checked="filters.employerTypes.includes(type)"
           @change="onCheckboxChange(type, $event)"
         >
-        {{ employerTypeLabel(type) }}
+        {{ employerTypeLabel(type) }}{{ count(facets?.employerType[type]) }}
       </label>
     </fieldset>
 
@@ -362,6 +430,26 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
       margin: 0;
       accent-color: var(--color-accent);
     }
+  }
+
+  &__score-inputs {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+
+    input[type='range'] {
+      flex: 1;
+      accent-color: var(--color-accent);
+    }
+  }
+
+  &__score-number {
+    width: 4.5rem;
+  }
+
+  &__hint {
+    font-size: 0.8rem;
+    color: var(--color-muted);
   }
 
   &__actions {

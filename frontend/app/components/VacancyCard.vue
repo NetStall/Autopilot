@@ -22,7 +22,7 @@ const emit = defineEmits<{
 
 const originalUrl = computed(() => safeExternalUrl(props.vacancy.url))
 const badges = computed(() => vacancyBadges(props.vacancy))
-const score = computed(() => scoreBadge(props.vacancy))
+const sources = computed(() => sourcesLine(props.vacancy))
 const reasonsOpen = ref(false)
 const attribution = computed(() => sourceAttribution(props.vacancy.source))
 const alsoFoundAt = computed(() => props.vacancy.alsoFoundAt ?? [])
@@ -49,9 +49,7 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
   >
     <div class="card__main">
       <div class="card__heading">
-        <span class="score" :class="`score--${score.level.toLowerCase()}`" :title="score.description">
-          {{ score.text }}<span class="visually-hidden"> – {{ score.description }}</span>
-        </span>
+        <ScoreBadge :vacancy="vacancy" />
         <NuxtLink
           v-if="vacancy.applied"
           to="/bewerbungen"
@@ -74,6 +72,7 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
         <span v-if="vacancy.location"> · {{ vacancy.location }}</span>
       </p>
       <p class="card__source">
+        <span class="badge badge--source">{{ sources }}</span>
         <a v-if="attribution" :href="attribution.href" target="_blank" rel="noopener noreferrer">{{ attribution.label }}</a>
         <span v-if="alsoFoundAt.length > 0">
           · auch bei

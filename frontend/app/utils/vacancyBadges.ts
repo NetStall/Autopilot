@@ -1,5 +1,5 @@
 import type { RelevanceLevel, RemoteLevel, Vacancy } from '../types/vacancy'
-import { employerTypeLabel, isIntermediary } from './employerType'
+import { employerTypeLabel, isIntermediary, sourceLabel } from './employerType'
 
 export type BadgeVariant = 'new' | 'remote' | 'hybrid' | 'starred' | 'dismissed' | 'employer' | 'intermediary'
 
@@ -49,24 +49,55 @@ export function relevanceLabel(level: RelevanceLevel): string {
   return relevanceLabels[level]
 }
 
-export interface ScoreBadge {
-  /** e.g. „82" or „–" while not scored. */
-  text: string
-  level: RelevanceLevel | 'Unscored'
-  /** Accessible description, e.g. „Relevanz 82 von 100: Passt". */
-  description: string
+export type ScoreTone = 'high' | 'medium' | 'low' | 'unscored'
+
+/** Colour thresholds of the score badge (Ui:ScoreHigh / Ui:ScoreMedium). */
+export interface ScoreThresholds {
+  high: number
+  medium: number
 }
 
-/** The score badge of a card; a vacancy that is not scored yet shows „–". */
-export function scoreBadge(vacancy: Pick<Vacancy, 'relevanceScore' | 'relevanceLevel'>): ScoreBadge {
+export const DEFAULT_SCORE_THRESHOLDS: Readonly<ScoreThresholds> = Object.freeze({ high: 70, medium: 45 })
+
+export interface ScoreBadge {
+  /** The rank score (relevance minus fit penalties), e.g. „87", or „–" while not scored. Always shown. */
+  text: string
+  tone: ScoreTone
+  level: RelevanceLevel | 'Unscored'
+  /** For the aria-label, e.g. „Bewertung 87 von 100". */
+  description: string
+  /** Second line / tooltip: „Relevanz 94 · Abzüge −8". */
+  detail: string
+}
+
+/**
+ * The score badge of a vacancy: the rank score as the main number (falls back to the relevance score), coloured by
+ * the thresholds — but never by colour alone: the number is always visible and part of the label.
+ */
+export function scoreBadge(
+  vacancy: Pick<Vacancy, 'relevanceScore' | 'relevanceLevel'> & Partial<Pick<Vacancy, 'rankScore'>>,
+  thresholds: ScoreThresholds = DEFAULT_SCORE_THRESHOLDS,
+): ScoreBadge {
   if (vacancy.relevanceScore == null || vacancy.relevanceLevel == null) {
-    return { text: '–', level: 'Unscored', description: 'Noch nicht bewertet' }
+    return { text: '–', tone: 'unscored', level: 'Unscored', description: 'Noch nicht bewertet', detail: 'Noch nicht bewertet' }
   }
+  const rank = vacancy.rankScore ?? vacancy.relevanceScore
+  const penalty = vacancy.relevanceScore - rank
   return {
-    text: String(vacancy.relevanceScore),
+    text: String(rank),
+    tone: rank >= thresholds.high ? 'high' : rank >= thresholds.medium ? 'medium' : 'low',
     level: vacancy.relevanceLevel,
-    description: `Relevanz ${vacancy.relevanceScore} von 100: ${relevanceLabel(vacancy.relevanceLevel)}`,
+    description: `Bewertung ${rank} von 100`,
+    detail: penalty > 0
+      ? `Relevanz ${vacancy.relevanceScore} · Abzüge −${penalty}`
+      : `Relevanz ${vacancy.relevanceScore} · keine Abzüge`,
   }
+}
+
+/** „Arbeitsagentur", or for merged duplicates all sources: „Arbeitsagentur + Himalayas". */
+export function sourcesLine(vacancy: Pick<Vacancy, 'source'> & Partial<Pick<Vacancy, 'alsoFoundAt'>>): string {
+  const sources = [vacancy.source, ...(vacancy.alsoFoundAt ?? []).map(l => l.source)]
+  return [...new Set(sources)].map(sourceLabel).join(' + ')
 }
 
 const remoteLevelLabels: Record<RemoteLevel, string> = {

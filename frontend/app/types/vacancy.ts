@@ -60,13 +60,31 @@ export interface PagedResponse<T> {
   totalCount: number
 }
 
+/** Counts per filter value under all other active filters. */
+export interface VacancyFacets {
+  source: Partial<Record<VacancySource, number>>
+  remoteLevel: Partial<Record<RemoteLevel, number>>
+  employerType: Partial<Record<EmployerType, number>>
+  relevanceLevel: Partial<Record<RelevanceLevel, number>>
+}
+
+/** GET /api/vacancies */
+export interface VacancyPage extends PagedResponse<Vacancy> {
+  /** Before the „Top N" cut — „Top 20 von 258". */
+  totalMatching: number
+  top: number | null
+  facets: VacancyFacets
+}
+
 /** Query parameters of GET /api/vacancies. */
 export interface VacancyListParams {
   q?: string
   location?: string
   employerType?: EmployerType[]
   seen?: boolean
-  source?: VacancySource
+  source?: VacancySource[]
+  minScore?: number
+  top?: number
   sort?: VacancySort
   remote?: RemoteLevel[]
   relevance?: RelevanceLevel[]
@@ -158,6 +176,10 @@ export interface RescoreStatus {
 /** GET /api/settings/ui */
 export interface UiSettings {
   highlightKeywords: string[]
+  /** Score badge: from here on „hoch" … */
+  scoreHigh: number
+  /** … from here on „mittel". */
+  scoreMedium: number
 }
 
 /** A search from Import:Searches (GET /api/imports/searches). */

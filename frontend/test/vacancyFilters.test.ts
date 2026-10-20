@@ -5,7 +5,12 @@ import {
   filtersFromQuery,
   filtersToApiParams,
   filtersToQuery,
+  countSuffix,
+  effectiveMinScore,
   hasActiveFilters,
+  normalizeMinScore,
+  remoteFacetCount,
+  totalLabel,
   type VacancyFilters,
 } from '../app/utils/vacancyFilters'
 
@@ -16,7 +21,9 @@ const full: VacancyFilters = {
   status: 'new',
   remote: 'full',
   relevance: ['Relevant'],
-  source: 'Arbeitsagentur',
+  sources: ['Arbeitsagentur'],
+  minScore: 60,
+  top: 20,
   searches: ['remote-dotnet', 'region-csharp'],
   starredOnly: false,
   showDismissed: false,
@@ -43,6 +50,8 @@ describe('filtersFromQuery', () => {
       remote: 'full',
       relevance: 'Relevant',
       source: 'Arbeitsagentur',
+      minScore: '60',
+      top: '20',
       search: ['remote-dotnet', 'region-csharp'],
       sort: 'fetched',
       page: '3',
@@ -61,7 +70,9 @@ describe('filtersFromQuery', () => {
       page: '-2',
       relevance: ['Top', 'Maybe', 'Maybe'],
       remote: 'sometimes',
-      source: 'LinkedIn',
+      source: ['LinkedIn', 'Himalayas', 'Himalayas'],
+      minScore: '101',
+      top: '0',
     })
 
     expect(filters.employerTypes).toEqual(['Agency'])
@@ -70,7 +81,9 @@ describe('filtersFromQuery', () => {
     expect(filters.page).toBe(1)
     expect(filters.relevance).toEqual(['Maybe'])
     expect(filters.remote).toBe('any')
-    expect(filters.source).toBe('')
+    expect(filters.sources).toEqual(['Himalayas'])
+    expect(filters.minScore).toBeNull()
+    expect(filters.top).toBeNull()
   })
 
   it.each(['0', 'abc', '1.5x', ''])('falls back to page 1 for "%s"', page => {
@@ -95,7 +108,9 @@ describe('filtersToQuery', () => {
       status: 'new',
       remote: 'full',
       relevance: ['Relevant'],
-      source: 'Arbeitsagentur',
+      source: ['Arbeitsagentur'],
+      minScore: '60',
+      top: '20',
       search: ['remote-dotnet', 'region-csharp'],
       sort: 'fetched',
       page: '3',
@@ -164,12 +179,12 @@ describe('remote, source and search filters', () => {
 
   it('writes remote, source and search only when set', () => {
     expect(filtersToQuery({ ...defaults(), remote: 'full' })).toEqual({ remote: 'full' })
-    expect(filtersToQuery({ ...defaults(), source: 'Manual' })).toEqual({ source: 'Manual' })
+    expect(filtersToQuery({ ...defaults(), sources: ['Manual', 'Arbeitsagentur'] })).toEqual({ source: ['Arbeitsagentur', 'Manual'] })
     expect(filtersToQuery({ ...defaults(), searches: ['region-vue'] })).toEqual({ search: ['region-vue'] })
   })
 
   it('survives a reload (URL round trip)', () => {
-    const filters: VacancyFilters = { ...defaults(), remote: 'full', source: 'Arbeitsagentur', searches: ['remote-dotnet'] }
+    const filters: VacancyFilters = { ...defaults(), remote: 'full', sources: ['Arbeitsagentur'], searches: ['remote-dotnet'] }
     const fromUrl = filtersFromQuery(filtersToQuery(filters) as Record<string, string | string[]>)
 
     expect(fromUrl).toEqual(filters)
@@ -223,7 +238,9 @@ describe('filtersToApiParams', () => {
       seen: false,
       remote: ['FullRemote'],
       relevance: ['Relevant'],
-      source: 'Arbeitsagentur',
+      source: ['Arbeitsagentur'],
+      minScore: 60,
+      top: 20,
       search: ['remote-dotnet', 'region-csharp'],
       sort: 'fetched',
       page: 3,
@@ -248,7 +265,9 @@ describe('hasActiveFilters', () => {
     { employerTypes: ['Direct'] },
     { status: 'seen' },
     { remote: 'full' },
-    { source: 'Manual' },
+    { sources: ['Manual'] },
+    { minScore: 0 },
+    { top: 20 },
     { searches: ['region-vue'] },
   ])('is true for %o', patch => {
     expect(hasActiveFilters({ ...defaults(), ...patch })).toBe(true)
@@ -256,10 +275,78 @@ describe('hasActiveFilters', () => {
 })
 
 describe('source filter', () => {
-  it('accepts Himalayas from the URL and sends it to the API', () => {
-    const filters = filtersFromQuery({ source: 'Himalayas' })
+  it('accepts repeated sources from the URL and sends them to the API', () => {
+    const filters = filtersFromQuery({ source: ['Manual', 'Himalayas'] })
 
-    expect(filters.source).toBe('Himalayas')
-    expect(filtersToApiParams(filters, 20).source).toBe('Himalayas')
+    expect(filters.sources).toEqual(['Himalayas', 'Manual'])
+    expect(filtersToApiParams(filters, 20).source).toEqual(['Himalayas', 'Manual'])
+  })
+
+  it('shows facet counts next to the options once they are loaded', () => {
+    const facets = { source: { Arbeitsagentur: 200, Himalayas: 58 }, remoteLevel: {}, employerType: {}, relevanceLevel: {} }
+
+    expect(countSuffix(facets, facets.source.Himalayas)).toBe(' (58)')
+    expect(countSuffix(facets, undefined)).toBe(' (0)')
+    expect(countSuffix(null, 5)).toBe('')
+  })
+
+  it('counts the remote options cumulatively', () => {
+    const levels = { FullRemote: 31, Hybrid: 40, OnSite: 100, Unknown: 87 }
+
+    expect(remoteFacetCount(levels, 'full')).toBe(31)
+    expect(remoteFacetCount(levels, 'remote')).toBe(71)
+    expect(remoteFacetCount(levels, 'any')).toBe(258)
+    expect(remoteFacetCount({}, 'remote')).toBe(0)
+  })
+
+  it('sends nothing when every source is selected', () => {
+    expect(filtersToApiParams({ ...defaults(), sources: ['Manual', 'Himalayas', 'Arbeitsagentur'] }, 20).source)
+      .toBeUndefined()
+  })
+})
+
+describe('score filters', () => {
+  it('reads minScore and top from the URL, rounded to steps of 5', () => {
+    expect(filtersFromQuery({ minScore: '62', top: '20' })).toMatchObject({ minScore: 60, top: 20 })
+    expect(filtersFromQuery({ minScore: '63' }).minScore).toBe(65)
+    expect(filtersFromQuery({ minScore: '0' }).minScore).toBe(0)
+  })
+
+  it.each(['-5', '101', 'abc', '5.5', ''])('ignores minScore "%s"', (value) => {
+    expect(filtersFromQuery({ minScore: value }).minScore).toBeNull()
+  })
+
+  it.each(['0', '201', 'x', '-1'])('ignores top "%s"', (value) => {
+    expect(filtersFromQuery({ top: value }).top).toBeNull()
+  })
+
+  it('round-trips slider and Top N through the URL', () => {
+    const filters: VacancyFilters = { ...defaults(), minScore: 75, top: 20 }
+    const query = filtersToQuery(filters)
+
+    expect(query).toEqual({ minScore: '75', top: '20' })
+    expect(filtersFromQuery(query as Record<string, string>)).toEqual(filters)
+  })
+
+  it('uses the Suchprofil default while the URL has no minScore', () => {
+    expect(effectiveMinScore(defaults(), { minScore: 40 })).toBe(40)
+    expect(effectiveMinScore({ ...defaults(), minScore: 0 }, { minScore: 40 })).toBe(0)
+    expect(filtersToApiParams(defaults(), 20, { minScore: 40 }).minScore).toBe(40)
+    expect(filtersToApiParams({ ...defaults(), minScore: 0 }, 20, { minScore: 40 })).not.toHaveProperty('minScore')
+    expect(filtersToApiParams({ ...defaults(), top: 20 }, 20).top).toBe(20)
+  })
+
+  it('normalizes the number input', () => {
+    expect(normalizeMinScore(57)).toBe(55)
+    expect(normalizeMinScore(130)).toBe(100)
+    expect(normalizeMinScore(-3)).toBe(0)
+    expect(normalizeMinScore(Number.NaN)).toBe(0)
+  })
+
+  it('labels the total, with „Top N von M" for the top filter', () => {
+    expect(totalLabel(258, 258, null)).toBe('258 Stellen')
+    expect(totalLabel(1, 1, null)).toBe('1 Stelle')
+    expect(totalLabel(20, 258, 20)).toBe('Top 20 von 258')
+    expect(totalLabel(7, 7, 20)).toBe('Top 7 von 7')
   })
 })

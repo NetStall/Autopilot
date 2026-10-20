@@ -21,7 +21,7 @@ describe('isIntermediary', () => {
 
 describe('sourceLabel', () => {
   it('returns German labels for every source', () => {
-    expect(sourceLabel('Arbeitsagentur')).toBe('Bundesagentur für Arbeit')
+    expect(sourceLabel('Arbeitsagentur')).toBe('Arbeitsagentur')
     expect(sourceLabel('Manual')).toBe('Manuell erfasst')
   })
 })

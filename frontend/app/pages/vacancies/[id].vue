@@ -19,7 +19,8 @@ useHead({ title: () => (vacancy.value ? `${vacancy.value.title} · Job Autopilot
 const originalUrl = computed(() => safeExternalUrl(vacancy.value?.url))
 const badges = computed(() => (vacancy.value ? vacancyBadges(vacancy.value) : []))
 const statusBadges = computed(() => badges.value.filter(b => b.variant === 'new' || b.variant === 'remote' || b.variant === 'hybrid'))
-const score = computed(() => (vacancy.value ? scoreBadge(vacancy.value) : null))
+const thresholds = useScoreThresholds()
+const score = computed(() => (vacancy.value ? scoreBadge(vacancy.value, thresholds.value) : null))
 const { data: fit } = useAsyncData(() => `vacancy-fit-${id.value}`, () => api.fit(id.value), { server: false, lazy: true })
 const attribution = computed(() => (vacancy.value ? sourceAttribution(vacancy.value.source) : null))
 const employerBadge = computed(() => badges.value.find(b => b.variant === 'employer' || b.variant === 'intermediary'))
@@ -127,12 +128,7 @@ function openedOriginal() {
             class="badge detail__badge"
             :class="`badge--${badge.variant}`"
           >{{ badge.label }}</span>
-          <span
-            v-if="score"
-            class="score detail__badge"
-            :class="`score--${score.level.toLowerCase()}`"
-            :title="score.description"
-          >{{ score.text }}<span class="visually-hidden"> – {{ score.description }}</span></span>
+          <ScoreBadge v-if="vacancy" :vacancy="vacancy" show-detail class="detail__badge" />
           <h1>{{ vacancy.title }}</h1>
           <p class="detail__company">
             {{ vacancy.company }}<span v-if="vacancy.location"> · {{ vacancy.location }}</span>
@@ -189,6 +185,23 @@ function openedOriginal() {
         {{ actionError }}
       </p>
 
+      <section v-if="fit" class="detail__reasons" aria-labelledby="fit-heading">
+        <h2 id="fit-heading">
+          Passt zu mir?
+        </h2>
+        <VacancyFit :fit="fit" />
+      </section>
+
+      <section class="detail__reasons" aria-labelledby="reasons-heading">
+        <h2 id="reasons-heading">
+          Warum diese Bewertung?
+        </h2>
+        <p v-if="scoreLine(vacancy.relevanceScore, vacancy.rankScore)" class="detail__score-line">
+          {{ scoreLine(vacancy.relevanceScore, vacancy.rankScore) }}
+        </p>
+        <VacancyReasons :reasons="vacancy.relevanceReasons" />
+      </section>
+
       <dl class="detail__facts">
         <dt>Arbeitgeber</dt>
         <dd>{{ vacancy.company }}</dd>
@@ -236,7 +249,7 @@ function openedOriginal() {
         <dt>Remote</dt>
         <dd>{{ remoteLevelLabel(vacancy.remoteLevel) }}</dd>
         <dt>Relevanz</dt>
-        <dd>{{ score?.description }}</dd>
+        <dd>{{ score ? `${score.description} (${score.detail})` : '–' }}</dd>
         <dt>Gefunden durch</dt>
         <dd>
           <ul v-if="vacancy.matchedSearches.length > 0" class="detail__searches">
@@ -255,23 +268,6 @@ function openedOriginal() {
         <dt>Einschätzung</dt>
         <dd>{{ interestLabels[vacancy.interest] ?? '–' }}</dd>
       </dl>
-
-      <section v-if="fit" class="detail__reasons" aria-labelledby="fit-heading">
-        <h2 id="fit-heading">
-          Passt zu mir?
-        </h2>
-        <VacancyFit :fit="fit" />
-      </section>
-
-      <section class="detail__reasons" aria-labelledby="reasons-heading">
-        <h2 id="reasons-heading">
-          Warum diese Bewertung?
-        </h2>
-        <p v-if="scoreLine(vacancy.relevanceScore, vacancy.rankScore)" class="detail__score-line">
-          {{ scoreLine(vacancy.relevanceScore, vacancy.rankScore) }}
-        </p>
-        <VacancyReasons :reasons="vacancy.relevanceReasons" />
-      </section>
 
       <section class="detail__description" aria-labelledby="description-heading">
         <h2 id="description-heading">
@@ -358,6 +354,8 @@ function openedOriginal() {
     grid-template-columns: max-content minmax(0, 1fr);
     gap: var(--space-2) var(--space-4);
     margin: 0;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
 
     dt {
       color: var(--color-muted);

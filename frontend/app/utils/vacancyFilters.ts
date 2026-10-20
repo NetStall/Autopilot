@@ -3,6 +3,7 @@ import type {
   EmployerType,
   RelevanceLevel,
   RemoteLevel,
+  VacancyFacets,
   VacancyListParams,
   VacancySort,
   VacancySource,
@@ -17,6 +18,9 @@ export const RELEVANCE_LEVELS: readonly RelevanceLevel[] = ['Relevant', 'Maybe',
 export const DEFAULT_RELEVANCE: readonly RelevanceLevel[] = ['Relevant', 'Maybe']
 
 export const VACANCY_SOURCES: readonly VacancySource[] = ['Arbeitsagentur', 'Himalayas', 'Manual']
+
+/** Steps of the „Mindestbewertung" slider. */
+export const MIN_SCORE_STEP = 5
 
 /** Alle / Neu / Gesehen */
 export type StatusFilter = 'all' | 'new' | 'seen'
@@ -33,8 +37,12 @@ export interface VacancyFilters {
   remote: RemoteFilter
   /** Relevance levels shown; never empty (an empty selection means the default). */
   relevance: RelevanceLevel[]
-  /** One source or '' for all. */
-  source: VacancySource | ''
+  /** Sources shown; empty = all. */
+  sources: VacancySource[]
+  /** „Mindestbewertung"; <c>null</c> = the default of the Suchprofil. */
+  minScore: number | null
+  /** „Nur Top N": N, or <c>null</c> = off. */
+  top: number | null
   /** Names of configured searches; vacancies found by any of them. */
   searches: string[]
   /** „Gemerkt" — only starred vacancies. */
@@ -54,7 +62,9 @@ export const DEFAULT_FILTERS: Readonly<VacancyFilters> = Object.freeze({
   status: 'all',
   remote: 'any',
   relevance: [...DEFAULT_RELEVANCE],
-  source: '',
+  sources: [],
+  minScore: null,
+  top: null,
   searches: [],
   starredOnly: false,
   showDismissed: false,
@@ -65,7 +75,7 @@ export const DEFAULT_FILTERS: Readonly<VacancyFilters> = Object.freeze({
 
 /** Fresh defaults (the frozen object shares its arrays). */
 export function defaultFilters(): VacancyFilters {
-  return { ...DEFAULT_FILTERS, employerTypes: [], relevance: [...DEFAULT_RELEVANCE], searches: [] }
+  return { ...DEFAULT_FILTERS, employerTypes: [], relevance: [...DEFAULT_RELEVANCE], sources: [], searches: [] }
 }
 
 type QueryValue = LocationQueryValue | LocationQueryValue[] | undefined
@@ -100,6 +110,23 @@ function parseSort(value: string): VacancySort {
   return value === 'published' || value === 'fetched' ? value : 'relevance'
 }
 
+/** An integer within [min, max], otherwise <c>null</c>. */
+function parseInt0(value: string, min: number, max: number): number | null {
+  if (!/^\d{1,3}$/.test(value)) {
+    return null
+  }
+  const n = Number.parseInt(value, 10)
+  return n >= min && n <= max ? n : null
+}
+
+/** Rounds to the slider's steps and clamps to 0–100. */
+export function normalizeMinScore(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+  return Math.min(100, Math.max(0, Math.round(value / MIN_SCORE_STEP) * MIN_SCORE_STEP))
+}
+
 function sameLevels(a: readonly RelevanceLevel[], b: readonly RelevanceLevel[]): boolean {
   return a.length === b.length && a.every(level => b.includes(level))
 }
@@ -107,9 +134,9 @@ function sameLevels(a: readonly RelevanceLevel[], b: readonly RelevanceLevel[]):
 /** Reads filters from the URL; unknown or malformed values fall back to the defaults. */
 export function filtersFromQuery(query: LocationQuery): VacancyFilters {
   const status = firstValue(query.status)
-  const source = firstValue(query.source)
   const page = Number.parseInt(firstValue(query.page), 10)
   const relevance = RELEVANCE_LEVELS.filter(level => allValues(query.relevance).includes(level))
+  const minScore = parseInt0(firstValue(query.minScore), 0, 100)
 
   return {
     q: firstValue(query.q).trim(),
@@ -118,7 +145,9 @@ export function filtersFromQuery(query: LocationQuery): VacancyFilters {
     status: status === 'new' || status === 'seen' ? status : 'all',
     remote: parseRemote(firstValue(query.remote)),
     relevance: relevance.length > 0 ? relevance : [...DEFAULT_RELEVANCE],
-    source: oneOf(VACANCY_SOURCES, source) ? source : '',
+    sources: VACANCY_SOURCES.filter(s => allValues(query.source).includes(s)),
+    minScore: minScore == null ? null : normalizeMinScore(minScore),
+    top: parseInt0(firstValue(query.top), 1, 200),
     starredOnly: firstValue(query.starred) === 'true',
     showDismissed: firstValue(query.dismissed) === 'show',
     since: isIsoTimestamp(firstValue(query.since)) ? firstValue(query.since) : '',
@@ -152,8 +181,14 @@ export function filtersToQuery(filters: VacancyFilters): LocationQueryRaw {
   if (filters.relevance.length > 0 && !sameLevels(filters.relevance, DEFAULT_RELEVANCE)) {
     query.relevance = RELEVANCE_LEVELS.filter(level => filters.relevance.includes(level))
   }
-  if (filters.source) {
-    query.source = filters.source
+  if (filters.sources.length > 0) {
+    query.source = VACANCY_SOURCES.filter(s => filters.sources.includes(s))
+  }
+  if (filters.minScore != null) {
+    query.minScore = String(filters.minScore)
+  }
+  if (filters.top != null) {
+    query.top = String(filters.top)
   }
   if (filters.searches.length > 0) {
     query.search = [...filters.searches]
@@ -181,8 +216,18 @@ const remoteLevels: Record<Exclude<RemoteFilter, 'any'>, RemoteLevel[]> = {
   full: ['FullRemote'],
 }
 
+/** What the Suchprofil contributes when the URL does not say otherwise. */
+export interface ListDefaults {
+  minScore: number
+}
+
+/** The minimum score in effect: the URL's, else the Suchprofil's. */
+export function effectiveMinScore(filters: VacancyFilters, defaults?: ListDefaults): number {
+  return filters.minScore ?? defaults?.minScore ?? 0
+}
+
 /** Maps the UI filters to the API's query parameters. */
-export function filtersToApiParams(filters: VacancyFilters, pageSize: number): VacancyListParams {
+export function filtersToApiParams(filters: VacancyFilters, pageSize: number, defaults?: ListDefaults): VacancyListParams {
   const params: VacancyListParams = { sort: filters.sort, page: filters.page, pageSize }
   if (filters.q.trim()) {
     params.q = filters.q.trim()
@@ -203,8 +248,15 @@ export function filtersToApiParams(filters: VacancyFilters, pageSize: number): V
   if (filters.relevance.length > 0 && filters.relevance.length < RELEVANCE_LEVELS.length) {
     params.relevance = RELEVANCE_LEVELS.filter(level => filters.relevance.includes(level))
   }
-  if (filters.source) {
-    params.source = filters.source
+  if (filters.sources.length > 0 && filters.sources.length < VACANCY_SOURCES.length) {
+    params.source = VACANCY_SOURCES.filter(s => filters.sources.includes(s))
+  }
+  const minScore = effectiveMinScore(filters, defaults)
+  if (minScore > 0) {
+    params.minScore = minScore
+  }
+  if (filters.top != null) {
+    params.top = filters.top
   }
   if (filters.searches.length > 0) {
     params.search = [...filters.searches]
@@ -221,7 +273,7 @@ export function filtersToApiParams(filters: VacancyFilters, pageSize: number): V
   return params
 }
 
-/** True if anything other than sorting, paging and the default relevance narrows the list. */
+/** True if anything other than sorting, paging and the defaults narrows the list. */
 export function hasActiveFilters(filters: VacancyFilters): boolean {
   return filters.q.trim() !== ''
     || filters.location.trim() !== ''
@@ -229,9 +281,36 @@ export function hasActiveFilters(filters: VacancyFilters): boolean {
     || filters.status !== 'all'
     || filters.remote !== 'any'
     || !sameLevels(filters.relevance, DEFAULT_RELEVANCE)
-    || filters.source !== ''
+    || filters.sources.length > 0
+    || filters.minScore != null
+    || filters.top != null
     || filters.searches.length > 0
     || filters.starredOnly
     || filters.showDismissed
     || filters.since !== ''
+}
+
+/** „ (12)" behind a filter option, or nothing while the counts are not loaded. */
+export function countSuffix(facets: VacancyFacets | null | undefined, value: number | undefined): string {
+  return facets ? ` (${value ?? 0})` : ''
+}
+
+/** Count of a „Remote" option: voll remote, remote or hybrid, or all levels for „egal". */
+export function remoteFacetCount(levels: VacancyFacets['remoteLevel'], option: RemoteFilter): number {
+  const full = levels.FullRemote ?? 0
+  if (option === 'full') {
+    return full
+  }
+  if (option === 'remote') {
+    return full + (levels.Hybrid ?? 0)
+  }
+  return Object.values(levels).reduce((a, b) => a + (b ?? 0), 0)
+}
+
+/** „258 Stellen" or „Top 20 von 258". */
+export function totalLabel(totalCount: number, totalMatching: number, top: number | null): string {
+  if (top != null) {
+    return `Top ${Math.min(top, totalMatching)} von ${totalMatching}`
+  }
+  return `${totalCount} ${totalCount === 1 ? 'Stelle' : 'Stellen'}`
 }

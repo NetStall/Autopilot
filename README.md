@@ -133,7 +133,10 @@ skips its own searches. Himalayas postings past their expiry date are deleted (i
 
 #### Configuring searches
 
-Edit `backend/src/JobAutopilot.Api/appsettings.json` (or override it with user-secrets / environment variables):
+The import searches are **generated from the Suchprofil** (see *Suchprofil* below): every search term × every place
+(region) and × remote Germany, for each enabled source. The page Suchprofil lists them read-only. `Import:Searches`
+and `Import:ExcludeTitleTerms` in `appsettings.json` are only the **seed** of the first Suchprofil; after that they are
+ignored. Their format (also used for one ad-hoc search):
 
 ```jsonc
 "Import": {
@@ -192,12 +195,38 @@ Copy-Item docs/profile.example.json data/profile.json   # then edit it
 | `experience[]` | company, title, `from`/`to` (`YYYY-MM`, `to` empty = today), bullets with `tags` |
 | `skills[]` | name, `aliases` (spellings in job ads), `level`: `Production` (at work) · `Project` (own projects) · `Learning` · `None` (a gap), optional `years`, `group` |
 | `knownGaps[]` | missing skill + an honest phrasing in `de` **and** `en` |
-| `projects[]`, `education[]`, `languages[]` (`A1`…`C2`, `Native`), `certificates[]`, `preferences` | salary range, regions, max commute, remote preference, earliest start, employer types to avoid |
+| `projects[]`, `education[]`, `languages[]` (`A1`…`C2`, `Native`), `certificates[]` | |
+| `preferences` | **deprecated** — moved to the Suchprofil. Read once to seed it; afterwards ignored (the API logs a hint while they are still in the file) |
 
 The page **Profil** shows the loaded profile and every validation problem (unknown level, `from` after `to`, missing
 gap phrasing …). The file is re-read automatically when it changes; a missing or broken file does not stop the API —
 the page says what is wrong. In Docker, `./data` is mounted read-only into the API container. The profile's skills
 also count as (small) positive keywords in the relevance score.
+
+### Suchprofil
+
+*What I am looking for* — in the database, edited on the page **Suchprofil** (`profile.json` stays *who I am*).
+Decision and migration: [ADR 0009](docs/decisions/0009-search-profile.md).
+
+| Section | |
+|---|---|
+| Suche | search terms (each „Region + Remote", „Nur Region" or „Nur Remote"), places with radius, „Remote deutschlandweit", further places that count as my region, published within X days, sources Arbeitsagentur / Himalayas |
+| Remote und Arbeitgeber | Remote-Präferenz *egal* / *mindestens Hybrid* / *nur voll remote*; Personalvermittlung and Zeitarbeit: *zulassen* / *niedriger einordnen* / *ausblenden* |
+| Stack | Must-have, Nice-to-have, Ausschluss — keywords with weight, other spellings, group, „nur im Titel", case-sensitive, core stack; Titel-Ausschlüsse (skipped on import) |
+| Bewertung | default Mindestbewertung and N of „Nur Top N" for the list; fit penalties (0–50) |
+| Rahmen | salary target, earliest start (orientation only, not scored yet) |
+
+While editing, a debounced preview shows „Mit diesen Einstellungen: 142 passende Stellen (davon 31 voll remote)"
+without saving. **Speichern** validates (German messages), stores a new version (409 if it was saved elsewhere in the
+meantime), re-scores everything in the background and offers **Jetzt importieren** — new terms and places only find
+vacancies on the next import. Leaving the page with unsaved changes asks first. **Verlauf** keeps the last 50
+versions with a change summary; *Wiederherstellen* saves an old one as a new version. *Als JSON exportieren* /
+*JSON importieren* move it between machines (an imported file is checked first and loaded as unsaved changes).
+
+```powershell
+Invoke-RestMethod http://localhost:5080/api/search-profile | Select-Object version, @{ n = 'searches'; e = { $_.searches.Count } }
+Invoke-WebRequest http://localhost:5080/api/search-profile/export -OutFile "$env:TEMP\suchprofil.json"   # private: places, salary — do not commit
+```
 
 ### Relevance, remote level and agencies
 
@@ -206,17 +235,19 @@ Every vacancy gets a **score 0–100**, a level (**Passt** ≥ 55, **Vielleicht*
 (-60)`, `Java neben C#/.NET im Titel – abgeschwächt (-15)`. The list shows *Passt* + *Vielleicht* by default, best
 score first; at the same score direct employers come before unknown ones, agencies and temporary work.
 
-All rules live in `appsettings.json` and can be changed without code:
+The **keyword lists** come from the Suchprofil (Must-have / Nice-to-have / Ausschluss, plus the profile's skills as
+small bonuses). The **mechanics** stay in `appsettings.json`:
 
 | Section | What |
 |---|---|
-| `Relevance` | `Positive` / `Negative` keyword rules (`Name`, `Terms`, `Weight`, optional `Group`, `MatchCase`, `TitleOnly`, `Core`, `SoftenedByCore`, `Reason`), `GroupCaps` (related skills share a maximum, e.g. `dotnet: 50` — „.NET" in the title plus C# plus ASP.NET does not stack without limit), `BaseScore` (10), `TitleFactor` (title counts ×2), `SoftenedFactor`, thresholds `RelevantFrom` / `MaybeFrom` |
+| `Relevance` | `Positive` / `Negative` keyword rules — only the seed of the Suchprofil's Stack lists; `GroupCaps` (related skills share a maximum, e.g. `dotnet: 50` — „.NET" in the title plus C# plus ASP.NET does not stack without limit), `BaseScore` (10), `TitleFactor` (title counts ×2), `SoftenedFactor`, thresholds `RelevantFrom` / `MaybeFrom` |
 | `Remote` | phrases for **voll remote** („100 % remote", „deutschlandweit remote" …), **vor Ort** („kein Homeoffice") and **hybrid** („mobiles Arbeiten", „{n} Tage Homeoffice") |
 | `EmployerDetection` | known agencies (FERCHAU, Hays, Brunel …), phrases for agencies („im Auftrag unseres Kunden") and temporary work („Arbeitnehmerüberlassung"), phrases of direct employers („keine Anfragen von Personaldienstleistern") |
 
 Terms match whole words only: `Java` ≠ „JavaScript", `.NET` ≠ „Netzwerk", `C#` ≠ „C++"; spaces and hyphens are
-flexible („Full Stack" = „Full-Stack" = „Fullstack"). After changing rules, click **Neu bewerten** (or
-`POST /api/vacancies/rescore`); the API also re-scores everything when it starts. The remote level is recomputed
+flexible („Full Stack" = „Full-Stack" = „Fullstack"). Saving the Suchprofil re-scores automatically; after changing
+`appsettings.json`, click **Neu bewerten** (or `POST /api/vacancies/rescore`); the API also re-scores everything when
+it starts. The remote level is recomputed
 each time: an explicit phrase decides („anteilig Homeoffice" → hybrid, even if the Arbeitsagentur field says 100 %);
 without a phrase the source's data count (`homeofficeprozent` 100 → voll remote, Himalayas → voll remote); being
 found by a remote search keeps a vacancy at least hybrid. The employer type comes from the
@@ -226,10 +257,17 @@ Arbeitsagentur flags (Arbeitnehmerüberlassung / private Arbeitsvermittlung), th
 requirements I cover (✓ profile level `Production`), partly (~ `Project`/`Learning`) or not (✗, with the honest
 phrasing from `knownGaps`). A requirement only in a sentence with „von Vorteil"/„nice to have", or offered as an
 alternative to a skill I cover („Angular oder Vue.js"), is optional. Warnings: German level above mine („sehr gute
-Deutschkenntnisse" = C1), more years than mine („mehrjährig", „5 Jahre", „Senior"), not fully remote outside my
-`preferences.regions`, an employer type I avoid. The **default order** is the *rank* = relevance minus these penalties
-(`Fit:Penalties` in `appsettings.json`: German 8 per level, experience 8, required gap 6 each up to 18, region 15,
-avoided employer type 10); „Warum?" shows both numbers. Common requirements that are not in the profile (Angular,
+Deutschkenntnisse" = C1), more years than mine („mehrjährig", „5 Jahre", „Senior"), not fully remote outside the
+Suchprofil's places, an employer type set to „niedriger einordnen", a missed Remote-Präferenz. The **default order**
+is the *rank* = relevance minus these penalties (Suchprofil „Fit-Abzüge", seeded from `Fit:Penalties`: German 8 per
+level, experience 8, required gap 6 each up to 18, region 15, employer type 10, remote wish 10).
+
+**Score in the UI.** Every card and the detail page show the rank as a pill („87"), coloured high / medium / low by
+`Ui:ScoreHigh` (70) and `Ui:ScoreMedium` (45) — never by colour alone: the number is always visible, the screen reader
+label is „Bewertung 87 von 100" and the tooltip / second line „Relevanz 94 · Abzüge −8". In the list:
+**Mindestbewertung** (slider + number, steps of 5, URL `minScore=60`; default from the Suchprofil) and **Nur Top N**
+(URL `top=20`, „Top 20 von 258"). The filters Quelle, Relevanz, Arbeitgeber and Arbeitsort show how many vacancies
+each option would give under the other active filters. Common requirements that are not in the profile (Angular,
 React, Kubernetes, Führerschein …) are listed in `Fit:CommonRequirements`.
 
 The same job from several sources (or posted twice) is shown once — the first one imported — with „auch bei …"
@@ -296,7 +334,7 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 |---|---|---|
 | GET | `/health/live` | process is up: `{ "status": "ok", "checks": {} }` |
 | GET | `/health/ready` | ready to serve: `{ "status": "ok", "checks": { "database": "Healthy" } }`, 503 if the DB is unreachable |
-| GET | `/api/vacancies` | paged `{ items, page, pageSize, totalCount }`, filters below |
+| GET | `/api/vacancies` | paged `{ items, page, pageSize, totalCount, totalMatching, top, facets: { source, remoteLevel, employerType, relevanceLevel } }`, filters below; each facet counts under all *other* filters |
 | GET | `/api/vacancies/{id}` | one vacancy, 404 if unknown |
 | GET | `/api/vacancies/{id}/fit` | „Passt zu mir?": `{ profileStatus, hasDescription, requirements: [{ name, coverage: Covered\|Partial\|Gap, optional, note }], warnings: [{ text, penalty }], requiredGerman, requiredYears, penalty }` |
 | GET | `/api/applications?status=&channel=&followUpDue=true` | applications, newest first, with `statusLabel`, `followUpAt`, `isFollowUpDue` |
@@ -317,7 +355,13 @@ dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Da
 | GET | `/api/imports/{id}` | `{ status: Queued\|Running\|Succeeded\|Failed\|Cancelled, searchesDone, searchesTotal, currentSearch, fetched, added, updated, unchanged, excluded, error, searches: [...] }` |
 | GET | `/api/imports?limit=10` | recent runs, newest first (limit 1–50) |
 | GET | `/api/imports/searches` | the configured searches (for the UI filter) |
-| GET | `/api/settings/ui` | `{ highlightKeywords }` from `Ui:HighlightKeywords` |
+| GET | `/api/settings/ui` | `{ highlightKeywords, scoreHigh, scoreMedium }` from `Ui` |
+| GET | `/api/search-profile` | `{ version, updatedAt, profile, searches }` (searches = generated import searches) |
+| PUT | `/api/search-profile` | `{ version, profile }` → `{ searchProfile, rescore }`; 400 ValidationProblem (`errors.profile`), 409 if `version` is not current |
+| POST | `/api/search-profile/preview` | a draft profile → `{ errors, matching, fullRemote, currentMatching, scored, searches }`; saves nothing |
+| GET | `/api/search-profile/history` | `[{ version, savedAt, summary }]`, newest first (last 50) |
+| POST | `/api/search-profile/rollback` | `{ version, expectedVersion }` → saves that version again as a new one; 404 / 409 |
+| GET | `/api/search-profile/export` | the document as `suchprofil-v{N}.json` |
 
 Query parameters of `GET /api/vacancies`:
 
@@ -327,13 +371,15 @@ Query parameters of `GET /api/vacancies`:
 | `location` | text in the location |
 | `employerType` | `Direct`, `Agency`, `Temporary`, `Unknown` — repeatable |
 | `seen` | `true` / `false`; omitted = all |
-| `source` | `Arbeitsagentur` / `Himalayas` / `Manual` |
+| `source` | `Arbeitsagentur`, `Himalayas`, `Manual` — repeatable, matches any |
 | `remote` | `FullRemote`, `Hybrid`, `OnSite`, `Unknown` — repeatable |
 | `relevance` | `Relevant`, `Maybe`, `Irrelevant` — repeatable; not yet scored counts as `Maybe` |
 | `search` | name of a configured search — repeatable, matches any |
 | `interest` | `None`, `Starred`, `Dismissed` — repeatable; without it, dismissed vacancies are hidden |
 | `includeDismissed` | `true` = show dismissed vacancies too |
 | `fetchedSince` | ISO timestamp — only vacancies imported at/after it („Neu seit letztem Import") |
+| `minScore` | 0–100: rank (relevance minus fit penalties; relevance if not checked yet) at least this; unscored vacancies are left out when > 0 |
+| `top` | 1–200: only the best N by rank after all other filters; `totalCount` = min(N, `totalMatching`) |
 | `sort` | `relevance` (default: score, then direct employers first, then newest), `published` or `fetched` |
 | `page`, `pageSize` | default 1 / 20, `pageSize` ≤ 100 |
 

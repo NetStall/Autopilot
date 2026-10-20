@@ -15,9 +15,14 @@ const toasts = useToasts()
 const filters = computed(() => filtersFromQuery(route.query))
 const listQuery = computed(() => filtersToQuery(filters.value))
 
+const listDefaults = ref<ListDefaultsState>({ minScore: 0, topN: 20 })
 const { data, status, error, refresh } = useAsyncData(
   'vacancy-list',
-  () => api.list(filtersToApiParams(filters.value, PAGE_SIZE)),
+  async () => {
+    // The Suchprofil's „Mindestbewertung" applies while the URL has none.
+    listDefaults.value = await loadListDefaults()
+    return api.list(filtersToApiParams(filters.value, PAGE_SIZE, listDefaults.value))
+  },
   { watch: [filters, importVersion], server: false, lazy: true },
 )
 
@@ -29,6 +34,7 @@ const highlightKeywords = computed(() => uiSettings.value?.highlightKeywords ?? 
 const vacancies = computed(() => (data.value?.items ?? [])
   .filter(v => filters.value.showDismissed || filters.value.starredOnly || v.interest !== 'Dismissed'))
 const totalCount = computed(() => data.value?.totalCount ?? 0)
+const countLabel = computed(() => totalLabel(totalCount.value, data.value?.totalMatching ?? totalCount.value, data.value?.top ?? null))
 const listState = computed(() => resolveListState({
   status: status.value,
   hasError: error.value != null,
@@ -196,7 +202,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     <div class="page__header">
       <h1>Stellen</h1>
       <p class="page__meta">
-        <span v-if="data" aria-live="polite">{{ totalCount }} {{ totalCount === 1 ? 'Stelle' : 'Stellen' }}</span>
+        <span v-if="data" aria-live="polite">{{ countLabel }}</span>
         <RescoreButton @finished="refresh()" />
         <button type="button" class="page__help" @click="helpOpen = true">
           Tastenkürzel <kbd>?</kbd>
@@ -204,7 +210,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       </p>
     </div>
 
-    <VacancyFilters :filters="filters" :searches="searches ?? []" @change="changeFilters" />
+    <VacancyFilters
+      :filters="filters"
+      :searches="searches ?? []"
+      :facets="data?.facets ?? null"
+      :default-min-score="listDefaults.minScore"
+      :top-n="listDefaults.topN"
+      @change="changeFilters"
+    />
 
     <section :aria-busy="listState === 'loading' || isRefreshing" aria-label="Stellenliste">
       <VacancyListSkeleton v-if="listState === 'loading'" />
