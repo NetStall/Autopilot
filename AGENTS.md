@@ -98,6 +98,24 @@ Dependency direction: `Api → Infrastructure → Core`. **Core references nothi
 7. Never commit secrets, `.env`, real CVs or generated letters. Check `.gitignore` before committing.
 8. Development machine is Windows + PowerShell: give commands that work there.
 
+## Working economically
+
+- **Start every task with [`docs/CODEMAP.md`](docs/CODEMAP.md)** and open only the files it points to. Find symbols
+  with grep/glob instead of opening many files. Flows and layers: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+- Don't open generated or vendored files: `node_modules/`, `bin/`, `obj/`, `.nuxt/`, `.output/`, `dist/`, lock
+  files, migration `*.Designer.cs` and the model snapshot (unless the task is about migrations), `data/`, fixtures
+  larger than needed.
+- Tests: while working run only the relevant ones (`dotnet test --filter …`, `npx vitest run <file>` or
+  `npx vitest related <file>`). Run the full suites **once** at the end; don't rebuild/test every commit separately.
+- Real external calls (Arbeitsagentur, Himalayas, Claude, Ollama) and real imports only when the task is about them
+  and the prompt asks for it.
+- No screenshots unless the prompt asks. Logs: `docker compose logs --tail 50`, never full dumps.
+- Report: max ~40 lines — what changed (bullets), how to verify (commands), decisions to review, CI status. No
+  repeated code, no long tables unless asked.
+- Keep `docs/CODEMAP.md` and `docs/ARCHITECTURE.md` up to date in the same commit when files, endpoints or config
+  keys move or are added.
+- If a task turns out clearly bigger than expected, stop after the first part and ask.
+
 ## Commands (fill in as the project grows)
 
 ```powershell

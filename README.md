@@ -30,7 +30,8 @@ PHP, SAP, embedded …: not), with a remote level (voll remote / hybrid), detect
 duplicates. Background import with progress and a daily run at 07:00, fast triage (seen / Merken / Ausblenden,
 keyboard shortcuts), filters in the URL; one-command start in Docker or dev mode; security review in
 [docs/SECURITY.md](docs/SECURITY.md). Earlier steps: foundation (01), import (02), list UI (03).
-Agent rules: [AGENTS.md](AGENTS.md).
+Agent rules: [AGENTS.md](AGENTS.md). Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); where is what:
+[docs/CODEMAP.md](docs/CODEMAP.md).
 
 ![Vacancy list with filters, "Neu" markers and employer type badges (demo data)](docs/img/vacancy-list.png)
 

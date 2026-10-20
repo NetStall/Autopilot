@@ -43,3 +43,6 @@ backups/
 
 # Suchprofil exports (places, salary)
 suchprofil*.json
+
+# ---- Claude Code: personal settings (the shared .claude/settings.json is committed) ----
+.claude/settings.local.json
