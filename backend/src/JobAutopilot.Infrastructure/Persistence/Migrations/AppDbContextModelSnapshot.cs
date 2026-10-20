@@ -149,6 +149,132 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.ToTable("ApplicationEvents");
                 });
 
+            modelBuilder.Entity("JobAutopilot.Core.Documents.ApplicationDraft", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Calls")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CvFile")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("CvOptions")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("InputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Letter")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("LetterFile")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("OutputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PromptVersion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Warnings")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("WarningsAccepted")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId")
+                        .IsUnique();
+
+                    b.ToTable("ApplicationDrafts", (string)null);
+                });
+
+            modelBuilder.Entity("JobAutopilot.Core.Documents.ApplicationDraftRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CvOptions")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("DraftId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("InputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Letter")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OutputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PromptVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DraftId", "Number")
+                        .IsUnique();
+
+                    b.HasIndex("Kind", "CreatedAt");
+
+                    b.ToTable("ApplicationDraftRevisions", (string)null);
+                });
+
             modelBuilder.Entity("JobAutopilot.Core.Import.ImportRun", b =>
                 {
                     b.Property<Guid>("Id")
@@ -407,6 +533,24 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("JobAutopilot.Core.Documents.ApplicationDraft", b =>
+                {
+                    b.HasOne("JobAutopilot.Core.Applications.Application", null)
+                        .WithOne()
+                        .HasForeignKey("JobAutopilot.Core.Documents.ApplicationDraft", "ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobAutopilot.Core.Documents.ApplicationDraftRevision", b =>
+                {
+                    b.HasOne("JobAutopilot.Core.Documents.ApplicationDraft", null)
+                        .WithMany("Revisions")
+                        .HasForeignKey("DraftId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("JobAutopilot.Core.Import.ImportRun", b =>
                 {
                     b.OwnsMany("JobAutopilot.Core.Import.ImportRunSearch", "Searches", b1 =>
@@ -459,6 +603,11 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("JobAutopilot.Core.Applications.Application", b =>
                 {
                     b.Navigation("Events");
+                });
+
+            modelBuilder.Entity("JobAutopilot.Core.Documents.ApplicationDraft", b =>
+                {
+                    b.Navigation("Revisions");
                 });
 #pragma warning restore 612, 618
         }

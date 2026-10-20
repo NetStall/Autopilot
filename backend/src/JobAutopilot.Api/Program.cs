@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using JobAutopilot.Api.Common;
 using JobAutopilot.Api.Features.Applications;
+using JobAutopilot.Api.Features.Documents;
 using JobAutopilot.Api.Features.Health;
 using JobAutopilot.Api.Features.Profile;
 using JobAutopilot.Api.Features.Scoring;
@@ -15,6 +16,7 @@ using JobAutopilot.Api.Features.Vacancies;
 using JobAutopilot.Infrastructure;
 using JobAutopilot.Core.Profile;
 using JobAutopilot.Infrastructure.Applications;
+using JobAutopilot.Infrastructure.Documents;
 using JobAutopilot.Infrastructure.Persistence;
 using JobAutopilot.Infrastructure.Profile;
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +41,12 @@ var trackerImportPath = Path.GetFullPath(
     builder.Environment.ContentRootPath);
 builder.Services.AddSingleton<ICandidateProfileSource>(sp => new FileCandidateProfileSource(
     profilePath, sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<ILogger<FileCandidateProfileSource>>()));
+
+// Approved PDFs (personal data, git-ignored folder under data/).
+var documentsPath = Path.GetFullPath(
+    builder.Configuration.GetSection(DocumentOptions.SectionName).Get<DocumentOptions>()?.OutputPath ?? new DocumentOptions().OutputPath,
+    builder.Environment.ContentRootPath);
+builder.Services.AddSingleton(new DocumentFileStore(documentsPath));
 
 // Suchprofil (database): what I am looking for. Seeded once from appsettings.json + profile.json preferences (ADR 0009).
 builder.Services.Configure<SearchProfileDefaults>(builder.Configuration.GetSection(SearchProfileDefaults.SectionName));
@@ -111,5 +119,6 @@ app.MapUiSettingsEndpoints();
 app.MapProfileEndpoints();
 app.MapApplicationEndpoints(trackerImportPath);
 app.MapSearchProfileEndpoints();
+app.MapDocumentEndpoints();
 
 await app.RunAsync();

@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using JobAutopilot.Core.Applications;
 using JobAutopilot.Infrastructure.Applications;
+using JobAutopilot.Infrastructure.Documents;
 using JobAutopilot.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -134,20 +135,38 @@ public static partial class ApplicationEndpoints
         return TypedResults.Ok(ApplicationDto.From(application, now, withEvents: true));
     }
 
-    private static async Task<Results<NoContent, NotFound>> Delete(Guid id, AppDbContext db, CancellationToken cancellationToken)
+    /// <summary>Deletes the application, its history, its documents (cascade) and the approved PDFs on disk.</summary>
+    private static async Task<Results<NoContent, NotFound>> Delete(
+        Guid id, AppDbContext db, DocumentFileStore files, CancellationToken cancellationToken)
     {
         var deleted = await db.Applications.Where(a => a.Id == id).ExecuteDeleteAsync(cancellationToken);
+        if (deleted > 0)
+        {
+            files.Delete(id);
+        }
+
         return deleted == 0 ? TypedResults.NotFound() : TypedResults.NoContent();
     }
 
-    /// <summary>Writes a history event and makes it the last action (resets the follow-up date).</summary>
-    private static async Task<Results<Ok<ApplicationDto>, NotFound>> ChangeStatus(
+    /// <summary>
+    /// Writes a history event and makes it the last action (resets the follow-up date). Entwurf, Freigegeben and
+    /// Gesendet cannot be set here — approving and „Als gesendet markieren" are explicit actions (step 06).
+    /// </summary>
+    private static async Task<Results<Ok<ApplicationDto>, NotFound, ProblemHttpResult>> ChangeStatus(
         Guid id, StatusChangeRequest request, AppDbContext db, TimeProvider timeProvider, CancellationToken cancellationToken)
     {
         var application = await db.Applications.Include(a => a.Events).SingleOrDefaultAsync(a => a.Id == id, cancellationToken);
         if (application is null)
         {
             return TypedResults.NotFound();
+        }
+
+        if (request.Status!.Value != application.Status && !ApplicationWorkflow.AllowsManualChange(application.Status, request.Status.Value))
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Statuswechsel nicht erlaubt.",
+                detail: "„Entwurf“, „Freigegeben“ und „Gesendet“ entstehen nur über „Unterlagen erstellen“, „Freigeben“ und „Als gesendet markieren“.");
         }
 
         var now = timeProvider.GetUtcNow();

@@ -125,11 +125,21 @@ public class SecurityTests(PostgresFixture postgres) : IntegrationTestBase(postg
         var response = await PreflightAsync(AllowedOrigin, "DELETE");
 
         // The middleware lists the policy's methods; the browser refuses everything else itself.
-        // DELETE since step 05 (deleting an application); PUT is not used.
+        // DELETE since step 05 (deleting an application); PUT since step 05b/06 (Suchprofil, documents).
         var allowed = response.Headers.TryGetValues("Access-Control-Allow-Methods", out var values)
             ? string.Join(',', values)
             : string.Empty;
-        allowed.Split(',').Should().BeEquivalentTo("GET", "POST", "PATCH", "DELETE");
+        allowed.Split(',').Should().BeEquivalentTo("GET", "POST", "PUT", "PATCH", "DELETE");
+    }
+
+    [Fact]
+    public async Task Preflight_for_saving_the_search_profile_with_put_succeeds()
+    {
+        // Regression: the Suchprofil page saves with PUT; without it in the policy the browser blocked the save.
+        var response = await PreflightAsync(AllowedOrigin, "PUT");
+
+        response.Headers.TryGetValues("Access-Control-Allow-Origin", out var origins).Should().BeTrue();
+        origins.Should().Equal(AllowedOrigin);
     }
 
     [Fact]

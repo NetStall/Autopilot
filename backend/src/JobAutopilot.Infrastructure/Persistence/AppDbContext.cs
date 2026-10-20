@@ -15,6 +15,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<ApplicationEvent> ApplicationEvents => Set<ApplicationEvent>();
 
+    public DbSet<Core.Documents.ApplicationDraft> ApplicationDrafts => Set<Core.Documents.ApplicationDraft>();
+
+    public DbSet<Core.Documents.ApplicationDraftRevision> ApplicationDraftRevisions => Set<Core.Documents.ApplicationDraftRevision>();
+
     public DbSet<SearchProfiles.SearchProfileRecord> SearchProfiles => Set<SearchProfiles.SearchProfileRecord>();
 
     public DbSet<SearchProfiles.SearchProfileRevision> SearchProfileRevisions => Set<SearchProfiles.SearchProfileRevision>();

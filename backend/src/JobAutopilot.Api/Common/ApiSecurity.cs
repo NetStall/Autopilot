@@ -22,8 +22,10 @@ public static class ApiSecurity
         ValidateOrigins(origins);
         builder.Services.AddCors(options => options.AddPolicy(FrontendCorsPolicy, policy => policy
             .WithOrigins(origins)
-            .WithMethods(HttpMethods.Get, HttpMethods.Post, HttpMethods.Patch, HttpMethods.Delete)
-            .WithHeaders("Content-Type")));
+            .WithMethods(HttpMethods.Get, HttpMethods.Post, HttpMethods.Put, HttpMethods.Patch, HttpMethods.Delete)
+            .WithHeaders("Content-Type")
+            // The document preview tells the page count in a header the browser must be allowed to read.
+            .WithExposedHeaders("X-Page-Count")));
 
         var importsPerMinute = builder.Configuration.GetValue("RateLimiting:ImportsPerMinute", 6);
         builder.Services.AddRateLimiter(options =>

@@ -24,7 +24,7 @@ public sealed class ProfileTests : IDisposable
         validation.Errors.Should().BeEmpty();
         profile!.Personal.Name.Should().Be("Alex Beispiel");
         profile.Skills.Should().Contain(s => s.Name == "Angular" && s.Level == SkillLevel.None);
-        profile.Languages.Single(l => l.Name == "Deutsch").Level.Should().Be(LanguageLevel.B2);
+        profile.Languages.Single(l => l.NameDe == "Deutsch").Level.Should().Be(LanguageLevel.B2);
         ProfileValidator.ExperienceMonths(profile, Today).Should().Be(48);
     }
 

@@ -1,6 +1,9 @@
 {
   // Example profile with INVENTED data. Copy to data/profile.json (git-ignored) and replace everything.
   // Levels: Production (used at work) > Project (own projects) > Learning > None (= known gap).
+  // German documents (step 06) use the optional German fields: summary "<focus>.de", titleDe, locationDe, textDe,
+  // descriptionDe, degreeDe, institutionDe, notesDe, nameDe, noteDe. Missing ones fall back to the base text.
+  // cvGroup is the heading of a skill in the CV ("Backend", "Frontend", "Testing", "DevOps & Tools", …).
   "personal": {
     "name": "Alex Beispiel",
     "email": "alex@example.org",
@@ -12,31 +15,36 @@
   },
   "summary": {
     "fullstack": "Full-stack developer with 4 years of C#/.NET and Vue 3.",
+    "fullstack.de": "Full-Stack-Entwickler mit 4 Jahren Erfahrung in C#/.NET und Vue 3.",
     "backend": "Backend developer: REST APIs with ASP.NET Core, SQL databases, CI/CD.",
-    "ai": "Builds tools with LLM APIs and agent workflows (spec-driven, tested)."
+    "backend.de": "Backend-Entwickler: REST-APIs mit ASP.NET Core, SQL-Datenbanken, CI/CD.",
+    "ai": "Builds tools with LLM APIs and agent workflows (spec-driven, tested).",
+    "ai.de": "Entwickelt Werkzeuge mit LLM-APIs und Agenten-Workflows (spezifikationsgetrieben, getestet)."
   },
   "experience": [
     {
       "company": "Muster Software GmbH",
       "title": "Software Developer",
+      "titleDe": "Softwareentwickler",
       "from": "2021-04",
       "to": "2025-03",
       "location": "Regensburg",
       "remote": false,
       "bullets": [
-        { "text": "Built REST APIs with ASP.NET Core for three client apps.", "tags": [ "csharp", "dotnet", "rest" ] },
-        { "text": "Moved the frontend from jQuery to Vue 3 with TypeScript.", "tags": [ "vue", "typescript", "migration" ] },
-        { "text": "Set up the CI pipeline with GitHub Actions.", "tags": [ "ci" ] }
+        { "text": "Built REST APIs with ASP.NET Core for three client apps.", "textDe": "Entwickelte REST-APIs mit ASP.NET Core für drei Client-Anwendungen.", "tags": [ "csharp", "dotnet", "rest" ] },
+        { "text": "Moved the frontend from jQuery to Vue 3 with TypeScript.", "textDe": "Migrierte das Frontend von jQuery zu Vue 3 mit TypeScript.", "tags": [ "vue", "typescript", "migration" ] },
+        { "text": "Set up the CI pipeline with GitHub Actions.", "textDe": "Richtete die CI-Pipeline mit GitHub Actions ein.", "tags": [ "ci" ] }
       ]
     }
   ],
   "skills": [
-    { "name": "C#", "aliases": [ "CSharp" ], "level": "Production", "years": 4, "group": "dotnet" },
-    { "name": ".NET", "aliases": [ "dotnet", "ASP.NET Core", "ASP.NET" ], "level": "Production", "years": 4, "group": "dotnet" },
-    { "name": "Vue", "aliases": [ "Vue.js", "Vue 3" ], "level": "Production", "years": 3, "group": "frontend" },
-    { "name": "TypeScript", "aliases": [], "level": "Production", "years": 3, "group": "frontend" },
-    { "name": "PostgreSQL", "aliases": [ "Postgres" ], "level": "Project", "group": "data" },
-    { "name": "Docker", "aliases": [], "level": "Learning" },
+    { "name": "C#", "aliases": [ "CSharp" ], "level": "Production", "years": 4, "group": "dotnet", "cvGroup": "Backend" },
+    { "name": ".NET", "aliases": [ "dotnet", "ASP.NET Core", "ASP.NET" ], "level": "Production", "years": 4, "group": "dotnet", "cvGroup": "Backend" },
+    { "name": "Vue", "aliases": [ "Vue.js", "Vue 3" ], "level": "Production", "years": 3, "group": "frontend", "cvGroup": "Frontend" },
+    { "name": "TypeScript", "aliases": [], "level": "Production", "years": 3, "group": "frontend", "cvGroup": "Frontend" },
+    { "name": "GitHub Actions", "aliases": [], "level": "Production", "cvGroup": "DevOps & Tools" },
+    { "name": "PostgreSQL", "aliases": [ "Postgres" ], "level": "Project", "group": "data", "cvGroup": "Backend" },
+    { "name": "Docker", "aliases": [], "level": "Learning", "cvGroup": "DevOps & Tools" },
     { "name": "Angular", "aliases": [], "level": "None" }
   ],
   "knownGaps": [
@@ -48,16 +56,26 @@
     }
   ],
   "projects": [
-    { "name": "Beispiel-Tool", "url": "https://github.com/example/tool", "description": "Small CLI for invoices.", "tags": [ "csharp" ] }
+    { "name": "Beispiel-Tool", "url": "https://github.com/example/tool", "description": "Small CLI for invoices.", "descriptionDe": "Kleines CLI-Werkzeug für Rechnungen.", "tags": [ "csharp" ] }
   ],
   "education": [
-    { "institution": "Beispiel-Hochschule", "degree": "B.Sc. Informatik", "from": "2017-10", "to": "2021-03", "notes": [] }
+    {
+      "institution": "Example University of Applied Sciences",
+      "institutionDe": "Beispiel-Hochschule",
+      "degree": "B.Sc. Computer Science",
+      "degreeDe": "B.Sc. Informatik",
+      "from": "2017-10",
+      "to": "2021-03",
+      "notes": [ "Thesis on web accessibility" ],
+      "notesDe": [ "Abschlussarbeit zur Barrierefreiheit im Web" ]
+    }
   ],
   "languages": [
-    { "name": "Deutsch", "level": "B2" },
-    { "name": "Englisch", "level": "C1" }
+    { "name": "German", "nameDe": "Deutsch", "level": "B2", "note": "(telc B2, 2024)", "noteDe": "(telc B2, 2024)" },
+    { "name": "English", "nameDe": "Englisch", "level": "C1" }
   ],
   "certificates": [],
+  // Deprecated since step 05b: moved to the Suchprofil (read once to seed it).
   "preferences": {
     "salaryMin": 50000,
     "salaryMax": 60000,

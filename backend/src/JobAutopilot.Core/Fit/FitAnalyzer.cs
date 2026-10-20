@@ -247,7 +247,7 @@ public sealed partial class FitAnalyzer(FitOptions options)
     }
 
     private static LanguageLevel MyGerman(CandidateProfile profile) =>
-        profile.Languages.FirstOrDefault(l => l.Name.Trim() is "Deutsch" or "German")?.Level ?? LanguageLevel.A1;
+        profile.Languages.FirstOrDefault(l => l.Name.Trim() is "Deutsch" or "German" || l.NameDe?.Trim() == "Deutsch")?.Level ?? LanguageLevel.A1;
 
     public static (LanguageLevel Level, string Phrase)? RequiredGerman(string text)
     {

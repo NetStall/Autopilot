@@ -46,8 +46,13 @@ services:
       # Personal data from ./data (git-ignored): profile.json and import/bewerbungen-export.json, read-only.
       Profile__Path: /app/data/profile.json
       Applications__TrackerImportPath: /app/data/import/bewerbungen-export.json
+      # Approved PDFs (step 06) — the only folder the API writes to; also git-ignored (inside ./data).
+      Documents__OutputPath: /app/applications
+      # Claude API key from .env (never committed); empty = letters can be edited but not generated.
+      Claude__ApiKey: "${CLAUDE_API_KEY:-}"
     volumes:
       - ./data:/app/data:ro
+      - ./data/applications:/app/applications
     ports:
       - "127.0.0.1:${API_PORT:-5080}:8080"
 

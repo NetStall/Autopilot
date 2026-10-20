@@ -1,10 +1,13 @@
 using System.Net.Http.Headers;
+using JobAutopilot.Core.Documents;
 using JobAutopilot.Core.Fit;
 using JobAutopilot.Core.Import;
 using JobAutopilot.Core.Profile;
 using JobAutopilot.Core.Scoring;
 using JobAutopilot.Core.SearchProfiles;
 using JobAutopilot.Infrastructure.Arbeitsagentur;
+using JobAutopilot.Infrastructure.Claude;
+using JobAutopilot.Infrastructure.Documents;
 using JobAutopilot.Infrastructure.Himalayas;
 using JobAutopilot.Infrastructure.Persistence;
 using JobAutopilot.Infrastructure.Profile;
@@ -53,8 +56,29 @@ public static class DependencyInjection
         services.AddScoring(configuration);
         services.AddArbeitsagentur(configuration);
         services.AddHimalayas(configuration);
+        services.AddDocuments(configuration);
 
         return services;
+    }
+
+    /// <summary>Letter generation (Claude), PDF rendering and the documents workflow (step 06, ADR 0010).</summary>
+    private static void AddDocuments(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<ClaudeOptions>()
+            .Bind(configuration.GetSection(ClaudeOptions.SectionName))
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<ClaudeOptions>, ClaudeOptionsValidator>();
+
+        // No resilience handler here: the SDK retries 429/5xx itself (Claude:MaxRetries) and applies Claude:TimeoutSeconds
+        // per attempt; the HttpClient's own timeout would cut retries short.
+        services.AddHttpClient<ClaudeLetterGenerator>(client => client.Timeout = Timeout.InfiniteTimeSpan);
+        services.AddTransient<ILetterGenerator>(sp => sp.GetRequiredService<ClaudeLetterGenerator>());
+
+        services.AddSingleton<IDocumentRenderer, QuestPdfDocumentRenderer>();
+        services.AddOptions<DocumentOptions>().Bind(configuration.GetSection(DocumentOptions.SectionName));
+        // The API replaces this with a path resolved against its content root.
+        services.TryAddSingleton(sp => new DocumentFileStore(sp.GetRequiredService<IOptions<DocumentOptions>>().Value.OutputPath));
+        services.AddScoped<ApplicationDocumentsService>();
     }
 
     private static void AddHimalayas(this IServiceCollection services, IConfiguration configuration)

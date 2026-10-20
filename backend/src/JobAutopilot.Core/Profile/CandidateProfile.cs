@@ -8,7 +8,10 @@ public sealed class CandidateProfile
 {
     public PersonalInfo Personal { get; init; } = new();
 
-    /// <summary>Short self-descriptions by focus, e.g. <c>fullstack</c>, <c>backend</c>, <c>ai</c>.</summary>
+    /// <summary>
+    /// Short self-descriptions by focus, e.g. <c>fullstack</c>, <c>backend</c>, <c>ai</c>; the German version of a
+    /// focus under <c>fullstack.de</c> (used for German documents, step 06).
+    /// </summary>
     public Dictionary<string, string> Summary { get; init; } = [];
 
     public List<ExperienceEntry> Experience { get; init; } = [];
@@ -51,6 +54,9 @@ public sealed class ExperienceEntry
 
     public string Title { get; init; } = string.Empty;
 
+    /// <summary>German job title for German documents; <see cref="Title"/> otherwise.</summary>
+    public string? TitleDe { get; init; }
+
     /// <summary><c>YYYY-MM</c>.</summary>
     public string From { get; init; } = string.Empty;
 
@@ -58,6 +64,8 @@ public sealed class ExperienceEntry
     public string? To { get; init; }
 
     public string? Location { get; init; }
+
+    public string? LocationDe { get; init; }
 
     public bool Remote { get; init; }
 
@@ -68,6 +76,9 @@ public sealed class ExperienceEntry
 public sealed class Bullet
 {
     public string Text { get; init; } = string.Empty;
+
+    /// <summary>The same achievement in German (German CV); <see cref="Text"/> otherwise.</summary>
+    public string? TextDe { get; init; }
 
     public List<string> Tags { get; init; } = [];
 }
@@ -102,6 +113,9 @@ public sealed class Skill
     /// <summary>Relevance group (e.g. <c>dotnet</c>, <c>frontend</c>) — shares the group's cap in the scoring.</summary>
     public string? Group { get; init; }
 
+    /// <summary>Heading in the CV's skills section, e.g. <c>Backend</c>, <c>Frontend</c>, <c>Testing</c>, <c>DevOps &amp; Tools</c>.</summary>
+    public string? CvGroup { get; init; }
+
     public IEnumerable<string> AllNames() => Aliases.Prepend(Name).Where(n => !string.IsNullOrWhiteSpace(n));
 }
 
@@ -125,6 +139,8 @@ public sealed class ProjectEntry
 
     public string Description { get; init; } = string.Empty;
 
+    public string? DescriptionDe { get; init; }
+
     public List<string> Tags { get; init; } = [];
 }
 
@@ -132,13 +148,20 @@ public sealed class EducationEntry
 {
     public string Institution { get; init; } = string.Empty;
 
+    public string? InstitutionDe { get; init; }
+
     public string Degree { get; init; } = string.Empty;
+
+    public string? DegreeDe { get; init; }
 
     public string From { get; init; } = string.Empty;
 
     public string? To { get; init; }
 
     public List<string> Notes { get; init; } = [];
+
+    /// <summary>German notes for German documents; replaces <see cref="Notes"/> when not empty.</summary>
+    public List<string> NotesDe { get; init; } = [];
 }
 
 /// <summary>CEFR level: A1 … C2, or Native.</summary>
@@ -157,9 +180,13 @@ public sealed class LanguageSkill
 {
     public string Name { get; init; } = string.Empty;
 
+    public string? NameDe { get; init; }
+
     public LanguageLevel Level { get; init; }
 
     public string? Note { get; init; }
+
+    public string? NoteDe { get; init; }
 }
 
 public sealed class Certificate
