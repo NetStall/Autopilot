@@ -15,6 +15,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<ApplicationEvent> ApplicationEvents => Set<ApplicationEvent>();
 
+    public DbSet<SearchProfiles.SearchProfileRecord> SearchProfiles => Set<SearchProfiles.SearchProfileRecord>();
+
+    public DbSet<SearchProfiles.SearchProfileRevision> SearchProfileRevisions => Set<SearchProfiles.SearchProfileRevision>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         ArgumentNullException.ThrowIfNull(configurationBuilder);

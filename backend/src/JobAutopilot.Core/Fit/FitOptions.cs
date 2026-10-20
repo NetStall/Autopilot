@@ -14,6 +14,7 @@ public sealed class FitOptions
     /// <summary>A requirement in the same sentence as one of these is optional („von Vorteil", „nice to have").</summary>
     public List<string> OptionalMarkers { get; init; } = [];
 
+    /// <summary>Only seeds the Suchprofil's penalties on first start (step 05b); afterwards they are edited there.</summary>
     public FitPenalties Penalties { get; init; } = new();
 }
 

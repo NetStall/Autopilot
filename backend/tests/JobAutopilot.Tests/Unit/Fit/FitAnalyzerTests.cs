@@ -1,6 +1,7 @@
 using FluentAssertions;
 using JobAutopilot.Core.Fit;
 using JobAutopilot.Core.Profile;
+using JobAutopilot.Core.SearchProfiles;
 using JobAutopilot.Core.Vacancies;
 using Microsoft.Extensions.Configuration;
 
@@ -41,7 +42,6 @@ public class FitAnalyzerTests
             new KnownGap { Skill = "React", Aliases = { "Next.js" }, De = "React noch nicht, aber Vue 3 + TypeScript.", En = "No React yet, but Vue 3 + TypeScript." },
         },
         Languages = { new LanguageSkill { Name = "Deutsch", Level = LanguageLevel.B1 }, new LanguageSkill { Name = "Englisch", Level = LanguageLevel.B2 } },
-        Preferences = { AvoidEmployerTypes = { EmployerType.Temporary } },
     };
 
     [Theory]
@@ -168,10 +168,11 @@ public class FitAnalyzerTests
     [Fact]
     public void Gaps_are_capped_and_an_avoided_employer_type_costs_points()
     {
-        var result = _analyzer.Analyze(Profile, "Dev", "Angular, React, GraphQL, Kubernetes, AWS, WPF", EmployerType.Temporary, Today);
+        var settings = FitSettings.Neutral with { RankedLowerEmployerTypes = [EmployerType.Temporary] };
+        var result = _analyzer.Analyze(Profile, new FitInput("Dev", "Angular, React, GraphQL, Kubernetes, AWS, WPF", EmployerType.Temporary, null, RemoteLevel.Unknown), Today, settings);
 
         result.Warnings.Single(w => w.Text.StartsWith("Gefordert", StringComparison.Ordinal)).Penalty.Should().Be(18);
-        result.Warnings.Should().Contain(w => w.Text.Contains("Temporary", StringComparison.Ordinal) && w.Penalty == 10);
+        result.Warnings.Should().Contain(w => w.Text == "Zeitarbeit – laut Suchprofil niedriger einordnen" && w.Penalty == 10);
         result.Penalty.Should().Be(28);
     }
 
@@ -183,16 +184,38 @@ public class FitAnalyzerTests
     [InlineData(null, RemoteLevel.Hybrid, false)]
     public void Jobs_outside_my_regions_cost_points_unless_fully_remote(string? location, RemoteLevel remote, bool penalised)
     {
-        var profile = new CandidateProfile
-        {
-            Personal = new PersonalInfo { Name = "T", Email = "t@example.org" },
-            Preferences = new Preferences { Regions = { "Deggendorf", "Regensburg", "Remote" } },
-        };
+        var settings = FitSettings.Neutral with { Places = ["Deggendorf", "Regensburg"], RemoteGermany = true };
 
-        var result = _analyzer.Analyze(profile, new FitInput("Dev", "Text", EmployerType.Direct, location, remote), Today);
+        var result = _analyzer.Analyze(Profile, new FitInput("Dev", "Text", EmployerType.Direct, location, remote), Today, settings);
 
         result.Warnings.Any(w => w.Text.StartsWith("Außerhalb meiner Regionen", StringComparison.Ordinal) && w.Penalty == 15)
             .Should().Be(penalised);
+    }
+
+    [Theory]
+    [InlineData(RemotePreference.Any, RemoteLevel.OnSite, false)]
+    [InlineData(RemotePreference.AtLeastHybrid, RemoteLevel.OnSite, true)]
+    [InlineData(RemotePreference.AtLeastHybrid, RemoteLevel.Hybrid, false)]
+    [InlineData(RemotePreference.AtLeastHybrid, RemoteLevel.Unknown, false)]
+    [InlineData(RemotePreference.FullRemoteOnly, RemoteLevel.Hybrid, true)]
+    [InlineData(RemotePreference.FullRemoteOnly, RemoteLevel.FullRemote, false)]
+    public void The_remote_preference_of_the_suchprofil_costs_points_when_missed(RemotePreference preference, RemoteLevel level, bool penalised)
+    {
+        var settings = FitSettings.Neutral with { RemotePreference = preference };
+
+        var result = _analyzer.Analyze(Profile, new FitInput("Dev", "Text", EmployerType.Direct, null, level), Today, settings);
+
+        (result.Penalty == settings.Penalties.RemotePreference).Should().Be(penalised);
+    }
+
+    [Fact]
+    public void Penalties_come_from_the_suchprofil()
+    {
+        var settings = FitSettings.Neutral with { Penalties = new SearchPenalties { GermanPerLevel = 3 } };
+
+        var result = _analyzer.Analyze(Profile, new FitInput("Dev", "Sehr gute Deutschkenntnisse", EmployerType.Direct, null, RemoteLevel.Unknown), Today, settings);
+
+        result.Penalty.Should().Be(6, "C1 is two levels above B1, 3 points each");
     }
 
     [Fact]

@@ -16,6 +16,9 @@ public sealed class ImportOptions
 
     public ImportScheduleOptions Schedule { get; init; } = new();
 
+    /// <summary>How long a queued import waits for the lock held by a re-scoring or another process.</summary>
+    public int LockWaitSeconds { get; init; } = 120;
+
     /// <summary><c>Import:Details</c> — descriptions fetched after the search, per vacancy.</summary>
     public VacancyDetailsOptions Details { get; init; } = new();
 }

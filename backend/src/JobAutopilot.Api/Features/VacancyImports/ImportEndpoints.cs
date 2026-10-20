@@ -34,13 +34,14 @@ public static class ImportEndpoints
     private static async Task<Results<Accepted<ImportStartedDto>, ProblemHttpResult>> StartImport(
         ImportSearchRequest? request,
         ImportCoordinator coordinator,
-        IOptions<ImportOptions> importOptions,
+        Core.SearchProfiles.ISearchProfileSource searchProfiles,
         CancellationToken cancellationToken)
     {
-        var options = importOptions.Value;
-        IReadOnlyList<VacancySearch> searches = request is null ? options.Searches : [request.ToSearch()];
+        // Without a body: the searches generated from the Suchprofil (search terms × places + remote).
+        var (configured, exclusions) = SearchProfiles.SearchProfileImports.Current(searchProfiles);
+        IReadOnlyList<VacancySearch> searches = request is null ? configured : [request.ToSearch()];
 
-        var run = await coordinator.TryStartAsync(ImportTrigger.Manual, searches, options.ExcludeTitleTerms, cancellationToken);
+        var run = await coordinator.TryStartAsync(ImportTrigger.Manual, searches, exclusions, cancellationToken);
         if (run is null)
         {
             return TypedResults.Problem(
@@ -74,9 +75,9 @@ public static class ImportEndpoints
         return TypedResults.Ok(runs.ConvertAll(ImportRunDto.From));
     }
 
-    /// <summary>The configured searches (Import:Searches), e.g. for the UI's search filter.</summary>
-    private static Ok<List<ConfiguredSearchDto>> ListSearches(IOptions<ImportOptions> importOptions) =>
-        TypedResults.Ok(importOptions.Value.Searches.ConvertAll(ConfiguredSearchDto.From));
+    /// <summary>The searches generated from the Suchprofil, e.g. for the UI's search filter.</summary>
+    private static Ok<List<ConfiguredSearchDto>> ListSearches(Core.SearchProfiles.ISearchProfileSource searchProfiles) =>
+        TypedResults.Ok(SearchProfiles.SearchProfileImports.Current(searchProfiles).Searches.Select(ConfiguredSearchDto.From).ToList());
 
     public sealed class RecentImportsQuery
     {

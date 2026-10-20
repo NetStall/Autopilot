@@ -92,7 +92,8 @@ public class BroaderSearchApiTests(PostgresFixture postgres) : IntegrationTestBa
     [Fact]
     public async Task Searches_endpoint_lists_the_configured_searches()
     {
-        var configured = Factory.Services.GetRequiredService<IOptions<ImportOptions>>().Value.Searches;
+        var configured = Core.SearchProfiles.SearchProfileRules.GenerateSearches(
+            Factory.Services.GetRequiredService<Core.SearchProfiles.ISearchProfileSource>().Current.Profile);
 
         var searches = await Client.GetFromJsonAsync<List<ConfiguredSearchDto>>("/api/imports/searches", ApiJson, CancellationToken);
 

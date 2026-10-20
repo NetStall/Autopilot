@@ -341,6 +341,55 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.ToTable("Vacancies");
                 });
 
+            modelBuilder.Entity("JobAutopilot.Infrastructure.SearchProfiles.SearchProfileRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Document")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SearchProfiles", (string)null);
+                });
+
+            modelBuilder.Entity("JobAutopilot.Infrastructure.SearchProfiles.SearchProfileRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Document")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("SavedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Version")
+                        .IsUnique();
+
+                    b.ToTable("SearchProfileRevisions", (string)null);
+                });
+
             modelBuilder.Entity("JobAutopilot.Core.Applications.Application", b =>
                 {
                     b.HasOne("JobAutopilot.Core.Vacancies.Vacancy", null)

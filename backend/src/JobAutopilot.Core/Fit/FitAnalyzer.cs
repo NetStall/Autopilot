@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using JobAutopilot.Core.Profile;
 using JobAutopilot.Core.Scoring;
+using JobAutopilot.Core.SearchProfiles;
 using JobAutopilot.Core.Vacancies;
 
 namespace JobAutopilot.Core.Fit;
@@ -52,11 +53,13 @@ public sealed partial class FitAnalyzer(FitOptions options)
     private readonly TermMatcher _optionalMarkers = new(options.OptionalMarkers);
 
     public FitResult Analyze(CandidateProfile profile, string title, string? description, EmployerType employerType, DateOnly today) =>
-        Analyze(profile, new FitInput(title, description, employerType, null, RemoteLevel.Unknown), today);
+        Analyze(profile, new FitInput(title, description, employerType, null, RemoteLevel.Unknown), today, FitSettings.Neutral);
 
-    public FitResult Analyze(CandidateProfile profile, FitInput input, DateOnly today)
+    /// <param name="settings">From the Suchprofil: penalties, my region, remote wish, employer types ranked lower.</param>
+    public FitResult Analyze(CandidateProfile profile, FitInput input, DateOnly today, FitSettings settings)
     {
         ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(settings);
         var (title, description, employerType, location, remoteLevel) = input;
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(title);
@@ -111,7 +114,7 @@ public sealed partial class FitAnalyzer(FitOptions options)
             requirements.Add(new FitRequirement(rule.Name, FitCoverage.Gap, AllSoft(hits, sentences, covered), gap?.De ?? "nicht im Profil"));
         }
 
-        var penalties = options.Penalties;
+        var penalties = settings.Penalties;
         var requiredGaps = requirements.Where(r => r is { Coverage: FitCoverage.Gap, Optional: false }).ToList();
         if (requiredGaps.Count > 0)
         {
@@ -138,14 +141,20 @@ public sealed partial class FitAnalyzer(FitOptions options)
                 penalties.Experience));
         }
 
-        if (OutsideRegions(profile.Preferences, location, remoteLevel) is { } place)
+        if (OutsideRegions(settings, location, remoteLevel) is { } place)
         {
             warnings.Add(new FitWarning($"Außerhalb meiner Regionen ({place}) und nicht voll remote", penalties.OutsideRegion));
         }
 
-        if (profile.Preferences.AvoidEmployerTypes.Contains(employerType))
+        if (RemoteWishMissed(settings.RemotePreference, remoteLevel) is { } wish)
         {
-            warnings.Add(new FitWarning($"Arbeitgeber-Typ {employerType} möchte ich vermeiden", penalties.AvoidedEmployerType));
+            warnings.Add(new FitWarning(wish, penalties.RemotePreference));
+        }
+
+        if (settings.RankedLowerEmployerTypes.Contains(employerType))
+        {
+            var label = employerType == EmployerType.Temporary ? "Zeitarbeit" : "Personalvermittlung";
+            warnings.Add(new FitWarning($"{label} – laut Suchprofil niedriger einordnen", penalties.EmployerType));
         }
 
         var ordered = requirements
@@ -157,25 +166,33 @@ public sealed partial class FitAnalyzer(FitOptions options)
     }
 
     /// <summary>
-    /// The place when a job is not fully remote and its location matches none of the preferred regions; <c>null</c>
-    /// when it fits, when no regions are configured, or when the location is unknown.
+    /// The place when a job is not fully remote and its location matches none of my places; <c>null</c> when it fits,
+    /// when no places are set, or when the location is unknown. A remote posting („Remote (Deutschland)") counts as
+    /// in my region when „Remote deutschlandweit" is on.
     /// </summary>
-    internal static string? OutsideRegions(Preferences preferences, string? location, RemoteLevel remoteLevel)
+    internal static string? OutsideRegions(FitSettings settings, string? location, RemoteLevel remoteLevel)
     {
-        var regions = preferences.Regions.Where(r => !string.IsNullOrWhiteSpace(r)).ToList();
-        if (regions.Count == 0 || string.IsNullOrWhiteSpace(location))
-        {
-            return null;
-        }
-
-        if (remoteLevel == RemoteLevel.FullRemote)
+        if (settings.Places.Count == 0 || string.IsNullOrWhiteSpace(location) || remoteLevel == RemoteLevel.FullRemote)
         {
             return null;
         }
 
         var place = location.Trim();
-        return regions.Any(r => place.Contains(r.Trim(), StringComparison.OrdinalIgnoreCase)) ? null : place;
+        if (settings.RemoteGermany && place.StartsWith("Remote", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return settings.Places.Any(r => place.Contains(r, StringComparison.OrdinalIgnoreCase)) ? null : place;
     }
+
+    /// <summary>The warning when the job does not meet the remote preference; unknown home office costs nothing.</summary>
+    internal static string? RemoteWishMissed(RemotePreference preference, RemoteLevel level) => preference switch
+    {
+        RemotePreference.AtLeastHybrid when level == RemoteLevel.OnSite => "Nur vor Ort – Suchprofil: mindestens Hybrid",
+        RemotePreference.FullRemoteOnly when level is RemoteLevel.OnSite or RemoteLevel.Hybrid => "Nicht voll remote – Suchprofil: nur voll remote",
+        _ => null,
+    };
 
     [GeneratedRegex(@"\b(?:oder|or|bzw\.?|alternativ)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex AlternativeWord();

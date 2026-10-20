@@ -29,15 +29,24 @@ public static class VacancyQueryExtensions
         {
             query = query.Where(v => types.Contains(v.EmployerType));
         }
+        else if (filter.HiddenEmployerTypes is { Count: > 0 } hidden)
+        {
+            query = query.Where(v => !hidden.Contains(v.EmployerType));
+        }
+
+        if (filter.MinScore is > 0 and var minScore)
+        {
+            query = query.Where(v => (v.RankScore ?? v.RelevanceScore) >= minScore);
+        }
 
         if (filter.IsSeen is { } isSeen)
         {
             query = query.Where(v => v.IsSeen == isSeen);
         }
 
-        if (filter.Source is { } source)
+        if (filter.Sources is { Count: > 0 } sources)
         {
-            query = query.Where(v => v.Source == source);
+            query = query.Where(v => sources.Contains(v.Source));
         }
 
         if (filter.RemoteLevels is { Count: > 0 } remoteLevels)

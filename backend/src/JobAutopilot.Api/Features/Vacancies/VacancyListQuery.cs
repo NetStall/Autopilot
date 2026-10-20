@@ -16,6 +16,7 @@ public sealed class VacancyListQuery : IValidatableObject
     public const int MaxSearchNames = 20;
     public const int MaxEmployerTypes = 10;
     public const int MaxEnumValues = 10;
+    public const int MaxTop = 200;
 
     /// <summary>Text in title or company.</summary>
     [FromQuery(Name = "q")]
@@ -34,8 +35,20 @@ public sealed class VacancyListQuery : IValidatableObject
     [FromQuery(Name = "seen")]
     public bool? Seen { get; init; }
 
+    /// <summary>Repeatable: <c>Arbeitsagentur</c>, <c>Himalayas</c>, <c>Manual</c>.</summary>
     [FromQuery(Name = "source")]
-    public string? Source { get; init; }
+    [MaxLength(MaxEnumValues)]
+    public string[]? Source { get; init; }
+
+    /// <summary>Only vacancies whose rank score (relevance minus fit penalties) is at least this.</summary>
+    [FromQuery(Name = "minScore")]
+    [Range(0, 100)]
+    public int? MinScore { get; init; }
+
+    /// <summary>Only the N best vacancies (by rank) after all other filters.</summary>
+    [FromQuery(Name = "top")]
+    [Range(1, MaxTop)]
+    public int? Top { get; init; }
 
     /// <summary>Repeatable remote level: <c>FullRemote</c>, <c>Hybrid</c>, <c>OnSite</c>, <c>Unknown</c>.</summary>
     [FromQuery(Name = "remote")]
@@ -93,11 +106,14 @@ public sealed class VacancyListQuery : IValidatableObject
             }
         }
 
-        if (Source is not null && !TryParseEnum<VacancySource>(Source, out _))
+        foreach (var value in Source ?? [])
         {
-            yield return new ValidationResult(
-                $"'{Source}' is not a source. Allowed: {string.Join(", ", Enum.GetNames<VacancySource>())}.",
-                [nameof(Source)]);
+            if (!TryParseEnum<VacancySource>(value, out _))
+            {
+                yield return new ValidationResult(
+                    $"'{value}' is not a source. Allowed: {string.Join(", ", Enum.GetNames<VacancySource>())}.",
+                    [nameof(Source)]);
+            }
         }
 
         foreach (var value in Remote ?? [])
@@ -151,14 +167,15 @@ public sealed class VacancyListQuery : IValidatableObject
             ? EmployerType.Select(Parse<EmployerType>).Distinct().ToList()
             : null,
         Seen,
-        Source is null ? null : Parse<VacancySource>(Source),
+        Source is { Length: > 0 } ? Source.Select(Parse<VacancySource>).Distinct().ToList() : null,
         Sort is null ? VacancySort.Relevance : Parse<VacancySort>(Sort),
         Remote is { Length: > 0 } ? Remote.Select(Parse<RemoteLevel>).Distinct().ToList() : null,
         Search is { Length: > 0 } ? Search.Select(n => n.Trim()).Distinct(StringComparer.Ordinal).ToList() : null,
         Interest is { Length: > 0 } ? Interest.Select(Parse<VacancyInterest>).Distinct().ToList() : null,
         IncludeDismissed ?? false,
         FetchedSince,
-        Relevance is { Length: > 0 } ? Relevance.Select(Parse<RelevanceLevel>).Distinct().ToList() : null);
+        Relevance is { Length: > 0 } ? Relevance.Select(Parse<RelevanceLevel>).Distinct().ToList() : null,
+        MinScore: MinScore);
 
     private static T Parse<T>(string value)
         where T : struct, Enum =>

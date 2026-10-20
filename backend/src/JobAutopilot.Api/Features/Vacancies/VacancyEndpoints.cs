@@ -28,32 +28,68 @@ public static partial class VacancyEndpoints
         return app;
     }
 
-    private static async Task<Ok<PagedResponse<VacancyDto>>> ListVacancies(
+    /// <summary>
+    /// The list with paging, the „Top N" cut (after all other filters, by rank) and facet counts: for every facet the
+    /// counts of its values under all other active filters (so the numbers next to „Quelle" do not depend on the
+    /// selected sources).
+    /// </summary>
+    private static async Task<Ok<VacancyPageDto>> ListVacancies(
         [AsParameters] VacancyListQuery request,
         AppDbContext db,
         TimeProvider timeProvider,
+        Core.SearchProfiles.ISearchProfileSource searchProfiles,
         CancellationToken cancellationToken)
     {
-        var filter = request.ToFilter() with { NotExpiredAt = timeProvider.GetUtcNow() };
+        var filter = request.ToFilter() with
+        {
+            NotExpiredAt = timeProvider.GetUtcNow(),
+            HiddenEmployerTypes = searchProfiles.Current.Profile.HiddenEmployerTypes(),
+        };
         var page = request.PageOrDefault;
         var pageSize = request.PageSizeOrDefault;
 
-        var pool = filter.Source is { } source ? db.Vacancies.Where(v => v.Source == source) : db.Vacancies;
-        var query = db.Vacancies.AsNoTracking().ApplyFilter(filter).CollapseDuplicates(pool);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-        var vacancies = await query
-            .ApplySort(filter.Sort)
+        var query = Filtered(db, filter);
+        var matching = await query.CountAsync(cancellationToken);
+        var sorted = query.ApplySort(filter.Sort);
+        var totalCount = request.Top is { } top ? Math.Min(top, matching) : matching;
+        IQueryable<Core.Vacancies.Vacancy> window = request.Top is { } n ? sorted.Take(n) : sorted;
+        var vacancies = await window
             .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Take(Math.Max(0, Math.Min(pageSize, totalCount - ((page - 1) * pageSize))))
             .ToListAsync(cancellationToken);
+        var facets = await FacetsAsync(db, filter, cancellationToken);
 
         // The list does not need the (long) descriptions; the detail endpoint returns them.
         var duplicates = await DuplicatesOfAsync(db, vacancies, cancellationToken);
         var applications = await db.Applications.AsNoTracking().ToListAsync(cancellationToken);
         var items = vacancies.ConvertAll(v =>
             v.ToDto(includeDescription: false, AlsoFoundAt(v, duplicates), AppliedTo(v, duplicates, applications)));
-        return TypedResults.Ok(new PagedResponse<VacancyDto>(items, page, pageSize, totalCount));
+        return TypedResults.Ok(new VacancyPageDto(items, page, pageSize, totalCount, matching, request.Top, facets));
+    }
+
+    private static IQueryable<Core.Vacancies.Vacancy> Filtered(AppDbContext db, Core.Vacancies.VacancyFilter filter)
+    {
+        var pool = filter.Sources is { Count: > 0 } sources ? db.Vacancies.Where(v => sources.Contains(v.Source)) : db.Vacancies;
+        return db.Vacancies.AsNoTracking().ApplyFilter(filter).CollapseDuplicates(pool);
+    }
+
+    private static async Task<VacancyFacetsDto> FacetsAsync(AppDbContext db, Core.Vacancies.VacancyFilter filter, CancellationToken ct)
+    {
+        var sources = await Filtered(db, filter with { Sources = null })
+            .GroupBy(v => v.Source).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
+        var remote = await Filtered(db, filter with { RemoteLevels = null })
+            .GroupBy(v => v.RemoteLevel).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
+        var employers = await Filtered(db, filter with { EmployerTypes = null, HiddenEmployerTypes = null })
+            .GroupBy(v => v.EmployerType).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
+        var relevance = await Filtered(db, filter with { RelevanceLevels = null })
+            .GroupBy(v => v.RelevanceLevel).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
+        return new VacancyFacetsDto(
+            sources.ToDictionary(x => x.Key.ToString(), x => x.Count),
+            remote.ToDictionary(x => x.Key.ToString(), x => x.Count),
+            employers.ToDictionary(x => x.Key.ToString(), x => x.Count),
+            // Not scored yet counts as „Maybe", like the filter.
+            relevance.GroupBy(x => (x.Key ?? Core.Vacancies.RelevanceLevel.Maybe).ToString())
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Count)));
     }
 
     private static async Task<Results<Ok<VacancyDto>, NotFound>> GetVacancy(

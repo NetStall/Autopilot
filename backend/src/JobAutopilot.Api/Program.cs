@@ -4,6 +4,11 @@ using JobAutopilot.Api.Features.Applications;
 using JobAutopilot.Api.Features.Health;
 using JobAutopilot.Api.Features.Profile;
 using JobAutopilot.Api.Features.Scoring;
+using JobAutopilot.Api.Features.SearchProfiles;
+using JobAutopilot.Core.Fit;
+using JobAutopilot.Core.Scoring;
+using JobAutopilot.Core.SearchProfiles;
+using JobAutopilot.Infrastructure.SearchProfiles;
 using JobAutopilot.Api.Features.Settings;
 using JobAutopilot.Api.Features.VacancyImports;
 using JobAutopilot.Api.Features.Vacancies;
@@ -34,6 +39,22 @@ var trackerImportPath = Path.GetFullPath(
     builder.Environment.ContentRootPath);
 builder.Services.AddSingleton<ICandidateProfileSource>(sp => new FileCandidateProfileSource(
     profilePath, sp.GetRequiredService<TimeProvider>(), sp.GetRequiredService<ILogger<FileCandidateProfileSource>>()));
+
+// Suchprofil (database): what I am looking for. Seeded once from appsettings.json + profile.json preferences (ADR 0009).
+builder.Services.Configure<SearchProfileDefaults>(builder.Configuration.GetSection(SearchProfileDefaults.SectionName));
+builder.Services.AddSingleton(sp => new SearchProfileStore(
+    sp.GetRequiredService<IServiceScopeFactory>(),
+    sp.GetRequiredService<TimeProvider>(),
+    sp.GetRequiredService<ILogger<SearchProfileStore>>(),
+    () => SearchProfileSeed.Create(
+        sp.GetRequiredService<IOptions<ImportOptions>>().Value.Searches,
+        sp.GetRequiredService<IOptions<ImportOptions>>().Value.ExcludeTitleTerms,
+        sp.GetRequiredService<IOptions<RelevanceOptions>>().Value,
+        sp.GetRequiredService<IOptions<FitOptions>>().Value.Penalties,
+        sp.GetRequiredService<IOptions<SearchProfileDefaults>>().Value,
+        sp.GetRequiredService<ICandidateProfileSource>().Current.Profile?.Preferences)));
+builder.Services.AddSingleton<ISearchProfileSource>(sp => sp.GetRequiredService<SearchProfileStore>());
+builder.Services.AddHostedService<SearchProfileInitializer>();
 
 // Background import: endpoints and scheduler queue runs, one worker executes them (ADR 0006, 0007).
 builder.Services.AddSingleton<ImportJobChannel>();
@@ -89,5 +110,6 @@ app.MapImportEndpoints();
 app.MapUiSettingsEndpoints();
 app.MapProfileEndpoints();
 app.MapApplicationEndpoints(trackerImportPath);
+app.MapSearchProfileEndpoints();
 
 await app.RunAsync();

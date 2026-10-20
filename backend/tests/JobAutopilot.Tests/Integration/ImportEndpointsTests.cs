@@ -20,8 +20,10 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
 {
     private readonly FakeVacancySource _source = new();
 
+    /// <summary>The searches generated from the Suchprofil (seeded from Import:Searches).</summary>
     private int ConfiguredSearchCount =>
-        Factory.Services.GetRequiredService<IOptions<ImportOptions>>().Value.Searches.Count;
+        Core.SearchProfiles.SearchProfileRules.GenerateSearches(
+            Factory.Services.GetRequiredService<Core.SearchProfiles.ISearchProfileSource>().Current.Profile).Count;
 
     protected override void ConfigureServices(IServiceCollection services)
     {
@@ -66,7 +68,8 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
         run.Searches.Should().HaveCount(ConfiguredSearchCount);
         run.DurationMs.Should().NotBeNull();
         // The fake stands in for the Arbeitsagentur; the Himalayas searches find no client and are skipped with an error.
-        var arbeitsagenturSearches = Factory.Services.GetRequiredService<IOptions<ImportOptions>>().Value.Searches
+        var arbeitsagenturSearches = Core.SearchProfiles.SearchProfileRules.GenerateSearches(
+                Factory.Services.GetRequiredService<Core.SearchProfiles.ISearchProfileSource>().Current.Profile)
             .Count(s => s.Source == VacancySource.Arbeitsagentur);
         _source.Searches.Should().HaveCount(arbeitsagenturSearches);
         run.Searches.Where(s => s.Source == VacancySource.Himalayas).Should().OnlyContain(s => s.Error != null);

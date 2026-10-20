@@ -13,6 +13,7 @@ namespace JobAutopilot.Api.Features.VacancyImports;
 public sealed partial class ImportScheduler(
     IOptions<ImportOptions> options,
     ImportCoordinator coordinator,
+    Core.SearchProfiles.ISearchProfileSource searchProfiles,
     IServiceScopeFactory scopes,
     TimeProvider timeProvider,
     ILogger<ImportScheduler> logger) : BackgroundService
@@ -50,9 +51,8 @@ public sealed partial class ImportScheduler(
 
     private async Task StartAsync(string reason, CancellationToken cancellationToken)
     {
-        var settings = options.Value;
-        var run = await coordinator.TryStartAsync(
-            ImportTrigger.Scheduled, settings.Searches, settings.ExcludeTitleTerms, cancellationToken);
+        var (searches, exclusions) = SearchProfiles.SearchProfileImports.Current(searchProfiles);
+        var run = await coordinator.TryStartAsync(ImportTrigger.Scheduled, searches, exclusions, cancellationToken);
         if (run is null)
         {
             LogSkipped(logger, reason);

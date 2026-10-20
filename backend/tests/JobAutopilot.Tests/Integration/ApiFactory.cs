@@ -28,6 +28,7 @@ public sealed class ApiFactory(
         // Deterministic defaults; a test can override them with its settings.
         builder.UseSetting("Relevance:RescoreOnStartup", "false");
         builder.UseSetting("Import:Details:DelayBetweenRequestsMs", "0");
+        builder.UseSetting("Import:LockWaitSeconds", "3");
         foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
         {
             builder.UseSetting(key, value);

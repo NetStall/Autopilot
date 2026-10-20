@@ -55,7 +55,7 @@ public sealed partial class ImportWorker(
 
         try
         {
-            await using var lockHandle = await importLock.TryAcquireAsync(stoppingToken);
+            await using var lockHandle = await AcquireLockAsync(stoppingToken);
             if (lockHandle is null)
             {
                 // Another API process (e.g. dev.ps1 next to docker compose) is importing into the same database.
@@ -120,6 +120,29 @@ public sealed partial class ImportWorker(
         {
             await runs.SaveChangesAsync(CancellationToken.None);
             LogFinished(logger, run.Id, run.Status, run.Added, run.Updated, run.Unchanged, run.Excluded);
+        }
+    }
+
+    /// <summary>
+    /// The lock is also held by a short re-scoring (e.g. right after saving the Suchprofil), so wait a while before
+    /// giving up. Wall-clock time on purpose: this is about another process, not about the app's clock.
+    /// </summary>
+    private async Task<IAsyncDisposable?> AcquireLockAsync(CancellationToken stoppingToken)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(importOptions.Value.LockWaitSeconds);
+        while (true)
+        {
+            if (await importLock.TryAcquireAsync(stoppingToken) is { } handle)
+            {
+                return handle;
+            }
+
+            if (DateTime.UtcNow >= deadline)
+            {
+                return null;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(500), stoppingToken);
         }
     }
 
