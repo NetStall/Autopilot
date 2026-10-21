@@ -18,8 +18,14 @@ public sealed class VacancyExtractionOptions
     /// <summary>Analyse new and changed vacancies after every import (only when the task's provider is usable).</summary>
     public bool AutoAfterImport { get; set; } = true;
 
-    /// <summary>Vacancies per background run, most relevant first; the rest follows with the next run.</summary>
+    /// <summary>Upper limit of „Top N" for one run („Alle analysieren": 50 / 100 / 200 / 500).</summary>
     public int MaxPerRun { get; set; } = 500;
+
+    /// <summary>After an import only new or changed vacancies within the current Top N are analysed (07b).</summary>
+    public int AutoTopN { get; set; } = 100;
+
+    /// <summary>Output cap per answer, so a repetition loop ends early instead of running into the timeout.</summary>
+    public int MaxOutputTokens { get; set; } = 1500;
 
     /// <summary>Longer descriptions are cut (with „[…]") so prompt and answer fit the model's context.</summary>
     public int MaxDescriptionCharacters { get; set; } = 12000;
@@ -48,6 +54,9 @@ public enum ExtractionOutcomeKind
 
 public sealed record ExtractionOutcome(ExtractionOutcomeKind Kind, long DurationMs = 0, int OutputTokens = 0);
 
+/// <summary>A vacancy whose extraction failed (invalid twice or timed out) with the current model and prompt.</summary>
+public sealed record FailedExtraction(Guid VacancyId, string Title, string Company, int? RankScore, string? Error, DateTimeOffset FailedAt);
+
 /// <summary>
 /// Extracts the requirements of one vacancy with the model of the task <c>Extraction</c> (<c>Llm:Tasks</c>), caches the
 /// result per description hash, model and prompt version (<see cref="VacancyExtraction"/>), stores it on the vacancy
@@ -60,6 +69,7 @@ public sealed partial class VacancyExtractionService(
     ILlmRouter llm,
     ICandidateProfileSource profiles,
     VacancyEnricher enricher,
+    Core.SearchProfiles.ISearchProfileSource searchProfiles,
     IOptions<VacancyExtractionOptions> options,
     TimeProvider timeProvider,
     ILogger<VacancyExtractionService> logger)
@@ -70,21 +80,69 @@ public sealed partial class VacancyExtractionService(
 
     private ExtractionPrompt Prompt => ExtractionPrompt.For(options.Value.PromptVersion);
 
-    /// <summary>Vacancies with a description whose extraction is missing or belongs to another text, model or prompt — most relevant first.</summary>
-    public async Task<IReadOnlyList<Guid>> PendingAsync(int max, CancellationToken cancellationToken)
+    /// <summary>
+    /// The current Top <paramref name="top"/> by rank among the vacancies I would see — not dismissed („Ausgeblendet"),
+    /// not unreachable, not of an employer type the Suchprofil hides — that still need an extraction for their text
+    /// with the current model and prompt (07b).
+    /// </summary>
+    public async Task<IReadOnlyList<Guid>> PendingAsync(int top, CancellationToken cancellationToken)
     {
         var model = Model;
         var version = Prompt.Version;
+        var hidden = searchProfiles.Current.Profile.HiddenEmployerTypes();
         var candidates = await db.Vacancies.AsNoTracking()
             .Where(v => v.Description != null && v.Description != string.Empty)
-            .Select(v => new { v.Id, v.Description, v.ExtractionKey, Rank = v.RankScore ?? v.RelevanceScore ?? 0, v.FetchedAt })
+            .Where(v => v.Interest != Core.Vacancies.VacancyInterest.Dismissed && !v.Unreachable && !hidden.Contains(v.EmployerType))
+            .OrderByDescending(v => v.RankScore ?? v.RelevanceScore ?? 0)
+            .ThenByDescending(v => v.FetchedAt)
+            .Take(Math.Clamp(top, 1, options.Value.MaxPerRun))
+            .Select(v => new { v.Id, v.Description, v.ExtractionKey })
             .ToListAsync(cancellationToken);
         return [.. candidates
             .Where(c => c.ExtractionKey != ExtractionKey.For(ExtractionKey.HashOf(c.Description!), model, version))
-            .OrderByDescending(c => c.Rank)
-            .ThenByDescending(c => c.FetchedAt)
-            .Take(max)
             .Select(c => c.Id)];
+    }
+
+    /// <summary>„ungültig": vacancies whose extraction failed with the current model and prompt, with the reason.</summary>
+    public async Task<IReadOnlyList<FailedExtraction>> FailedAsync(CancellationToken cancellationToken)
+    {
+        var model = Model;
+        var version = Prompt.Version;
+        var failed = await db.VacancyExtractions.AsNoTracking()
+            .Where(e => e.Status == ExtractionStatus.Failed && e.Model == model && e.PromptVersion == version)
+            .ToListAsync(cancellationToken);
+        var keys = failed.ToDictionary(e => ExtractionKey.For(e.DescriptionHash, e.Model, e.PromptVersion));
+        var vacancies = await db.Vacancies.AsNoTracking()
+            .Where(v => v.ExtractionKey != null && keys.Keys.Contains(v.ExtractionKey))
+            .Select(v => new { v.Id, v.Title, v.Company, v.RankScore, v.ExtractionKey })
+            .ToListAsync(cancellationToken);
+        return [.. vacancies
+            .Select(v => new FailedExtraction(v.Id, v.Title, v.Company, v.RankScore, keys[v.ExtractionKey!].Error, keys[v.ExtractionKey!].CreatedAt))
+            .OrderByDescending(f => f.RankScore ?? 0)];
+    }
+
+    /// <summary>„Erneut": forgets a failed attempt for this text, model and prompt, so the next run asks again.</summary>
+    public async Task<bool> ForgetFailureAsync(Guid vacancyId, CancellationToken cancellationToken)
+    {
+        var vacancy = await db.Vacancies.SingleOrDefaultAsync(v => v.Id == vacancyId, cancellationToken);
+        if (vacancy is null || string.IsNullOrWhiteSpace(vacancy.Description))
+        {
+            return false;
+        }
+
+        var hash = ExtractionKey.HashOf(vacancy.Description);
+        var model = Model;
+        var version = Prompt.Version;
+        await db.VacancyExtractions
+            .Where(e => e.Status == ExtractionStatus.Failed && e.DescriptionHash == hash && e.Model == model && e.PromptVersion == version)
+            .ExecuteDeleteAsync(cancellationToken);
+        if (vacancy.ExtractionJson is null)
+        {
+            vacancy.ExtractionKey = null;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return true;
     }
 
     public async Task<ExtractionOutcome> ExtractAsync(Guid vacancyId, CancellationToken cancellationToken)
@@ -143,11 +201,18 @@ public sealed partial class VacancyExtractionService(
             {
                 var response = await llm.CompleteJsonAsync(
                     new LlmRequest(LlmOptions.ExtractionTask, entry.Attempts == 1 ? "extract" : "extract-retry", prompt.Version, prompt.System, user, ExtractionPrompt.Schema,
-                        Thinking: options.Value.Thinking),
+                        Thinking: options.Value.Thinking, MaxOutputTokens: options.Value.MaxOutputTokens),
                     cancellationToken);
                 entry.InputTokens += response.Usage.InputTokens;
                 entry.OutputTokens += response.Usage.OutputTokens;
                 json = response.Json;
+            }
+            catch (LlmException ex) when (ex.Error == LlmError.Timeout)
+            {
+                // One slow posting must not stop the run (07b): this vacancy fails with the reason, the next one follows.
+                LogTimedOut(logger, vacancy.Id, vacancy.Description!.Length, entry.OutputTokens);
+                errors = [$"Zeitüberschreitung: {ex.Message} (Beschreibung {vacancy.Description.Length} Zeichen)"];
+                break;
             }
             catch (LlmException ex) when (ex.Error == LlmError.InvalidResponse)
             {
@@ -185,6 +250,10 @@ public sealed partial class VacancyExtractionService(
             : null;
         enricher.Apply(vacancy);
     }
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Extraction of vacancy {VacancyId} timed out: description {DescriptionLength} characters, {OutputTokens} output tokens before")]
+    private static partial void LogTimedOut(ILogger logger, Guid vacancyId, int descriptionLength, int outputTokens);
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Extraction of vacancy {VacancyId}: model {Model}, prompt {PromptVersion}, {Status} after {Attempts} attempt(s), {OutputTokens} output tokens, {DurationMs} ms")]

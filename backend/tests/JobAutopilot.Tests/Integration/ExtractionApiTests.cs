@@ -144,7 +144,7 @@ public class ExtractionApiTests(PostgresFixture postgres) : IntegrationTestBase(
         var coordinator = Factory.Services.GetRequiredService<ExtractionCoordinator>();
 
         coordinator.RequestVacancy(low.Id);
-        coordinator.RequestBackfill();
+        coordinator.RequestBackfill(100);
         await WaitIdleAsync();
 
         var order = _model.Requests.Select(r => r.User).ToList();
@@ -193,6 +193,65 @@ public class ExtractionApiTests(PostgresFixture postgres) : IntegrationTestBase(
         (await ReloadAsync(vacancy.Id)).ExtractionKey.Should().BeNull("nothing cached when the model was not reached");
         var status = await Client.GetFromJsonAsync<JsonElement>("/api/extractions", CancellationToken);
         status.GetProperty("lastError").GetString().Should().Contain("nicht erreichbar");
+    }
+
+    [Fact]
+    public async Task A_timed_out_vacancy_fails_alone_and_the_run_goes_on()
+    {
+        _model.Answer = r => r.User.Contains("Langsam", StringComparison.Ordinal)
+            ? throw new LlmException(LlmError.Timeout, "Ollama hat nicht innerhalb von 180 s geantwortet.")
+            : ValidJson;
+        var slow = await SeedAsync("Langsam: ein sehr langer Text", rank: 90);
+        var next = await SeedAsync("Schnell", rank: 10);
+
+        (await Client.PostAsync("/api/extractions?top=100", null, CancellationToken)).StatusCode.Should().Be(HttpStatusCode.Accepted);
+        await WaitIdleAsync();
+
+        (await ReloadAsync(next.Id)).ExtractionJson.Should().NotBeNull("the run continued after the timeout");
+        var status = await Client.GetFromJsonAsync<JsonElement>("/api/extractions", CancellationToken);
+        status.GetProperty("failed").GetInt32().Should().Be(1);
+        status.GetProperty("lastError").ValueKind.Should().Be(JsonValueKind.Null);
+
+        var failed = await Client.GetFromJsonAsync<JsonElement>("/api/extractions/failed", CancellationToken);
+        failed.GetArrayLength().Should().Be(1);
+        failed[0].GetProperty("vacancyId").GetGuid().Should().Be(slow.Id);
+        failed[0].GetProperty("error").GetString().Should().Contain("Zeitüberschreitung");
+
+        // „Erneut": the failed attempt is forgotten and the vacancy analysed again.
+        _model.Answer = _ => ValidJson;
+        (await Client.PostAsync($"/api/vacancies/{slow.Id}/extract?retry=true", null, CancellationToken)).StatusCode.Should().Be(HttpStatusCode.Accepted);
+        await WaitIdleAsync();
+        (await ReloadAsync(slow.Id)).ExtractionJson.Should().NotBeNull();
+        (await Client.GetFromJsonAsync<JsonElement>("/api/extractions/failed", CancellationToken)).GetArrayLength().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Top_n_counts_only_visible_vacancies_and_estimates_the_duration()
+    {
+        _model.Answer = _ => ValidJson;
+        var dismissed = await SeedAsync("Ausgeblendet", rank: 99);
+        var unreachable = await SeedAsync("Unerreichbar", rank: 98);
+        await using (var db = Postgres.CreateDbContext())
+        {
+            await db.Vacancies.Where(v => v.Id == dismissed.Id).ExecuteUpdateAsync(u => u.SetProperty(v => v.Interest, VacancyInterest.Dismissed), CancellationToken);
+            await db.Vacancies.Where(v => v.Id == unreachable.Id).ExecuteUpdateAsync(u => u.SetProperty(v => v.Unreachable, true), CancellationToken);
+        }
+
+        for (var i = 0; i < 3; i++)
+        {
+            await SeedAsync($"Stelle {i}", rank: 50 - i);
+        }
+
+        var pending = await Client.GetFromJsonAsync<JsonElement>("/api/extractions/pending?top=50", CancellationToken);
+        pending.GetProperty("pending").GetInt32().Should().Be(3, "dismissed and unreachable vacancies are skipped");
+        pending.GetProperty("estimatedSeconds").GetInt32().Should().Be(12, "4 s per vacancy until a run has measured it");
+        (await Client.PostAsync("/api/extractions?top=7", null, CancellationToken)).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        await Client.PostAsync("/api/extractions?top=50", null, CancellationToken);
+        await WaitIdleAsync();
+        _model.Requests.Should().HaveCount(3);
+        _model.Requests.Should().OnlyContain(r => r.MaxOutputTokens == 1500 && !r.Thinking);
+        (await Client.GetFromJsonAsync<JsonElement>("/api/extractions/pending?top=50", CancellationToken)).GetProperty("pending").GetInt32().Should().Be(0, "cached now");
     }
 
     [Fact]

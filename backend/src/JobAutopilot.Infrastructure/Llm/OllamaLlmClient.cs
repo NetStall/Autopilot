@@ -71,7 +71,8 @@ public sealed partial class OllamaLlmClient(HttpClient httpClient, IOptions<Olla
             new ResponseFormat("json_schema", new JsonSchemaFormat("result", true, request.JsonSchema)),
             settings.Temperature,
             Stream: false,
-            ReasoningEffort: request.Thinking ? null : "none");
+            ReasoningEffort: request.Thinking ? null : "none",
+            MaxTokens: request.MaxOutputTokens);
 
         var watch = Stopwatch.StartNew();
         for (var attempt = 0; ; attempt++)
@@ -187,7 +188,8 @@ public sealed partial class OllamaLlmClient(HttpClient httpClient, IOptions<Olla
         [property: JsonPropertyName("response_format")] ResponseFormat ResponseFormat,
         double Temperature,
         bool Stream,
-        [property: JsonPropertyName("reasoning_effort")] string? ReasoningEffort = null);
+        [property: JsonPropertyName("reasoning_effort")] string? ReasoningEffort = null,
+        [property: JsonPropertyName("max_tokens")] int? MaxTokens = null);
 
     private sealed record ChatMessage(string Role, string Content);
 

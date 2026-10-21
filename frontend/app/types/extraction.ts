@@ -37,9 +37,29 @@ export interface ExtractionStatus {
   queued: string[]
   secondsPerVacancy: number | null
   tokensPerSecond: number | null
+  /** s/vacancy of the last measured run — for the estimate before starting. */
+  lastSecondsPerVacancy: number | null
   startedAt: string | null
   finishedAt: string | null
   lastError: string | null
+}
+
+/** GET /api/extractions/pending?top=N — what a run of the current Top N would do. */
+export interface PendingExtractions {
+  top: number
+  pending: number
+  secondsPerVacancy: number
+  estimatedSeconds: number
+}
+
+/** GET /api/extractions/failed — „ungültig": invalid twice or timed out. */
+export interface FailedExtraction {
+  vacancyId: string
+  title: string
+  company: string
+  rankScore: number | null
+  error: string | null
+  failedAt: string
 }
 
 /** GET /api/labels/summary — „Bewertet: 12 / 30". */

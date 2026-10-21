@@ -502,7 +502,9 @@ postings stay on the PC.
 | `Providers:Ollama:BaseUrl` | `http://localhost:11434` | from Docker `http://host.docker.internal:11434` |
 | `Providers:Ollama:TimeoutSeconds` / `MaxRetries` | 180 / 1 | per attempt; 429/5xx/connection errors are retried |
 | `Extraction:AutoAfterImport` | `true` | analyse new/changed vacancies after each import (only when Ollama is on) |
-| `Extraction:MaxPerRun` | 500 | vacancies per background run, most relevant first |
+| `Extraction:MaxPerRun` | 500 | upper limit of „Top N" (Statistik → KI-Analyse: Top 50 / 100 / 200 / 500, default 100) |
+| `Extraction:AutoTopN` | 100 | after an import only new or changed vacancies within the current Top N |
+| `Extraction:MaxOutputTokens` | 1500 | output cap per answer — a repetition loop ends early; a timeout fails only that vacancy |
 | `Extraction:PromptVersion` | `extraction.v2` | `extraction.v1` stays for comparison; part of the cache key |
 | `Extraction:Thinking` | `false` | `reasoning_effort: none` — a thinking model answers directly (much faster) |
 

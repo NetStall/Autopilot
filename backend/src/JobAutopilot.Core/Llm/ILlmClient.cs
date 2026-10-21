@@ -16,7 +16,8 @@ public sealed record LlmRequest(
     string System,
     string User,
     IReadOnlyDictionary<string, JsonElement> JsonSchema,
-    bool Thinking = true);
+    bool Thinking = true,
+    int? MaxOutputTokens = null);
 
 /// <summary>The answer as JSON text, with what it cost and which model gave it.</summary>
 public sealed record LlmResponse(string Json, TokenUsage Usage, string Model);

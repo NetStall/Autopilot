@@ -23,6 +23,7 @@ public sealed record ExtractionStatusDto(
     IReadOnlyList<Guid> Queued,
     double? SecondsPerVacancy,
     double? TokensPerSecond,
+    double? LastSecondsPerVacancy,
     DateTimeOffset? StartedAt,
     DateTimeOffset? FinishedAt,
     string? LastError);
@@ -39,19 +40,20 @@ public sealed class ExtractionCoordinator(TimeProvider timeProvider)
 
     private readonly Lock _lock = new();
     private readonly List<Guid> _single = [];
-    private bool _backfill;
+    private int? _backfill;
+    private double? _lastSecondsPerVacancy;
     private CancellationTokenSource? _run;
     private Progress _progress = new();
     private Progress _previous = new();
 
     internal ChannelReader<bool> Signals => _signal.Reader;
 
-    /// <summary>Analyse all pending vacancies (most relevant first).</summary>
-    public void RequestBackfill()
+    /// <summary>Analyse the pending ones among the current Top <paramref name="top"/> (most relevant first).</summary>
+    public void RequestBackfill(int top)
     {
         lock (_lock)
         {
-            _backfill = true;
+            _backfill = Math.Max(top, _backfill ?? 0);
             _signal.Writer.TryWrite(true);
         }
     }
@@ -76,7 +78,7 @@ public sealed class ExtractionCoordinator(TimeProvider timeProvider)
         lock (_lock)
         {
             _single.Clear();
-            _backfill = false;
+            _backfill = null;
             _run?.Cancel();
         }
     }
@@ -86,12 +88,13 @@ public sealed class ExtractionCoordinator(TimeProvider timeProvider)
         lock (_lock)
         {
             var p = _progress;
-            var state = p.Running ? ExtractionState.Running : _single.Count > 0 || _backfill ? ExtractionState.Queued : ExtractionState.Idle;
+            var state = p.Running ? ExtractionState.Running : _single.Count > 0 || _backfill is not null ? ExtractionState.Queued : ExtractionState.Idle;
             var analysed = p.Extracted;
             return new ExtractionStatusDto(
                 state, available, model, p.Total, p.Done, p.Extracted, p.Cached, p.Failed, p.Current, [.. _single],
                 analysed > 0 ? Math.Round(p.ModelMs / 1000.0 / analysed, 1) : null,
                 p.ModelMs > 0 ? Math.Round(p.OutputTokens / (p.ModelMs / 1000.0), 1) : null,
+                _lastSecondsPerVacancy,
                 p.StartedAt, p.FinishedAt, p.LastError);
         }
     }
@@ -112,12 +115,12 @@ public sealed class ExtractionCoordinator(TimeProvider timeProvider)
         }
     }
 
-    internal bool TakeBackfill()
+    internal int? TakeBackfill()
     {
         lock (_lock)
         {
             var requested = _backfill;
-            _backfill = false;
+            _backfill = null;
             return requested;
         }
     }
@@ -162,6 +165,7 @@ public sealed class ExtractionCoordinator(TimeProvider timeProvider)
                     _progress.Extracted++;
                     _progress.ModelMs += outcome.DurationMs;
                     _progress.OutputTokens += outcome.OutputTokens;
+                    _lastSecondsPerVacancy = Math.Round(_progress.ModelMs / 1000.0 / _progress.Extracted, 1);
                     break;
                 case Infrastructure.Llm.ExtractionOutcomeKind.Cached:
                     _progress.Cached++;

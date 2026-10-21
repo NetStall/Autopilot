@@ -57,11 +57,11 @@ public sealed partial class ExtractionWorker(
                 }
                 else
                 {
-                    if (coordinator.TakeBackfill())
+                    if (coordinator.TakeBackfill() is { } top)
                     {
                         await using var scope = scopes.CreateAsyncScope();
                         var pending = await scope.ServiceProvider.GetRequiredService<VacancyExtractionService>()
-                            .PendingAsync(options.Value.MaxPerRun, token);
+                            .PendingAsync(Math.Min(top, options.Value.MaxPerRun), token);
                         foreach (var id in pending.Where(id => !backfill.Contains(id)))
                         {
                             backfill.Enqueue(id);

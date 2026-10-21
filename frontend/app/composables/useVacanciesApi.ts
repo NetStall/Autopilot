@@ -21,7 +21,7 @@ import type {
 import type { Application, ApplicationStatus, TrackerImportReport } from '~/types/application'
 import type { ApplicationDocuments, CvOptions, DocumentKind, DocumentPreview, Letter } from '~/types/documents'
 import type { GermanStatistics } from '~/types/statistics'
-import type { ExtractionStatus, GoldLabelSummary } from '~/types/extraction'
+import type { ExtractionStatus, FailedExtraction, GoldLabelSummary, PendingExtractions } from '~/types/extraction'
 
 /** All calls to the backend API. Base URL from runtime config (NUXT_PUBLIC_API_BASE). */
 export function useVacanciesApi() {
@@ -160,16 +160,22 @@ export function useVacanciesApi() {
     extractionStatus() {
       return api<ExtractionStatus>('/api/extractions')
     },
-    /** „Alle analysieren": all vacancies without a current extraction, most relevant first. */
-    startExtraction() {
-      return api<ExtractionStatus>('/api/extractions', { method: 'POST' })
+    /** „Alle analysieren" for the current Top N — only what is not analysed yet, most relevant first. */
+    startExtraction(top: number) {
+      return api<ExtractionStatus>('/api/extractions', { method: 'POST', query: { top } })
+    },
+    pendingExtractions(top: number) {
+      return api<PendingExtractions>('/api/extractions/pending', { query: { top } })
+    },
+    failedExtractions() {
+      return api<FailedExtraction[]>('/api/extractions/failed')
     },
     cancelExtraction() {
       return api<ExtractionStatus>('/api/extractions/current', { method: 'DELETE' })
     },
     /** „Mit KI analysieren": this vacancy next. */
-    extractVacancy(id: string) {
-      return api<ExtractionStatus>(`/api/vacancies/${encodeURIComponent(id)}/extract`, { method: 'POST' })
+    extractVacancy(id: string, retry = false) {
+      return api<ExtractionStatus>(`/api/vacancies/${encodeURIComponent(id)}/extract`, { method: 'POST', query: retry ? { retry: true } : undefined })
     },
 
     // ------------------------------------------------------------ gold labels (step 07a)

@@ -15,7 +15,7 @@ mockNuxtImport('useVacanciesApi', () => () => api)
 
 const idle: ExtractionStatus = {
   state: 'Idle', available: true, model: 'qwen3:8b', total: 0, done: 0, extracted: 0, cached: 0, failed: 0,
-  currentVacancyId: null, queued: [], secondsPerVacancy: null, tokensPerSecond: null, startedAt: null, finishedAt: null, lastError: null,
+  currentVacancyId: null, queued: [], secondsPerVacancy: null, tokensPerSecond: null, lastSecondsPerVacancy: null, startedAt: null, finishedAt: null, lastError: null,
 }
 
 const extraction: VacancyExtraction = {

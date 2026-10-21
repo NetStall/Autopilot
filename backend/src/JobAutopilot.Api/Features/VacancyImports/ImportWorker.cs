@@ -103,7 +103,8 @@ public sealed partial class ImportWorker(
             if (services.GetRequiredService<IOptions<Infrastructure.Llm.VacancyExtractionOptions>>().Value.AutoAfterImport
                 && services.GetRequiredService<Infrastructure.Llm.VacancyExtractionService>().IsAvailable)
             {
-                services.GetRequiredService<Extraction.ExtractionCoordinator>().RequestBackfill();
+                services.GetRequiredService<Extraction.ExtractionCoordinator>().RequestBackfill(
+                    services.GetRequiredService<IOptions<Infrastructure.Llm.VacancyExtractionOptions>>().Value.AutoTopN);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
