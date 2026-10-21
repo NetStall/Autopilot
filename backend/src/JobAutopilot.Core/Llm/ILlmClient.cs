@@ -35,8 +35,11 @@ public interface ILlmClient
 /// <summary>Sends a request to the provider and model configured for its task (<c>Llm:Tasks:Letter = claude:&lt;model&gt;</c>).</summary>
 public interface ILlmRouter
 {
-    /// <summary>The model a task runs on, e.g. for cost estimates.</summary>
+    /// <summary>The model a task runs on, e.g. for cost estimates; empty when the task is not configured.</summary>
     string ModelFor(string task);
+
+    /// <summary>The task has an entry in <c>Llm:Tasks</c> and its provider is registered.</summary>
+    bool IsConfigured(string task);
 
     Task<LlmResponse> CompleteJsonAsync(LlmRequest request, CancellationToken cancellationToken);
 }

@@ -31,7 +31,7 @@ myself (portal, form, e-mail) and only record that with „Als gesendet markiere
   - Letter fields: `subject`, `salutation`, `paragraphs[]`, `closing`, `language`, `formality`, `factsUsed[]`,
     `gapsMentioned[]`.
   - GA on the Claude API, no beta header.
-- **Model:** `claude-sonnet-5-5` (configurable, `Claude:Model`).
+- **Model:** `claude-sonnet-5-5` (configurable, since 06a/07a in `Llm:Tasks:Letter`).
   - Reasons: fast (the target is under a minute per application), strong writing in German, and half the price of
     Opus 5.5 ($2 / $10 per million input/output tokens versus $4 / $20).
   - Opus 5.5 is a config change away if the letters are not good enough.

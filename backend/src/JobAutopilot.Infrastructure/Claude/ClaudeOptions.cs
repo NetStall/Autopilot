@@ -16,9 +16,6 @@ public sealed class ClaudeOptions
 
     public string BaseUrl { get; set; } = "https://api.anthropic.com";
 
-    /// <summary>Model id, e.g. <c>claude-sonnet-5-5</c> (see ADR 0010).</summary>
-    public string Model { get; set; } = "claude-sonnet-5-5";
-
     /// <summary>Upper limit of output tokens per call (thinking included).</summary>
     public int MaxTokens { get; set; } = 8000;
 
@@ -63,11 +60,6 @@ public sealed class ClaudeOptionsValidator : IValidateOptions<ClaudeOptions>
     {
         ArgumentNullException.ThrowIfNull(options);
         var errors = new List<string>();
-        if (string.IsNullOrWhiteSpace(options.Model))
-        {
-            errors.Add("Claude:Model is required.");
-        }
-
         if (!Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var baseUrl) || baseUrl.Scheme != Uri.UriSchemeHttps)
         {
             errors.Add("Claude:BaseUrl must be an absolute https URL.");

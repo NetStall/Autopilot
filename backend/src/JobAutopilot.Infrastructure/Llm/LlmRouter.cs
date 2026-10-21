@@ -6,8 +6,8 @@ namespace JobAutopilot.Infrastructure.Llm;
 
 /// <summary>
 /// Configuration section <c>Llm</c>: which provider and model each task uses, as <c>provider:model</c>, e.g.
-/// <c>"Tasks": { "Letter": "claude:claude-sonnet-5-5" }</c>. A task without an entry runs on Claude with
-/// <c>Claude:Model</c>. A local provider (step 07) only needs its own <see cref="ILlmClient"/> and an entry here.
+/// <c>"Tasks": { "Letter": "claude:claude-sonnet-5-5", "Extraction": "ollama:qwen3:8b" }</c> — the only place a
+/// model is configured. A task without an entry is not configured.
 /// </summary>
 public sealed class LlmOptions
 {
@@ -15,36 +15,45 @@ public sealed class LlmOptions
 
     public const string LetterTask = "Letter";
 
+    public const string ExtractionTask = "Extraction";
+
     public Dictionary<string, string> Tasks { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 /// <summary><see cref="ILlmRouter"/> over the registered <see cref="ILlmClient"/>s and <see cref="LlmOptions"/>.</summary>
-public sealed class LlmRouter(IEnumerable<ILlmClient> clients, IOptions<LlmOptions> options, IOptions<ClaudeOptions> claude) : ILlmRouter
+public sealed class LlmRouter(IEnumerable<ILlmClient> clients, IOptions<LlmOptions> options) : ILlmRouter
 {
     private readonly Dictionary<string, ILlmClient> _clients = clients.ToDictionary(c => c.Provider, StringComparer.OrdinalIgnoreCase);
 
-    public string ModelFor(string task) => Resolve(task).Model;
+    public string ModelFor(string task) => Resolve(task)?.Model ?? string.Empty;
+
+    public bool IsConfigured(string task) => Resolve(task) is { } target && _clients.ContainsKey(target.Provider);
 
     public Task<LlmResponse> CompleteJsonAsync(LlmRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var (provider, model) = Resolve(request.Task);
+        var target = Resolve(request.Task)
+            ?? throw new LlmException(LlmError.NotConfigured, $"Für „{request.Task}“ ist kein Modell eingerichtet (Llm:Tasks:{request.Task}).");
+        var (provider, model) = target;
         return _clients.TryGetValue(provider, out var client)
             ? client.CompleteJsonAsync(request, model, cancellationToken)
             : throw new LlmException(LlmError.NotConfigured, $"Kein KI-Anbieter „{provider}“ eingerichtet (Llm:Tasks:{request.Task}).");
     }
 
-    /// <summary><c>claude:claude-sonnet-5-5</c> → (claude, claude-sonnet-5-5); a bare model name means Claude.</summary>
-    internal (string Provider, string Model) Resolve(string task)
+    /// <summary>
+    /// <c>claude:claude-sonnet-5-5</c> → (claude, claude-sonnet-5-5); <c>ollama:qwen3:8b</c> → (ollama, qwen3:8b) — the
+    /// provider ends at the first colon; a bare model name means Claude. <c>null</c> without an entry.
+    /// </summary>
+    internal (string Provider, string Model)? Resolve(string task)
     {
-        if (options.Value.Tasks.TryGetValue(task, out var entry) && !string.IsNullOrWhiteSpace(entry))
+        if (!options.Value.Tasks.TryGetValue(task, out var entry) || string.IsNullOrWhiteSpace(entry))
         {
-            var separator = entry.IndexOf(':', StringComparison.Ordinal);
-            return separator > 0
-                ? (entry[..separator].Trim(), entry[(separator + 1)..].Trim())
-                : (ClaudeLlmClient.ProviderName, entry.Trim());
+            return null;
         }
 
-        return (ClaudeLlmClient.ProviderName, claude.Value.Model);
+        var separator = entry.IndexOf(':', StringComparison.Ordinal);
+        return separator > 0
+            ? (entry[..separator].Trim(), entry[(separator + 1)..].Trim())
+            : (ClaudeLlmClient.ProviderName, entry.Trim());
     }
 }

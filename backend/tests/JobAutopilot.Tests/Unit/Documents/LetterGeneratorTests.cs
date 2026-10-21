@@ -38,7 +38,8 @@ public sealed class LetterGeneratorTests : IDisposable
         configure?.Invoke(options);
         var client = new ClaudeLlmClient(_http, Options.Create(options), NullLogger<ClaudeLlmClient>.Instance);
         _clients.Add(client);
-        return new LetterGenerator(new LlmRouter([client], Options.Create(llm ?? new LlmOptions()), Options.Create(options)), Options.Create(options));
+        llm ??= new LlmOptions { Tasks = { ["Letter"] = "claude:claude-sonnet-5-5" } };
+        return new LetterGenerator(new LlmRouter([client], Options.Create(llm)), Options.Create(options));
     }
 
     private static string LetterJson(string? subject = null, string? paragraph = null, string[]? facts = null) => JsonSerializer.Serialize(new
@@ -88,12 +89,23 @@ public sealed class LetterGeneratorTests : IDisposable
     {
         _handler.Enqueue(HttpStatusCode.OK, MessageResponse(LetterJson()));
         var llm = new LlmOptions { Tasks = { ["Letter"] = "claude:claude-mapped-model" } };
-        var generator = Generator(o => o.Model = "claude-default-model", llm);
+        var generator = Generator(llm: llm);
 
         var result = await generator.GenerateAsync(DocumentTestData.Input(), Token);
 
         JsonNode.Parse(_handler.Requests.Single().Body)!["model"]!.GetValue<string>().Should().Be("claude-mapped-model");
         result.Model.Should().Be("claude-mapped-model");
+    }
+
+    [Fact]
+    public async Task A_task_without_a_mapping_is_a_configuration_error_without_any_call()
+    {
+        var generator = Generator(llm: new LlmOptions());
+
+        var act = () => generator.GenerateAsync(DocumentTestData.Input(), Token);
+
+        (await act.Should().ThrowAsync<LetterGenerationException>()).Which.Error.Should().Be(LetterGenerationError.NotConfigured);
+        _handler.Requests.Should().BeEmpty();
     }
 
     [Fact]
@@ -111,7 +123,7 @@ public sealed class LetterGeneratorTests : IDisposable
     public async Task Sends_model_limits_schema_and_key_from_configuration_but_no_temperature()
     {
         _handler.Enqueue(HttpStatusCode.OK, MessageResponse(LetterJson()));
-        var generator = Generator(o => { o.Model = "claude-test-model"; o.MaxTokens = 1234; o.Effort = "low"; });
+        var generator = Generator(o => { o.MaxTokens = 1234; o.Effort = "low"; }, new LlmOptions { Tasks = { ["Letter"] = "claude:claude-test-model" } });
 
         await generator.GenerateAsync(DocumentTestData.Input(), Token);
 
@@ -269,8 +281,8 @@ public sealed class LetterGeneratorTests : IDisposable
         var validator = new ClaudeOptionsValidator();
 
         validator.Validate(null, new ClaudeOptions()).Succeeded.Should().BeTrue("no API key is fine — the API starts without one");
-        validator.Validate(null, new ClaudeOptions { Model = "", MaxTokens = 10, Temperature = 2, Effort = "turbo", BaseUrl = "http://x" })
-            .Failures.Should().HaveCount(5);
+        validator.Validate(null, new ClaudeOptions { MaxTokens = 10, Temperature = 2, Effort = "turbo", BaseUrl = "http://x" })
+            .Failures.Should().HaveCount(4);
         new ClaudeOptions().EstimateCostUsd(10_000, 2_000).Should().Be(0.04m);
     }
 

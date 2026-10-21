@@ -17,8 +17,8 @@ tasks. The letter code (prompt, parsing, cleaning) should not change when the pr
   - `ClaudeLlmClient` is the only class that talks to the Anthropic SDK (ADR 0010: official SDK, retries, timeout,
     no key in logs).
   - `LlmRouter` picks the provider and model per task from `Llm:Tasks`, e.g. `"Letter": "claude:claude-sonnet-5-5"`.
-    A task without an entry uses Claude with `Claude:Model`. An unknown provider is a configuration error, and no
-    call is made.
+    A task without an entry, or with an unknown provider, is a configuration error, and no call is made (07a:
+    `Claude:Model` removed; `Claude:*` keeps only key, limits and prices).
 - `LetterGenerator` (`Infra/Documents`) builds the prompt (`letter.v1`), calls the router for the task `Letter` and
   parses the result; it maps `LlmException` to `LetterGenerationException`.
 - **Unchanged:**
@@ -31,7 +31,6 @@ tasks. The letter code (prompt, parsing, cleaning) should not change when the pr
 ## Consequences
 
 - A second provider needs an `ILlmClient` and one line in `Llm:Tasks`, without touching the letter code.
-- The model is configured in two places (`Claude:Model` as the default, `Llm:Tasks:Letter` per task). The task entry
-  wins.
+- The model is configured in one place, `Llm:Tasks`.
 - Endpoints keep their step-06 names: `/api/applications/{id}/documents`, `…/documents/paragraphs/{i}/rephrase`,
   `PUT …/documents`, `GET …/documents`. These are the `/draft` endpoints of the 06a prompt.
