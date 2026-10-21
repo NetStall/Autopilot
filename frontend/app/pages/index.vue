@@ -204,6 +204,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       <p class="page__meta">
         <span v-if="data" aria-live="polite">{{ countLabel }}</span>
         <RescoreButton @finished="refresh()" />
+        <NuxtLink to="/vacancies/neu" class="button button--secondary button--small">
+          Stelle manuell hinzufügen
+        </NuxtLink>
         <button type="button" class="page__help" @click="helpOpen = true">
           Tastenkürzel <kbd>?</kbd>
         </button>

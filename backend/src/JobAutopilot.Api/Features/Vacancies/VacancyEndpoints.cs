@@ -185,14 +185,27 @@ public static partial class VacancyEndpoints
             ? []
             : [.. duplicates[vacancy.DuplicateKey].Where(d => d.Id != vacancy.Id).Select(d => new VacancyLinkDto(d.Id, d.Source, d.Url))];
 
+    /// <summary>
+    /// „Stelle manuell hinzufügen" (LinkedIn, company sites): stored with source „Manuell", the pasted text marked as
+    /// manual, and scored right away like any imported vacancy — the link is never fetched.
+    /// </summary>
     private static async Task<CreatedAtRoute<VacancyDto>> CreateVacancy(
         CreateVacancyRequest request,
         AppDbContext db,
         TimeProvider timeProvider,
         ILoggerFactory loggerFactory,
+        Core.Scoring.VacancyEnricher enricher,
         CancellationToken cancellationToken)
     {
         var vacancy = request.ToManualVacancy(timeProvider.GetUtcNow());
+        if (!string.IsNullOrWhiteSpace(vacancy.Description))
+        {
+            vacancy.Description = vacancy.Description.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
+            vacancy.DescriptionIsManual = true;
+            vacancy.DetailsFetchedAt = vacancy.FetchedAt;
+        }
+
+        enricher.Apply(vacancy);
 
         db.Vacancies.Add(vacancy);
         await db.SaveChangesAsync(cancellationToken);

@@ -50,6 +50,10 @@ export function useVacanciesApi() {
       await api(`/api/vacancies/${encodeURIComponent(id)}`, { method: 'PATCH', body: { interest } })
     },
 
+    /** „Stelle manuell hinzufügen": source „Manuell", scored right away; the link is never fetched. */
+    createVacancy(request: { title: string, company: string, location: string | null, url: string | null, description: string | null }): Promise<Vacancy> {
+      return api<Vacancy>('/api/vacancies', { method: 'POST', body: request })
+    },
     /** „Beschreibung einfügen": stores the pasted text as manual and returns the re-scored vacancy. */
     setDescription(id: string, description: string): Promise<Vacancy> {
       return api<Vacancy>(`/api/vacancies/${encodeURIComponent(id)}/description`, { method: 'PUT', body: { description } })
