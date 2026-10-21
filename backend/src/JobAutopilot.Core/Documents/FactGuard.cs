@@ -57,6 +57,7 @@ public static partial class FactGuard
 
         var warnings = new List<DraftWarning>();
         CheckTechnologies(letter, input, profile, knownTechnologies, warnings);
+        CheckLanguages(letter, profile, warnings);
         CheckNumbers(letter, input, profile, warnings);
         CheckGaps(letter, input, profile, warnings);
         CheckTone(letter, input, warnings);
@@ -86,7 +87,7 @@ public static partial class FactGuard
         var names = profile.Skills.SelectMany(s => s.AllNames())
             .Concat(profile.KnownGaps.SelectMany(g => g.Aliases.Prepend(g.Skill)))
             .Concat(known)
-            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Where(n => !string.IsNullOrWhiteSpace(n) && !LanguageName().IsMatch(n))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
         // Short names (Go, R, C, SAP …) only with their exact case, the rest case-insensitive.
@@ -99,6 +100,12 @@ public static partial class FactGuard
         var reported = new HashSet<string>(StringComparer.Ordinal);
         foreach (var (paragraph, index) in letter.Paragraphs.Select((p, i) => (p, i)))
         {
+            // A technology named once in an honest sentence („Ganz offen: Mit Angular habe ich noch nicht …") stays honest
+            // for the rest of the paragraph („Da ihr Angular oder Vue.js sucht …", 06c).
+            var honestTerms = Sentences(paragraph).Where(s => HonestMarker().IsMatch(s))
+                .SelectMany(s => matchers.SelectMany(m => m.FindAll(s)))
+                .Select(f => VacancyTerms.Normalize(f.Term))
+                .ToHashSet(StringComparer.Ordinal);
             foreach (var sentence in Sentences(paragraph))
             {
                 var honest = HonestMarker().IsMatch(sentence);
@@ -107,7 +114,7 @@ public static partial class FactGuard
                 {
                     var key = VacancyTerms.Normalize(term);
                     skillsByName.TryGetValue(key, out var skill);
-                    if (honest || !reported.Add(key))
+                    if (honest || honestTerms.Contains(key) || !reported.Add(key))
                     {
                         continue;
                     }
@@ -138,6 +145,41 @@ public static partial class FactGuard
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// „Mein Deutsch liegt auf B1": a language with a level is checked against the profile's language levels — the same
+    /// or a lower level is fine, a higher one is a warning (06c). Languages are never technologies.
+    /// </summary>
+    private static void CheckLanguages(LetterDraft letter, CandidateProfile profile, List<DraftWarning> warnings)
+    {
+        foreach (var (paragraph, index) in letter.Paragraphs.Select((p, i) => (p, i)))
+        {
+            foreach (Match match in LanguageLevelPattern().Matches(paragraph))
+            {
+                var language = match.Groups["lang"].Value;
+                var german = language.StartsWith("deutsch", StringComparison.OrdinalIgnoreCase) || language.StartsWith("german", StringComparison.OrdinalIgnoreCase);
+                var mine = profile.Languages.FirstOrDefault(l => SameLanguage(l, german));
+                if (!Enum.TryParse<LanguageLevel>(match.Groups["level"].Value, ignoreCase: true, out var claimed))
+                {
+                    continue;
+                }
+
+                if (mine is null || claimed > mine.Level)
+                {
+                    warnings.Add(new(DraftWarning.LanguageAboveProfile,
+                        $"„{match.Value.Trim()}“ – im Profil steht {(mine is null ? "diese Sprache nicht" : $"{language.Trim()} {mine.Level}")}.", index));
+                }
+            }
+        }
+    }
+
+    private static bool SameLanguage(LanguageSkill language, bool german)
+    {
+        var names = new[] { language.Name, language.NameDe ?? string.Empty };
+        return german
+            ? names.Any(n => n.Trim() is "Deutsch" or "German")
+            : names.Any(n => n.Trim() is "Englisch" or "English");
     }
 
     private static void CheckNumbers(LetterDraft letter, LetterInput input, CandidateProfile profile, List<DraftWarning> warnings)
@@ -301,6 +343,13 @@ public static partial class FactGuard
         RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, 250)]
     private static partial Regex NumberPattern();
 
+    [GeneratedRegex(@"^(?:Deutsch|Englisch|German|English|Französisch|French|Spanisch|Spanish|Russisch|Russian|Ukrainisch|Ukrainian|Polnisch|Polish)\w*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    private static partial Regex LanguageName();
+
+    /// <summary>„Deutsch auf B1", „Mein Deutsch liegt auf B1", „Englisch (C1)", „English at B2" — a level within a few words.</summary>
+    [GeneratedRegex(@"(?<lang>\b(?:Deutsch|Englisch|German|English)\w*)(?:\W+\w+){0,4}?\W+(?<level>[ABC][12])\b", RegexOptions.CultureInvariant, 250)]
+    private static partial Regex LanguageLevelPattern();
+
     [GeneratedRegex(@"\d+", RegexOptions.CultureInvariant, 250)]
     private static partial Regex DigitsPattern();
 
@@ -313,7 +362,7 @@ public static partial class FactGuard
     private static partial Regex HonestMarker();
 
     /// <summary>The sentence talks about the employer's stack („Ihr Stack mit Angular"), not about my experience.</summary>
-    [GeneratedRegex(@"\b(Ihr|Ihre|Ihrem|Ihren|Ihrer|euer|eure|dein|deine|bei Ihnen|bei euch|your|you use|you are using)\b",
+    [GeneratedRegex(@"\b(Ihr|Ihre|Ihrem|Ihren|Ihrer|ihr \w+t|euer|eure|euch|dein|deine|bei Ihnen|bei euch|your|you use|you are using)\b",
         RegexOptions.CultureInvariant, 250)]
     private static partial Regex EmployerReference();
 

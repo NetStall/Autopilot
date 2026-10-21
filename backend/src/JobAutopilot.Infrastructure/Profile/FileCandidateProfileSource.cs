@@ -25,7 +25,8 @@ public sealed partial class FileCandidateProfileSource(string fullPath, TimeProv
 {
     public static readonly TimeSpan CheckInterval = TimeSpan.FromSeconds(2);
 
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    /// <summary>How the profile file is read — also for the translation insert (06c).</summary>
+    public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,

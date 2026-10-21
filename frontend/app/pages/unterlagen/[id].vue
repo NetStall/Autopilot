@@ -261,6 +261,7 @@ onBeforeUnmount(() => {
           <LetterEditor
             v-model="letter"
             :warnings="documents.warnings"
+            :sender-name="documents.senderName"
             :disabled="!editable || busy !== null"
             :rephrasing="rephrasing"
             :rendered-pages="dirty ? previewPages.letter : documents.letterPages"

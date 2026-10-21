@@ -405,7 +405,7 @@ On a vacancy, **Unterlagen erstellen** creates an application in status *Entwurf
    - Language (German / English), „du"/„Sie" and the contact person („z. Hd. Frau …") are detected from the posting.
    - Style: one page, 4–5 short paragraphs, my website in the first one, a „Ganz offen: …" paragraph for the gaps,
      no clichés.
-   - Prompt: `backend/src/JobAutopilot.Infrastructure/Claude/Prompts/letter.v1.md`, versioned; the version is
+   - Prompt: `backend/src/JobAutopilot.Infrastructure/Claude/Prompts/letter.v2.md` (v1 kept), versioned; the version is
      stored with each draft.
 2. **Lebenslauf** — built without AI: the summary chosen by focus (full stack / backend / AI), a role line, bullets
    ordered by overlap with the posting, skill groups. Always one page.
@@ -444,11 +444,20 @@ dotnet user-secrets set "Claude:ApiKey" "<key>" --project backend/src/JobAutopil
 Without a key the API runs; documents cannot be generated (503 with a clear message).
 
 To try it on the best vacancies of the list (one Claude call each; prints time, tokens, cost, warnings and the letter
-to the console only):
+to the console only). It skips vacancies with an application in any status, hidden or unreachable ones, and goes on
+until N letters are drafted:
 
 ```powershell
 ./scripts/draft-top-vacancies.ps1 -Count 3
 ```
+
+The prompt is `letter.v2` (06c: salutation with the company, a concrete hook, at most three achievements, only real
+gaps, a fixed closing; `Claude:LetterPromptVersion = letter.v1` for comparison). The FactGuard accepts a technology
+named in an honest gap sentence anywhere in that paragraph and checks languages against the profile's levels.
+
+**German CV texts.** The German CV falls back to English where a `*De` field is missing. `./scripts/translate-profile.ps1`
+drafts the missing ones with the letter model (one call), shows each for approval and only then writes
+`data/profile.json` (backup in `backups/`; the API itself never writes the profile — `data/` is mounted read-only).
 
 | `Claude` setting | Default | |
 |---|---|---|

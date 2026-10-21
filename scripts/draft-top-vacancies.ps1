@@ -4,9 +4,9 @@
   vacancy, the time, tokens, estimated cost, fact-guard warnings and the letter text.
 
 .DESCRIPTION
-  One Claude call per vacancy (counts against Claude:DailyCallLimit). Vacancies that already have an application are
-  skipped by the API (existing documents are returned, no new call). Output goes to this console only — nothing is
-  written to files. Review, edit and approve the drafts in the UI afterwards (/unterlagen/{id}).
+  One Claude call per vacancy (counts against Claude:DailyCallLimit). Goes down the list (rank, the Suchprofil's
+  filters) and skips vacancies that already have an application in any status, are hidden or unreachable, until N
+  letters are drafted (06c). Output goes to this console only — nothing is written to files. Review, edit and approve the drafts in the UI afterwards (/unterlagen/{id}).
 
 .EXAMPLE
   ./scripts/draft-top-vacancies.ps1 -Count 3
@@ -35,8 +35,23 @@ function ProblemText($errorRecord) {
     }
 }
 
-$page = Invoke-RestMethod "$Api/api/vacancies?pageSize=$Count&sort=relevance"
-foreach ($vacancy in $page.items) {
+$drafted = 0
+$pageNumber = 1
+$candidates = while ($true) {
+    $page = Invoke-RestMethod "$Api/api/vacancies?pageSize=50&page=$pageNumber&sort=combined"
+    $page.items
+    if ($page.items.Count -lt 50 -or $pageNumber -ge 10) { break }
+    $pageNumber++
+}
+
+foreach ($vacancy in $candidates) {
+    if ($drafted -ge $Count) { break }
+    if ($vacancy.applied -or $vacancy.unreachable -or $vacancy.interest -eq 'Dismissed') {
+        $why = if ($vacancy.applied) { "Bewerbung: $($vacancy.applied.statusLabel)" } elseif ($vacancy.unreachable) { 'nicht erreichbar' } else { 'ausgeblendet' }
+        Write-Host "übersprungen: $($vacancy.title) · $($vacancy.company) ($why)" -ForegroundColor DarkGray
+        continue
+    }
+
     Write-Host ''
     Write-Host "=== $($vacancy.title) · $($vacancy.company) (Bewertung $($vacancy.rankScore))" -ForegroundColor Cyan
     $watch = [Diagnostics.Stopwatch]::StartNew()
@@ -48,6 +63,7 @@ foreach ($vacancy in $page.items) {
         continue
     }
     $watch.Stop()
+    $drafted++
     $u = $docs.usage
     Write-Host ("{0:N1} s · {1} Input- / {2} Output-Tokens · ≈ {3} $ · {4} · Seiten: Anschreiben {5}, Lebenslauf {6}" -f `
         $watch.Elapsed.TotalSeconds, $u.inputTokens, $u.outputTokens, $u.costUsd, $docs.model, $docs.letterPages, $docs.cvPages)
@@ -65,5 +81,10 @@ foreach ($vacancy in $page.items) {
     }
     Write-Host ''
     Write-Host $docs.letter.closing
+    Write-Host $docs.senderName
     Write-Host "→ Prüfen und freigeben: http://localhost:3000/unterlagen/$($docs.applicationId)" -ForegroundColor Green
+}
+
+if ($drafted -lt $Count) {
+    Write-Warning "Nur $drafted von $Count Anschreiben erstellt – keine weiteren passenden Stellen ohne Bewerbung."
 }

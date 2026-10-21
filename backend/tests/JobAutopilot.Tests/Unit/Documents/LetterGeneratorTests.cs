@@ -81,7 +81,7 @@ public sealed class LetterGeneratorTests : IDisposable
         result.Letter.Formality.Should().Be(Formality.Sie);
         result.Usage.Should().Be(new TokenUsage(4321, 987));
         result.Model.Should().Be("claude-sonnet-5-5");
-        result.PromptVersion.Should().Be("letter.v1");
+        result.PromptVersion.Should().Be("letter.v2");
     }
 
     [Fact]

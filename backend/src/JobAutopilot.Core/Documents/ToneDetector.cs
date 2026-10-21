@@ -35,6 +35,53 @@ public sealed record ToneResult(DocumentLanguage Language, Formality Formality, 
     };
 
     public string Salutation => Contact?.Salutation(Language, Formality) ?? DefaultSalutation;
+
+    /// <summary>
+    /// The salutation with the company when no person is named (letter.v2, 06c): „Hallo liebes AraCom-Team,",
+    /// „Sehr geehrtes AraCom-Team,", „Dear AraCom team," — never a bare „Hallo liebes Team,".
+    /// </summary>
+    public string SalutationFor(string? company)
+    {
+        if (Contact is not null || CompanyNames.ShortName(company) is not { } name)
+        {
+            return Salutation;
+        }
+
+        return Language switch
+        {
+            DocumentLanguage.En => $"Dear {name} team,",
+            _ when Formality == Formality.Du => $"Hallo liebes {name}-Team,",
+            _ => $"Sehr geehrtes {name}-Team,",
+        };
+    }
+}
+
+/// <summary>The short name of a company for a salutation: „AraCom IT Services GmbH" → „AraCom", „b-plus Gruppe GmbH" → „b-plus".</summary>
+public static partial class CompanyNames
+{
+    public static string? ShortName(string? company)
+    {
+        if (string.IsNullOrWhiteSpace(company))
+        {
+            return null;
+        }
+
+        var words = LegalForm().Replace(company, " ").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (words.Length == 0)
+        {
+            return null;
+        }
+
+        // A short name stays whole („Meierhofer", „MCA"); a long one becomes its first word, unless that is generic.
+        var name = words.Length <= 2 && !GenericWord().IsMatch(words[^1]) ? string.Join(' ', words) : words[0];
+        return name.Length >= 2 && !GenericWord().IsMatch(name) ? name : null;
+    }
+
+    [GeneratedRegex(@"\b(?:GmbH(?:\s*&\s*Co\.?\s*KG)?|mbH|AG|SE|KG|KGaA|OHG|UG(?:\s*\(haftungsbeschränkt\))?|e\.\s?V\.|Inc\.?|Ltd\.?|LLC|B\.V\.|S\.A\.|Deutschland|Germany|Group|Gruppe|GROUP|Holding|IT[- ]Services|Services|Solutions|Business|Consulting)\b", RegexOptions.CultureInvariant, 250)]
+    private static partial Regex LegalForm();
+
+    [GeneratedRegex(@"^(?:Ing-Büro|Ingenieurbüro|Büro|Firma|Software|Systems|Stadt|Landkreis|Universität)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    private static partial Regex GenericWord();
 }
 
 /// <summary>

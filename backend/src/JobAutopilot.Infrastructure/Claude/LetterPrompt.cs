@@ -8,24 +8,38 @@ using JobAutopilot.Core.Fit;
 namespace JobAutopilot.Infrastructure.Claude;
 
 /// <summary>
-/// The versioned prompt (<c>Prompts/letter.v1.md</c>, embedded) and the messages built from a <see cref="LetterInput"/>.
+/// The versioned prompt (<c>Prompts/letter.v1.md</c>, <c>letter.v2.md</c>, embedded) and the messages built from a
+/// <see cref="LetterInput"/>. v2 (06c) gives the salutation with the company and keeps alternatives („Angular oder
+/// Vue.js" with Vue covered) out of the gaps.
 /// Facts, fit check and task are separate blocks; the posting goes into <c>&lt;vacancy&gt;</c> with angle brackets
 /// replaced, so its text cannot close the block or open another one — it stays data.
 /// </summary>
 public sealed partial class LetterPrompt
 {
-    public const string Version = "letter.v1";
+    /// <summary>The default version.</summary>
+    public const string Version = "letter.v2";
 
-    private const string ResourceName = "JobAutopilot.Infrastructure.Claude.Prompts.letter.v1.md";
+    public static readonly string[] Versions = ["letter.v1", "letter.v2"];
 
-    private LetterPrompt(string system, string generate, string rephrase)
+    private static readonly Dictionary<string, LetterPrompt> Loaded = Versions.ToDictionary(v => v, Load, StringComparer.Ordinal);
+
+    private LetterPrompt(string name, string system, string generate, string rephrase)
     {
+        Name = name;
         System = system;
         Generate = generate;
         Rephrase = rephrase;
     }
 
-    public static LetterPrompt Current { get; } = Load();
+    public static LetterPrompt Current => For(Version);
+
+    /// <summary>The prompt of this version (<see cref="Versions"/>).</summary>
+    public static LetterPrompt For(string version) =>
+        Loaded.TryGetValue(version, out var prompt) ? prompt : throw new ArgumentOutOfRangeException(nameof(version), version, "Unknown letter prompt version.");
+
+    public string Name { get; }
+
+    private bool V2 => Name != "letter.v1";
 
     public string System { get; }
 
@@ -112,20 +126,20 @@ public sealed partial class LetterPrompt
         return cleaned.Replace('<', '‹').Replace('>', '›');
     }
 
-    private static void AppendTask(StringBuilder message, LetterInput input)
+    private void AppendTask(StringBuilder message, LetterInput input)
     {
         var tone = input.Tone;
         message.AppendLine("<task>");
         message.AppendLine(CultureInfo.InvariantCulture, $"language: {(tone.Language == DocumentLanguage.De ? "de (German)" : "en (English)")}");
         message.AppendLine(CultureInfo.InvariantCulture, $"formality: {(tone.Language == DocumentLanguage.En ? "sie (English letter)" : tone.Formality == Formality.Du ? "du (the posting says du)" : "sie")}");
-        message.AppendLine(CultureInfo.InvariantCulture, $"salutation: {tone.Salutation}");
+        message.AppendLine(CultureInfo.InvariantCulture, $"salutation: {(V2 ? tone.SalutationFor(input.Vacancy.Company) : tone.Salutation)}");
         message.AppendLine(CultureInfo.InvariantCulture, $"today: {Formats.Date(input.Today, DocumentLanguage.De)}");
         message.AppendLine(CultureInfo.InvariantCulture, $"job title: {Neutralize(input.Vacancy.Title)}");
         message.AppendLine(CultureInfo.InvariantCulture, $"company: {Neutralize(input.Vacancy.Company)}");
         message.AppendLine("</task>");
     }
 
-    private static void AppendFacts(StringBuilder message, LetterInput input)
+    private void AppendFacts(StringBuilder message, LetterInput input)
     {
         message.AppendLine("<profile_facts>");
         foreach (var fact in input.Facts)
@@ -139,8 +153,14 @@ public sealed partial class LetterPrompt
         message.AppendLine("<fit_check>");
         message.AppendLine(CultureInfo.InvariantCulture, $"covered (used at work): {List(fit.Requirements.Where(r => r.Coverage == FitCoverage.Covered))}");
         message.AppendLine(CultureInfo.InvariantCulture, $"partial (own projects / learning — not professional experience): {List(fit.Requirements.Where(r => r.Coverage == FitCoverage.Partial))}");
-        message.AppendLine(CultureInfo.InvariantCulture, $"gaps, required: {List(fit.Requirements.Where(r => r.Coverage == FitCoverage.Gap && !r.Optional))}");
-        message.AppendLine(CultureInfo.InvariantCulture, $"gaps, optional: {List(fit.Requirements.Where(r => r.Coverage == FitCoverage.Gap && r.Optional))}");
+        // v2: „Angular oder Vue.js" with Vue covered is no gap (06c).
+        bool Alternative(FitRequirement r) => V2 && r.Importance == RequirementImportance.Alternative;
+        message.AppendLine(CultureInfo.InvariantCulture, $"gaps, required: {List(fit.Requirements.Where(r => r.Coverage == FitCoverage.Gap && !r.Optional && !Alternative(r)))}");
+        message.AppendLine(CultureInfo.InvariantCulture, $"gaps, optional: {List(fit.Requirements.Where(r => r.Coverage == FitCoverage.Gap && r.Optional && !Alternative(r)))}");
+        if (V2 && fit.Requirements.Where(r => r.Coverage == FitCoverage.Gap && Alternative(r)).ToList() is { Count: > 0 } alternatives)
+        {
+            message.AppendLine(CultureInfo.InvariantCulture, $"alternatives (another skill of his covers it — not a gap): {List(alternatives)}");
+        }
         foreach (var warning in fit.Warnings)
         {
             message.AppendLine(CultureInfo.InvariantCulture, $"warning: {Neutralize(warning.Text)}");
@@ -182,10 +202,11 @@ public sealed partial class LetterPrompt
         return document.RootElement.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.Clone(), StringComparer.Ordinal);
     }
 
-    private static LetterPrompt Load()
+    private static LetterPrompt Load(string version)
     {
-        using var stream = typeof(LetterPrompt).Assembly.GetManifestResourceStream(ResourceName)
-            ?? throw new InvalidOperationException($"Embedded prompt '{ResourceName}' is missing.");
+        var resourceName = $"JobAutopilot.Infrastructure.Claude.Prompts.{version}.md";
+        using var stream = typeof(LetterPrompt).Assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"Embedded prompt '{resourceName}' is missing.");
         using var reader = new StreamReader(stream, Encoding.UTF8);
         var text = HtmlComment().Replace(reader.ReadToEnd(), string.Empty);
         var sections = SectionHeading().Split(text);
@@ -196,13 +217,13 @@ public sealed partial class LetterPrompt
             bodies[sections[i].Trim()] = sections[i + 1].Trim();
         }
 
-        return new LetterPrompt(Section(bodies, "system"), Section(bodies, "generate"), Section(bodies, "rephrase"));
+        return new LetterPrompt(version, Section(bodies, "system", version), Section(bodies, "generate", version), Section(bodies, "rephrase", version));
     }
 
-    private static string Section(Dictionary<string, string> bodies, string name) =>
+    private static string Section(Dictionary<string, string> bodies, string name, string version) =>
         bodies.TryGetValue(name, out var body) && body.Length > 0
             ? body
-            : throw new InvalidOperationException($"Prompt section '## {name}' is missing in {ResourceName}.");
+            : throw new InvalidOperationException($"Prompt section '## {name}' is missing in {version}.");
 
     [GeneratedRegex(@"<!--.*?-->", RegexOptions.Singleline | RegexOptions.CultureInvariant, 1000)]
     private static partial Regex HtmlComment();

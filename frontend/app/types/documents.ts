@@ -124,6 +124,8 @@ export interface ApplicationDocuments {
   cheatSheet: CheatSheetItem[]
   revisions: DraftRevision[]
   updatedAt: string
+  /** The signature line under the closing (the PDF prints it too). */
+  senderName?: string
 }
 
 export interface DocumentPreview {

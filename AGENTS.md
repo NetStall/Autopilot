@@ -124,7 +124,8 @@ docker compose up -d                          # everything in Docker (use mode) 
 ./scripts/backup-db.ps1                       # dump to ./backups (git-ignored)
 Invoke-RestMethod -Method Post http://localhost:5080/api/imports   # start a background import (202 + importId)
 dotnet user-secrets set "Claude:ApiKey" "<key>" --project backend/src/JobAutopilot.Api   # Claude key (never in appsettings)
-./scripts/draft-top-vacancies.ps1 -Count 3    # documents for the 3 best vacancies (3 Claude calls), output to console only
+./scripts/draft-top-vacancies.ps1 -Count 3    # documents for the 3 best vacancies without an application (3 Claude calls), console only
+./scripts/translate-profile.ps1 [-DryRun]     # draft missing German CV texts (1 Claude call), write profile.json after approval
 ./scripts/seed-gold-labels.ps1                # gold labels from chat (Passt / Passt nicht), via the API
 ./scripts/eval-ranking.ps1 [-Model qwen3.5:9b] # ranking evaluation over the labels (step 07c)
 ollama pull qwen3:8b                          # local model for the requirement extraction (step 07a, optional)

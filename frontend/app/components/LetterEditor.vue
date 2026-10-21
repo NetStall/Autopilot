@@ -8,6 +8,8 @@ const props = withDefaults(defineProps<{
   rephrasing?: number | null
   /** Page count of the last rendered preview. */
   renderedPages?: number | null
+  /** The signature under the closing (not editable here; from the profile). */
+  senderName?: string
 }>(), { warnings: () => [], disabled: false, rephrasing: null, renderedPages: null })
 
 const emit = defineEmits<{ rephrase: [index: number] }>()
@@ -101,6 +103,9 @@ function paragraphWarnings(index: number) {
       maxlength="300"
       @input="update({ closing: ($event.target as HTMLInputElement).value })"
     >
+    <p v-if="senderName" class="letter__signature" title="Unterschrift aus dem Profil – steht auch im PDF">
+      {{ senderName }}
+    </p>
   </section>
 </template>
 
@@ -108,6 +113,11 @@ function paragraphWarnings(index: number) {
 .letter {
   display: grid;
   gap: var(--space-2);
+
+  &__signature {
+    margin: 0;
+    color: var(--color-muted);
+  }
 
   h2 {
     margin: 0;

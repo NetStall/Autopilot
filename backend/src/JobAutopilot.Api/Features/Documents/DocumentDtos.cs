@@ -222,7 +222,8 @@ public sealed record DocumentsDto(
     bool ClaudeConfigured,
     IReadOnlyList<CheatSheetItem> CheatSheet,
     IReadOnlyList<DraftRevisionDto> Revisions,
-    DateTimeOffset UpdatedAt)
+    DateTimeOffset UpdatedAt,
+    string SenderName = "")
 {
     public static DocumentsDto From(DraftView view)
     {
@@ -236,6 +237,7 @@ public sealed record DocumentsDto(
             new DraftUsageDto(draft.InputTokens, draft.OutputTokens, draft.Calls, view.CostUsd, view.DraftTokenBudget, view.CallsToday, view.DailyCallLimit),
             view.ClaudeConfigured, view.CheatSheet,
             [.. draft.Revisions.OrderByDescending(r => r.Number).Select(r => new DraftRevisionDto(r.Number, r.Kind, r.CreatedAt, r.Note, r.Model, r.InputTokens, r.OutputTokens))],
-            draft.UpdatedAt);
+            draft.UpdatedAt,
+            view.Cv.Name);
     }
 }

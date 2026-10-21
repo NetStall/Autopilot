@@ -82,6 +82,7 @@ public static partial class DependencyInjection
         services.AddOptions<Llm.VacancyExtractionOptions>().Bind(configuration.GetSection(Llm.VacancyExtractionOptions.SectionName));
         services.AddScoped<Llm.VacancyExtractionService>();
         services.AddScoped<Llm.VacancyFitScoreService>();
+        services.AddScoped<Profile.ProfileTranslationService>();
 
         // Which provider and model a task uses (Llm:Tasks:Letter = claude:<model>); letter code only sees the router.
         services.AddOptions<Llm.LlmOptions>().Bind(configuration.GetSection(Llm.LlmOptions.SectionName));

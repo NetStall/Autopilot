@@ -52,6 +52,7 @@ public sealed record DraftWarning(string Code, string Message, int? Paragraph = 
     public const string InventedTechnology = "invented-technology";
     public const string LearningAsExperience = "learning-as-experience";
     public const string InventedNumber = "invented-number";
+    public const string LanguageAboveProfile = "language-above-profile";
     public const string MissingGap = "missing-gap";
     public const string MixedFormality = "mixed-formality";
     public const string FormalityMismatch = "formality-mismatch";

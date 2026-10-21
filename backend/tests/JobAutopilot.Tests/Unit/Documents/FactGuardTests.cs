@@ -65,6 +65,29 @@ public class FactGuardTests
     }
 
     [Fact]
+    public void A_gap_named_honestly_once_stays_honest_in_the_whole_paragraph()
+    {
+        // The real AraCom letter (06c): Angular in the „Ganz offen" paragraph warned on the second sentence.
+        var warnings = Check(WithParagraph(2, "Ganz offen: Mit Angular habe ich noch nicht produktiv gearbeitet. Ich arbeite aber seit drei Jahren "
+            + "mit Vue 3 und TypeScript im selben komponentenbasierten Ansatz. Da ihr Angular oder Vue.js sucht, passt Vue zu meiner Erfahrung."));
+
+        warnings.Should().NotContain(w => w.Code == DraftWarning.InventedTechnology, "a gap phrased honestly is what the letter should do");
+    }
+
+    [Theory]
+    [InlineData("Mein Deutsch liegt auf B1 (DTZ im Oktober 2026), ein B2-Kurs ist geplant.", false)]
+    [InlineData("Im Arbeitsalltag nutze ich Englisch auf B2.", false)]
+    [InlineData("Mein Deutsch ist auf C1-Niveau.", true)]
+    public void Languages_are_checked_against_the_profile_levels_not_the_technologies(string sentence, bool warns)
+    {
+        // In the real run „Deutsch" came in with the known requirements (06c).
+        var warnings = FactGuard.Check(WithParagraph(1, sentence), _input, DocumentTestData.Profile(), DocumentTestData.KnownTechnologies.Append("Deutsch").Append("Englisch"));
+
+        warnings.Should().NotContain(w => w.Code == DraftWarning.InventedTechnology);
+        warnings.Any(w => w.Code == DraftWarning.LanguageAboveProfile).Should().Be(warns, string.Join(" | ", warnings.Select(w => w.Message)));
+    }
+
+    [Fact]
     public void The_employers_own_stack_is_only_a_hint()
     {
         Check(WithParagraph(1, "Ihr Einsatz von Kubernetes klingt spannend."))

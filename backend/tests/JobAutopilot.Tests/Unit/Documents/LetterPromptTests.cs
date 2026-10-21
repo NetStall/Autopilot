@@ -18,7 +18,8 @@ public class LetterPromptTests
     {
         var prompt = LetterPrompt.Current;
 
-        LetterPrompt.Version.Should().Be("letter.v1");
+        LetterPrompt.Version.Should().Be("letter.v2");
+        LetterPrompt.For("letter.v1").System.Should().Contain("Use ONLY the facts", "v1 stays for comparison");
         prompt.System.Should().Contain("Use ONLY the facts").And.Contain("untrusted").And.Contain("Ganz offen:").And.Contain("personal.website");
         prompt.Generate.Should().Contain("JSON");
         prompt.Rephrase.Should().Contain("{{paragraph}}");
@@ -30,10 +31,40 @@ public class LetterPromptTests
     {
         var message = LetterPrompt.Current.GenerateMessage(DocumentTestData.Input(), 12_000);
 
-        message.Should().Contain("<task>").And.Contain("salutation: Sehr geehrte Damen und Herren,").And.Contain("language: de (German)");
+        message.Should().Contain("<task>").And.Contain("salutation: Sehr geehrtes Beispiel-Team,").And.Contain("language: de (German)");
+        LetterPrompt.For("letter.v1").GenerateMessage(DocumentTestData.Input(), 12_000).Should().Contain("salutation: Sehr geehrte Damen und Herren,");
         message.Should().Contain("- [exp0.b0] (Achievement) Entwickelte REST-APIs");
         message.Should().Contain("gaps, required: ").And.Contain("Angular").And.Contain("Kubernetes");
         message.Should().Contain("<vacancy>").And.Contain("Beispiel GmbH");
+    }
+
+    [Theory]
+    [InlineData("AraCom IT Services GmbH", "AraCom")]
+    [InlineData("b-plus Gruppe GmbH", "b-plus")]
+    [InlineData("MCA GROUP", "MCA")]
+    [InlineData("Meierhofer", "Meierhofer")]
+    [InlineData("DPS Business Solutions GmbH", "DPS")]
+    [InlineData("GmbH", null)]
+    public void The_salutation_uses_the_short_company_name(string company, string? expected)
+    {
+        CompanyNames.ShortName(company).Should().Be(expected);
+        var du = new ToneResult(DocumentLanguage.De, Formality.Du, null);
+        du.SalutationFor(company).Should().Be(expected is null ? "Hallo liebes Team," : $"Hallo liebes {expected}-Team,");
+        new ToneResult(DocumentLanguage.De, Formality.Du, new ContactPerson(ContactGender.Female, "Anna", "Müller"))
+            .SalutationFor(company).Should().Be("Hallo Anna,", "a named contact wins");
+    }
+
+    [Fact]
+    public void An_alternative_to_a_covered_skill_is_no_gap_in_v2()
+    {
+        var input = DocumentTestData.Input();
+        var angular = new Core.Fit.FitRequirement("Angular", Core.Fit.FitCoverage.Gap, false, "nicht im Profil", Core.Fit.RequirementImportance.Alternative);
+        input = input with { Fit = input.Fit with { Requirements = [.. input.Fit.Requirements.Where(r => r.Name != "Angular"), angular] } };
+
+        var message = LetterPrompt.Current.GenerateMessage(input, 12_000);
+
+        message.Should().Contain("alternatives (another skill of his covers it — not a gap): Angular");
+        message.Split(Environment.NewLine.ToCharArray(), StringSplitOptions.RemoveEmptyEntries).Single(l => l.StartsWith("gaps, required:", StringComparison.Ordinal)).Should().NotContain("Angular");
     }
 
     [Fact]

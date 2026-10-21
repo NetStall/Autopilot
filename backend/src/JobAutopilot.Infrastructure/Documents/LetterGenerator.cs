@@ -20,15 +20,17 @@ public sealed class LetterGenerator(ILlmRouter llm, IOptions<ClaudeOptions> opti
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip,
     };
 
-    public string PromptVersion => LetterPrompt.Version;
+    public string PromptVersion => Prompt.Name;
+
+    private LetterPrompt Prompt => LetterPrompt.For(options.Value.LetterPromptVersion);
 
     public async Task<LetterGeneration> GenerateAsync(LetterInput input, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(input);
         var response = await CallAsync(
-            "generate", LetterPrompt.Current.GenerateMessage(input, options.Value.MaxVacancyCharacters), LetterPrompt.LetterSchema, cancellationToken);
-        var letter = ParseLetter(response.Json, input);
-        return new LetterGeneration(letter, response.Usage, response.Model, LetterPrompt.Version);
+            "generate", Prompt.GenerateMessage(input, options.Value.MaxVacancyCharacters), LetterPrompt.LetterSchema, cancellationToken);
+        var letter = ParseLetter(response.Json, input, Prompt.Name != "letter.v1");
+        return new LetterGeneration(letter, response.Usage, response.Model, Prompt.Name);
     }
 
     public async Task<ParagraphRephrasing> RephraseParagraphAsync(
@@ -41,7 +43,7 @@ public sealed class LetterGenerator(ILlmRouter llm, IOptions<ClaudeOptions> opti
 
         var response = await CallAsync(
             "rephrase",
-            LetterPrompt.Current.RephraseMessage(input, current, paragraph, hint, options.Value.MaxVacancyCharacters),
+            Prompt.RephraseMessage(input, current, paragraph, hint, options.Value.MaxVacancyCharacters),
             LetterPrompt.ParagraphSchema,
             cancellationToken);
         var result = Deserialize<ParagraphJson>(response.Json);
@@ -51,7 +53,7 @@ public sealed class LetterGenerator(ILlmRouter llm, IOptions<ClaudeOptions> opti
             throw Invalid("Der neue Absatz ist leer.");
         }
 
-        return new ParagraphRephrasing(text, Clean(result.FactsUsed), Clean(result.GapsMentioned), response.Usage, response.Model, LetterPrompt.Version);
+        return new ParagraphRephrasing(text, Clean(result.FactsUsed), Clean(result.GapsMentioned), response.Usage, response.Model, Prompt.Name);
     }
 
     private async Task<LlmResponse> CallAsync(
@@ -60,7 +62,7 @@ public sealed class LetterGenerator(ILlmRouter llm, IOptions<ClaudeOptions> opti
         try
         {
             return await llm.CompleteJsonAsync(
-                new LlmRequest(LlmOptions.LetterTask, operation, LetterPrompt.Version, LetterPrompt.Current.System, userMessage, schema),
+                new LlmRequest(LlmOptions.LetterTask, operation, Prompt.Name, Prompt.System, userMessage, schema),
                 cancellationToken);
         }
         catch (LlmException ex)
@@ -80,7 +82,7 @@ public sealed class LetterGenerator(ILlmRouter llm, IOptions<ClaudeOptions> opti
         _ => LetterGenerationError.InvalidResponse,
     };
 
-    private static LetterDraft ParseLetter(string json, LetterInput input)
+    private static LetterDraft ParseLetter(string json, LetterInput input, bool salutationWithCompany)
     {
         var result = Deserialize<LetterJson>(json);
         var paragraphs = (result.Paragraphs ?? []).Select(CleanParagraph).Where(p => p.Length > 0).Take(LetterDraft.MaxParagraphs).ToList();
@@ -94,7 +96,8 @@ public sealed class LetterGenerator(ILlmRouter llm, IOptions<ClaudeOptions> opti
         var known = input.Facts.Select(f => f.Id).ToHashSet(StringComparer.Ordinal);
         return new LetterDraft(
             Line(result.Subject, $"Bewerbung als {input.Vacancy.Title}"),
-            Line(result.Salutation, input.Tone.Salutation),
+            // letter.v2: the salutation with the company is set here, whatever the model wrote (06c).
+            salutationWithCompany ? input.Tone.SalutationFor(input.Vacancy.Company) : Line(result.Salutation, input.Tone.Salutation),
             paragraphs,
             Line(result.Closing, language == DocumentLanguage.En ? "Kind regards" : "Mit freundlichen Grüßen"),
             language,

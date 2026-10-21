@@ -48,6 +48,9 @@ public sealed class ClaudeOptions
     /// <summary>Longer posting texts are cut (cost; the end of a posting is usually boilerplate).</summary>
     public int MaxVacancyCharacters { get; set; } = 12_000;
 
+    /// <summary>The letter prompt: <c>letter.v2</c> (default, 06c) or <c>letter.v1</c> for comparison.</summary>
+    public string LetterPromptVersion { get; set; } = LetterPrompt.Version;
+
     public bool IsConfigured => !string.IsNullOrWhiteSpace(ApiKey);
 
     public decimal EstimateCostUsd(int inputTokens, int outputTokens) =>
@@ -83,6 +86,11 @@ public sealed class ClaudeOptionsValidator : IValidateOptions<ClaudeOptions>
         if (options.TimeoutSeconds is < 5 or > 600 || options.MaxRetries is < 0 or > 5)
         {
             errors.Add("Claude:TimeoutSeconds must be 5–600 and Claude:MaxRetries 0–5.");
+        }
+
+        if (!LetterPrompt.Versions.Contains(options.LetterPromptVersion))
+        {
+            errors.Add($"Claude:LetterPromptVersion must be one of: {string.Join(", ", LetterPrompt.Versions)}.");
         }
 
         if (options.DailyCallLimit < 1 || options.DraftTokenBudget < 1000 || options.MaxVacancyCharacters < 1000)
