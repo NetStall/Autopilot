@@ -74,7 +74,7 @@ public class ExtractionApiTests(PostgresFixture postgres) : IntegrationTestBase(
 
         var stored = await ReloadAsync(vacancy.Id);
         StoredExtraction.ForDescription(stored.ExtractionJson, stored.Description)!.Result.DomainRequirements.Should().Equal("Broadcast/MAM");
-        stored.RelevanceReasons.Should().Contain("Anforderungen: KI (qwen3:8b, extraction.v3)");
+        stored.RelevanceReasons.Should().Contain($"Anforderungen: KI (qwen3:8b, {ExtractionPrompt.DefaultVersion})");
         stored.RelevanceReasons.Should().Contain(r => r.StartsWith("Fit: Muss-Anforderung, nicht im Profil:", StringComparison.Ordinal) && r.Contains("Broadcast", StringComparison.Ordinal) && r.Contains("MAM", StringComparison.Ordinal));
 
         var fit = await Client.GetFromJsonAsync<JsonElement>($"/api/vacancies/{vacancy.Id}/fit", CancellationToken);
