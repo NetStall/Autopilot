@@ -13,9 +13,9 @@ namespace JobAutopilot.Infrastructure.Llm;
 public sealed partial class ExtractionPrompt
 {
     /// <summary>The default since step 07b; v1 and v2 stay embedded for comparison.</summary>
-    public const string DefaultVersion = "extraction.v3";
+    public const string DefaultVersion = "extraction.v4";
 
-    public static readonly IReadOnlyList<string> Versions = ["extraction.v1", "extraction.v2", "extraction.v3"];
+    public static readonly IReadOnlyList<string> Versions = ["extraction.v1", "extraction.v2", "extraction.v3", "extraction.v4"];
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, ExtractionPrompt> Loaded = new(StringComparer.Ordinal);
 
@@ -41,7 +41,8 @@ public sealed partial class ExtractionPrompt
     public string Version { get; }
 
     /// <summary>The schema of this version: v3 adds home-office days and soft skills.</summary>
-    public IReadOnlyDictionary<string, JsonElement> JsonSchema => string.CompareOrdinal(Version, "extraction.v3") >= 0 ? SchemaV3 : Schema;
+    public IReadOnlyDictionary<string, JsonElement> JsonSchema =>
+        string.CompareOrdinal(Version, "extraction.v4") >= 0 ? SchemaV4 : string.CompareOrdinal(Version, "extraction.v3") >= 0 ? SchemaV3 : Schema;
 
     public string System { get; }
 
@@ -91,6 +92,45 @@ public sealed partial class ExtractionPrompt
           },
           "required": ["mustHave", "niceToHave", "softSkills", "germanLevel", "englishLevel", "minYears", "seniority", "remoteLevel",
                        "homeOfficePercent", "homeOfficeDaysPerWeek", "employmentType", "domainRequirements", "summary"],
+          "additionalProperties": false
+        }
+        """);
+
+    /// <summary>v4 (08a): requirement groups <c>{"anyOf": […]}</c> for alternatives, and how to apply.</summary>
+    public static IReadOnlyDictionary<string, JsonElement> SchemaV4 { get; } = ParseSchema("""
+        {
+          "type": "object",
+          "properties": {
+            "mustHave": { "type": "array", "items": { "type": "object", "properties": { "anyOf": { "type": "array", "items": { "type": "string" }, "minItems": 1 } }, "required": ["anyOf"], "additionalProperties": false } },
+            "niceToHave": { "type": "array", "items": { "type": "object", "properties": { "anyOf": { "type": "array", "items": { "type": "string" }, "minItems": 1 } }, "required": ["anyOf"], "additionalProperties": false } },
+            "softSkills": { "type": "array", "items": { "type": "string" } },
+            "germanLevel": { "type": "string", "enum": ["A1", "A2", "B1", "B2", "C1", "C2", "Native", "none", "unknown"] },
+            "englishLevel": { "type": "string", "enum": ["A1", "A2", "B1", "B2", "C1", "C2", "Native", "none", "unknown"] },
+            "minYears": { "type": ["integer", "null"] },
+            "seniority": { "type": "string", "enum": ["junior", "mid", "senior", "lead", "unknown"] },
+            "remoteLevel": { "type": "string", "enum": ["fullRemote", "hybrid", "onsite", "unknown"] },
+            "homeOfficePercent": { "type": ["integer", "null"] },
+            "homeOfficeDaysPerWeek": { "type": ["integer", "null"] },
+            "employmentType": { "type": "string", "enum": ["fullTime", "partTime", "contract", "internship", "workingStudent", "unknown"] },
+            "domainRequirements": { "type": "array", "items": { "type": "string" } },
+            "summary": { "type": "string" },
+            "application": {
+              "type": "object",
+              "properties": {
+                "channel": { "type": "string", "enum": ["email", "portal", "form", "external", "unknown"] },
+                "email": { "type": ["string", "null"] },
+                "contactName": { "type": ["string", "null"] },
+                "salutation": { "type": ["string", "null"] },
+                "emailAllowed": { "type": "boolean" },
+                "portalOnly": { "type": "boolean" },
+                "requested": { "type": "array", "items": { "type": "string" } }
+              },
+              "required": ["channel", "email", "contactName", "salutation", "emailAllowed", "portalOnly", "requested"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["mustHave", "niceToHave", "softSkills", "germanLevel", "englishLevel", "minYears", "seniority", "remoteLevel",
+                       "homeOfficePercent", "homeOfficeDaysPerWeek", "employmentType", "domainRequirements", "summary", "application"],
           "additionalProperties": false
         }
         """);

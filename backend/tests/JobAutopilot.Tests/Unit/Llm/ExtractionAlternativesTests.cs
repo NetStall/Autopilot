@@ -49,3 +49,37 @@ public class ExtractionAlternativesTests
         ExtractionGuards.Apply(extraction, "We build software in Deutschland.").GermanLevel.Should().BeNull("only the country, not the language");
     }
 }
+
+/// <summary>extraction.v4 (08a): groups and how to apply; an address the model made up is dropped.</summary>
+public class ExtractionV4Tests
+{
+    private const string Answer = """
+        {"mustHave":[{"anyOf":["Angular","Vue.js"]},{"anyOf":["C#"]}],"niceToHave":[],"softSkills":[],"germanLevel":"unknown",
+         "englishLevel":"unknown","minYears":null,"seniority":"unknown","remoteLevel":"unknown","homeOfficePercent":null,
+         "homeOfficeDaysPerWeek":null,"employmentType":"unknown","domainRequirements":[],"summary":"Ein Job. Mit C#.",
+         "application":{"channel":"email","email":"JOBS@firma.de","contactName":"Lisa","salutation":null,"emailAllowed":true,
+         "portalOnly":false,"requested":["Gehaltsvorstellung"]}}
+        """;
+
+    [Fact]
+    public void Groups_become_one_entry_and_the_application_is_read()
+    {
+        var (result, errors) = ExtractionValidator.Parse(Answer);
+
+        errors.Should().BeEmpty();
+        result!.MustHave.Should().Equal("Angular oder Vue.js", "C#");
+        result.Application.Should().BeEquivalentTo(new { Channel = Core.Applications.ApplyChannel.Email, Email = "JOBS@firma.de", ContactName = "Lisa", EmailAllowed = true });
+        Infrastructure.Llm.ExtractionPrompt.Current.JsonSchema["required"].EnumerateArray().Select(e => e.GetString()).Should().Contain("application");
+    }
+
+    [Fact]
+    public void An_address_the_text_does_not_contain_is_dropped()
+    {
+        var result = ExtractionValidator.Parse(Answer).Result!;
+
+        ExtractionGuards.Apply(result, "Bewerbung bitte per E-Mail an jobs (at) firma.de.").Application!.Email.Should().Be("jobs@firma.de");
+        var invented = ExtractionGuards.Apply(result, "Bewirb dich über unser Karriereportal.").Application!;
+        invented.Email.Should().BeNull();
+        invented.EmailRejected.Should().BeTrue();
+    }
+}

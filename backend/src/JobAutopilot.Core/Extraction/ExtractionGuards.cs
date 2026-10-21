@@ -79,7 +79,22 @@ public static partial class ExtractionGuards
                 : HomeOffice(extraction.HomeOfficePercent, description),
             Summary = SupportedSummary(extraction.Summary, description),
             GermanLevel = extraction.GermanLevel is not null && GermanMentioned().IsMatch(description) ? extraction.GermanLevel : null,
+            Application = CheckedApplication(extraction.Application, description),
         };
+    }
+
+    /// <summary>The model's address only when the text has it (after de-obfuscation) — never one it made up (08a).</summary>
+    private static ApplicationExtraction? CheckedApplication(ApplicationExtraction? application, string description)
+    {
+        if (application?.Email is not { } email)
+        {
+            return application;
+        }
+
+        var normalized = Applications.HowToApplyDetector.Emails(email) is [var first, ..] ? first : null;
+        return normalized is not null && Applications.HowToApplyDetector.Emails(description).Contains(normalized)
+            ? application with { Email = normalized }
+            : application with { Email = null, EmailRejected = true };
     }
 
     /// <summary>„… DDD, CQRS und idealerweise Event Sourcing": a plus marker between the item and the last comma before it.</summary>

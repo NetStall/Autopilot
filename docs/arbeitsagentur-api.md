@@ -238,3 +238,18 @@ If the endpoint becomes unavailable (after the standard retries), the pass stops
 - In the default list after 4 imports only 4 titles mention Java/Python/C++/Go — all of them together with C#/.NET
   („Softwareentwickler C++, C#, .NET, SQL", „Fullstack … C# / Golang & Angular").
 - Descriptions arrive Markdown-escaped (`C\#`); the mapper removes the escapes.
+
+## Application channel fields (checked 2026-10-21, step 08a)
+
+`GET pc/v4/jobdetails/{base64(refnr)}` has **no** e-mail, contact person or „Bewerbung per …" field — the
+application route is only in `stellenangebotsBeschreibung`. Structured hints that exist:
+
+| Field | Meaning | Use |
+|---|---|---|
+| `externeURL` | the posting on another board / the company site (e.g. yourfirm.de) | `Vacancy.Url`; channel „Extern" when the text says nothing else |
+| `allianzpartnerName`, `allianzpartnerUrl` | the partner board that delivered the posting | not stored |
+| `chiffrenummer` | anonymous posting — applications go through the Arbeitsagentur | not stored |
+| `arbeitgeberKundennummerHash` | employer id (hashed) | not stored |
+
+Himalayas has `applicationLink` (stored as `Vacancy.Url`), no e-mail field. Everything else comes from the rules on
+the text (`HowToApplyDetector`) and the local model (`extraction.v4`, `application`).

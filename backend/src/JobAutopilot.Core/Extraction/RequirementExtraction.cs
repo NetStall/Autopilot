@@ -45,7 +45,22 @@ public sealed record RequirementExtraction(
     IReadOnlyList<string> DomainRequirements,
     string Summary,
     int? HomeOfficeDaysPerWeek = null,
-    IReadOnlyList<string>? SoftSkills = null);
+    IReadOnlyList<string>? SoftSkills = null,
+    ApplicationExtraction? Application = null);
+
+/// <summary>
+/// How to apply, as the model read it (extraction.v4, 08a). <see cref="Email"/> stays only when it occurs in the text
+/// (after de-obfuscation); otherwise it is dropped and <see cref="EmailRejected"/> is set (see <see cref="ExtractionGuards"/>).
+/// </summary>
+public sealed record ApplicationExtraction(
+    Applications.ApplyChannel Channel,
+    string? Email,
+    string? ContactName,
+    string? Salutation,
+    bool EmailAllowed,
+    bool PortalOnly,
+    IReadOnlyList<string> Requested,
+    bool EmailRejected = false);
 
 /// <summary>An extraction as stored on the vacancy: the result plus what it was made from.</summary>
 public sealed record StoredExtraction(
@@ -162,8 +177,8 @@ public static class ExtractionValidator
         }
 
         var errors = new List<string>();
-        var mustHave = List(raw.MustHave, "mustHave", errors);
-        var niceToHave = List(raw.NiceToHave, "niceToHave", errors);
+        var mustHave = List(Groups(raw.MustHave), "mustHave", errors);
+        var niceToHave = List(Groups(raw.NiceToHave), "niceToHave", errors);
         var domains = List(raw.DomainRequirements, "domainRequirements", errors);
         var softSkills = List(raw.SoftSkills, "softSkills", errors);
         var (german, germanNone) = Language(raw.GermanLevel, "germanLevel", errors);
@@ -211,7 +226,38 @@ public static class ExtractionValidator
         return (new RequirementExtraction(
             mustHave, niceToHave, german, germanNone, english, raw.MinYears is 0 ? null : raw.MinYears, seniority, remote,
             raw.HomeOfficePercent is 0 ? null : raw.HomeOfficePercent, employment, domains, summary,
-            raw.HomeOfficeDaysPerWeek is 0 ? null : raw.HomeOfficeDaysPerWeek, softSkills), []);
+            raw.HomeOfficeDaysPerWeek is 0 ? null : raw.HomeOfficeDaysPerWeek, softSkills, Application(raw.Application, errors)), []);
+    }
+
+    /// <summary>v1–v3 write strings, v4 groups <c>{"anyOf": ["Angular", "Vue"]}</c> — a group becomes „Angular oder Vue".</summary>
+    private static List<string>? Groups(List<JsonElement>? values) => values?.Select(v => v.ValueKind switch
+    {
+        JsonValueKind.String => v.GetString() ?? string.Empty,
+        JsonValueKind.Object when v.TryGetProperty("anyOf", out var any) && any.ValueKind == JsonValueKind.Array =>
+            string.Join(" oder ", any.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()!.Trim()).Where(e => e.Length > 0)),
+        _ => string.Empty,
+    }).ToList();
+
+    private static ApplicationExtraction? Application(RawApplication? raw, List<string> errors)
+    {
+        if (raw is null)
+        {
+            return null;
+        }
+
+        var channel = raw.Channel?.Trim().ToLowerInvariant() switch
+        {
+            "email" => Applications.ApplyChannel.Email,
+            "portal" => Applications.ApplyChannel.Portal,
+            "form" => Applications.ApplyChannel.Form,
+            "external" => Applications.ApplyChannel.External,
+            null or "" or "unknown" => Applications.ApplyChannel.Unknown,
+            _ => Invalid(Applications.ApplyChannel.Unknown, "application.channel must be one of email, portal, form, external, unknown.", errors),
+        };
+        static string? Short(string? value, int max) => string.IsNullOrWhiteSpace(value) ? null : value.Trim().Length > max ? value.Trim()[..max] : value.Trim();
+        return new ApplicationExtraction(channel, Short(raw.Email, 120), Short(raw.ContactName, 80), Short(raw.Salutation, 80),
+            raw.EmailAllowed == true, raw.PortalOnly == true,
+            [.. (raw.Requested ?? []).Select(r => Short(r, 60)).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase).Take(8)]);
     }
 
     private static List<string> List(List<string>? values, string name, List<string> errors)
@@ -276,11 +322,30 @@ public static class ExtractionValidator
         return fallback;
     }
 
+    private sealed class RawApplication
+    {
+        public string? Channel { get; init; }
+
+        public string? Email { get; init; }
+
+        public string? ContactName { get; init; }
+
+        public string? Salutation { get; init; }
+
+        public bool? EmailAllowed { get; init; }
+
+        public bool? PortalOnly { get; init; }
+
+        public List<string>? Requested { get; init; }
+    }
+
     private sealed class Raw
     {
-        public List<string>? MustHave { get; init; }
+        public List<JsonElement>? MustHave { get; init; }
 
-        public List<string>? NiceToHave { get; init; }
+        public List<JsonElement>? NiceToHave { get; init; }
+
+        public RawApplication? Application { get; init; }
 
         public string? GermanLevel { get; init; }
 

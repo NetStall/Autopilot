@@ -3,6 +3,7 @@ import type { AiFitScore, VacancyExtraction } from './extraction'
 // Mirrors the backend DTOs in JobAutopilot.Api/Features.
 
 import type { AppliedInfo } from './application'
+import type { HowToApply } from './statistics'
 
 export type EmployerType = 'Unknown' | 'Direct' | 'Agency' | 'Temporary'
 
@@ -76,6 +77,8 @@ export interface Vacancy {
   aiScore?: number | null
   /** The rank without any AI input (sort „Nur Regeln“); equals rankScore without an extraction. */
   ruleRankScore?: number | null
+  /** How to apply (detail only, 08a). */
+  howToApply?: HowToApply | null
   /** Verdict, reasons and blockers (detail only). */
   aiFitScore?: AiFitScore | null
 }

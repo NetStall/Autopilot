@@ -253,6 +253,14 @@ function openedOriginal() {
         <GoldLabelButtons v-model="vacancy.goldLabel" v-model:automatic="vacancy.goldLabelAutomatic" :vacancy-id="vacancy.id" />
       </section>
 
+      <p v-if="vacancy.howToApply" class="detail__how" :class="{ 'detail__how--portal': vacancy.howToApply.portalOnly }">
+        <strong>Bewerbung:</strong> {{ howToApplyLine(vacancy.howToApply) }}
+        <span class="detail__how-source">· Quelle: {{ SOURCE_LABELS[vacancy.howToApply.source] }}</span>
+        <template v-if="vacancy.howToApply.requested.length">
+          · gewünscht: {{ vacancy.howToApply.requested.join(', ') }}
+        </template>
+      </p>
+
       <section class="detail__reasons" aria-labelledby="requirements-heading">
         <h2 id="requirements-heading">
           Anforderungen
@@ -476,6 +484,19 @@ function openedOriginal() {
 
   &__text {
     white-space: pre-line;
+  }
+
+  &__how {
+    margin: var(--space-3) 0;
+
+    &--portal {
+      color: var(--color-warning-text);
+    }
+  }
+
+  &__how-source {
+    color: var(--color-muted);
+    font-size: 0.9rem;
   }
 
   &__applied {

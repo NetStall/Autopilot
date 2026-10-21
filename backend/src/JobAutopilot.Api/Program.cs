@@ -129,6 +129,7 @@ app.MapApplicationEndpoints(trackerImportPath);
 app.MapSearchProfileEndpoints();
 app.MapDocumentEndpoints();
 app.MapStatisticsEndpoints();
+app.MapChannelStatisticsEndpoints();
 app.MapLlmEndpoints();
 app.MapExtractionEndpoints();
 app.MapEvaluationEndpoints();

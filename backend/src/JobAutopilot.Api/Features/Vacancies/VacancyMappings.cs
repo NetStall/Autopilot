@@ -46,7 +46,12 @@ public static class VacancyMappings
         CurrentAiScore(vacancy)?.Result.Score,
         vacancy.RuleRankScore,
         label?.Automatic ?? false,
-        includeDescription ? CurrentAiScore(vacancy)?.Result : null);
+        includeDescription ? CurrentAiScore(vacancy)?.Result : null,
+        // „Bewerbung: per E-Mail an …" (08a), detail only: rules on the text, the model for what they leave open.
+        includeDescription
+            ? Core.Applications.HowToApplyDetector.Resolve(vacancy.Description, vacancy.Url,
+                Core.Extraction.StoredExtraction.ForDescription(vacancy.ExtractionJson, vacancy.Description)?.Result.Application)
+            : null);
 
     /// <summary>The „KI-Bewertung" when it still belongs to the current description (the key starts with its hash).</summary>
     private static Core.Extraction.StoredFitScore? CurrentAiScore(Vacancy vacancy) =>

@@ -107,9 +107,9 @@ public class ExtractionQualityTests
     }
 
     [Fact]
-    public void Version_three_asks_for_days_and_soft_skills_and_is_the_default()
+    public void Version_three_asks_for_days_and_soft_skills()
     {
-        ExtractionPrompt.Current.Version.Should().Be("extraction.v3");
+        ExtractionPrompt.For("extraction.v3").JsonSchema["required"].EnumerateArray().Select(e => e.GetString()).Should().Contain(["homeOfficeDaysPerWeek", "softSkills"]);
         ExtractionPrompt.Current.JsonSchema["required"].EnumerateArray().Select(e => e.GetString()).Should().Contain(["homeOfficeDaysPerWeek", "softSkills"]);
         ExtractionPrompt.For("extraction.v2").JsonSchema["required"].EnumerateArray().Select(e => e.GetString()).Should().NotContain("softSkills");
         var (result, errors) = ExtractionValidator.Parse("""{"softSkills":["Teamgeist"],"homeOfficeDaysPerWeek":3,"summary":"Zwei Sätze. Hier."}""");
@@ -180,13 +180,13 @@ public class ExtractionQualityTests
     }
 
     [Fact]
-    public void All_prompt_versions_are_embedded_and_v3_is_the_default()
+    public void All_prompt_versions_are_embedded_and_v4_is_the_default()
     {
-        ExtractionPrompt.Current.Version.Should().Be("extraction.v3");
+        ExtractionPrompt.Current.Version.Should().Be("extraction.v4");
         ExtractionPrompt.For("extraction.v1").System.Should().NotBe(ExtractionPrompt.For("extraction.v2").System);
         ExtractionPrompt.For("extraction.v2").System.Should().Contain("Each item appears in ONE list only");
         ExtractionPrompt.Current.System.Should().Contain("Each item appears in ONE list only").And.Contain("softSkills");
-        new VacancyExtractionOptions().PromptVersion.Should().Be("extraction.v3");
+        new VacancyExtractionOptions().PromptVersion.Should().Be("extraction.v4");
         new VacancyExtractionOptions().Thinking.Should().BeFalse();
         var act = () => ExtractionPrompt.For("extraction.v9");
         act.Should().Throw<ArgumentException>();
