@@ -1,0 +1,39 @@
+{
+    "summary": "Wir suchen einen Senior Fullstack-Entwickler, der moderne Webanwendungen mit .NET und Angular oder Vue.js entwickelt. Du bringst sehr gute Kenntnisse in .NET, Erfahrung mit relationalen Datenbanken und fundierte Erfahrung mit Angular oder Vue.js mit.",
+    "minYears": null,
+    "mustHave": [
+        ".NET",
+        "ASP.NET Core",
+        "Angular oder Vue.js",
+        "relationale Datenbanken",
+        "MSSQL",
+        "PostgreSQL",
+        "MySql",
+        "EntityFramework"
+    ],
+    "seniority": "Senior",
+    "niceToHave": [
+        "Tailwind",
+        "KI in der Entwicklung",
+        "moderne Webanwendungen",
+        "selbstständige Arbeitsweise",
+        "Teamarbeit",
+        "neue Technologien",
+        "kontinuierliche Verbesserung"
+    ],
+    "softSkills": [
+        "Teamgeist",
+        "selbstständige Arbeitsweise",
+        "Kommunikationsstärke",
+        "analytisches Denken"
+    ],
+    "germanLevel": "C1",
+    "remoteLevel": "FullRemote",
+    "englishLevel": null,
+    "employmentType": "FullTime",
+    "germanNotRequired": false,
+    "homeOfficePercent": 100,
+    "domainRequirements": [
+    ],
+    "homeOfficeDaysPerWeek": null
+}

@@ -63,6 +63,7 @@ public static partial class FactGuard
         CheckTone(letter, input, warnings);
         CheckLength(letter, renderedPages, warnings);
         CheckStyle(letter, input, warnings);
+        CheckAchievements(letter, input, warnings);
         return warnings;
     }
 
@@ -283,6 +284,20 @@ public static partial class FactGuard
             {
                 warnings.Add(new(DraftWarning.Cliche, $"Floskel „{cliche}“ – lieber konkret werden.", index, WarningSeverity.Hint));
             }
+        }
+    }
+
+    /// <summary>letter.v2 asks for at most three achievements, picked for the posting (08a: SOS had four).</summary>
+    public const int MaxAchievements = 3;
+
+    private static void CheckAchievements(LetterDraft letter, LetterInput input, List<DraftWarning> warnings)
+    {
+        var achievements = input.Facts.Where(f => f.Kind == LetterFactKind.Achievement).Select(f => f.Id).ToHashSet(StringComparer.Ordinal);
+        var used = letter.FactsUsed.Count(achievements.Contains);
+        if (used > MaxAchievements)
+        {
+            warnings.Add(new(DraftWarning.TooManyAchievements,
+                $"{used} Erfolge im Anschreiben – höchstens {MaxAchievements}, die zur Stelle passen.", Severity: WarningSeverity.Hint));
         }
     }
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Application } from '~/types/application'
 import type { VacancyInterest } from '~/types/vacancy'
 
 const route = useRoute()
@@ -54,6 +55,16 @@ async function markApplied() {
   }
 }
 const actionError = ref<string | null>(null)
+
+/** „Status" changed on this page (08a): Absage, Interview … */
+function statusChanged(application: Application) {
+  if (vacancy.value) {
+    vacancy.value = {
+      ...vacancy.value,
+      applied: { applicationId: application.id, status: application.status, statusLabel: application.statusLabel, appliedAt: application.appliedAt },
+    }
+  }
+}
 
 /** A draft application of this vacancy whose documents are still being prepared. */
 const draftApplicationId = computed(() => {
@@ -203,6 +214,12 @@ function openedOriginal() {
         <NuxtLink v-else-if="!draftApplicationId" to="/bewerbungen" class="status status--open detail__applied">
           Beworben am {{ formatDate(vacancy.applied.appliedAt) }} · {{ vacancy.applied.statusLabel }}
         </NuxtLink>
+        <ApplicationStatusSelect
+          v-if="vacancy.applied"
+          :application-id="vacancy.applied.applicationId"
+          :status="vacancy.applied.status"
+          @changed="statusChanged"
+        />
         <button type="button" class="button button--secondary" :disabled="saving" @click="setSeen(!vacancy.isSeen)">
           {{ vacancy.isSeen ? 'Als neu markieren' : 'Als gesehen markieren' }}
         </button>

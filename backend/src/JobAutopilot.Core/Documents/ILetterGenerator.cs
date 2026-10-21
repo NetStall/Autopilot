@@ -22,7 +22,8 @@ public interface ILetterGenerator
     /// <summary>The prompt template version stored with each draft (e.g. <c>letter.v1</c>).</summary>
     string PromptVersion { get; }
 
-    Task<LetterGeneration> GenerateAsync(LetterInput input, CancellationToken cancellationToken);
+    /// <param name="feedback">Review points of a first attempt („Die Anzeige duzt …") for one automatic retry (08a).</param>
+    Task<LetterGeneration> GenerateAsync(LetterInput input, CancellationToken cancellationToken, string? feedback = null);
 
     /// <param name="paragraph">0-based index into <see cref="LetterDraft.Paragraphs"/>.</param>
     /// <param name="hint">Optional short wish, e.g. „kürzer"; treated like the rest of the input — as data.</param>

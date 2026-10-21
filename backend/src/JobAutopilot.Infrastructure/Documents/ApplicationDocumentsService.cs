@@ -170,9 +170,11 @@ public sealed partial class ApplicationDocumentsService(
     public Task<DraftView> RegenerateAsync(Guid applicationId, int expectedVersion, CancellationToken cancellationToken) =>
         ChangeAsync(applicationId, expectedVersion, requireCall: true, async (context, draft, now) =>
         {
-            var generation = await CallAsync(() => generator.GenerateAsync(context.Input, cancellationToken), cancellationToken);
-            draft.Record(DraftRevisionKind.Generated, generation.Letter, draft.CvOptions, now, generation.Usage, generation.Model, generation.PromptVersion);
-            LogCall(logger, "generate", draft.ApplicationId, draft.Id, generation.Usage.InputTokens, generation.Usage.OutputTokens);
+            foreach (var (generation, note) in await GenerateCheckedAsync(context, cancellationToken))
+            {
+                draft.Record(DraftRevisionKind.Generated, generation.Letter, draft.CvOptions, now, generation.Usage, generation.Model, generation.PromptVersion, note: note);
+                LogCall(logger, "generate", draft.ApplicationId, draft.Id, generation.Usage.InputTokens, generation.Usage.OutputTokens);
+            }
         }, cancellationToken);
 
     /// <summary>„Absatz neu formulieren": one call, only that paragraph changes.</summary>
@@ -346,15 +348,8 @@ public sealed partial class ApplicationDocumentsService(
         await CheckDailyLimitAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
         var watch = Stopwatch.StartNew();
-        LetterGeneration generation;
-        try
-        {
-            generation = await generator.GenerateAsync(context.Input, cancellationToken);
-        }
-        catch (LetterGenerationException ex)
-        {
-            throw new DocumentException(DocumentProblem.GenerationFailed, ex.Message, ex.Error, ex);
-        }
+        var attempts = await GenerateCheckedAsync(context, cancellationToken);
+        var generation = attempts[^1].Generation;
 
         var draft = new ApplicationDraft
         {
@@ -365,14 +360,44 @@ public sealed partial class ApplicationDocumentsService(
             Model = generation.Model,
             CreatedAt = now,
         };
-        draft.Record(DraftRevisionKind.Generated, generation.Letter, CvOptions.Default, now,
-            generation.Usage, generation.Model, generation.PromptVersion);
+        foreach (var (attempt, note) in attempts)
+        {
+            draft.Record(DraftRevisionKind.Generated, attempt.Letter, CvOptions.Default, now, attempt.Usage, attempt.Model, attempt.PromptVersion, note: note);
+        }
+
         draft.Version = 1;
         draft.Warnings = [.. Evaluate(context, draft).Warnings];
         LogCall(logger, "generate", application.Id, draft.Id, generation.Usage.InputTokens, generation.Usage.OutputTokens);
         LogDuration(logger, application.Id, watch.ElapsedMilliseconds);
         return draft;
     }
+
+    /// <summary>Warnings worth one automatic retry with the review as feedback (08a): du/Sie, more than three achievements.</summary>
+    private static readonly HashSet<string> RetryCodes =
+        [DraftWarning.FormalityMismatch, DraftWarning.MixedFormality, DraftWarning.TooManyAchievements];
+
+    /// <summary>
+    /// The letter, generated once more when the fact guard finds a du/Sie mismatch or too many achievements — with the
+    /// warnings as feedback. Both attempts are returned (each is a revision and counts as a call); the warning stays only
+    /// when the retry fails too.
+    /// </summary>
+    private async Task<IReadOnlyList<(LetterGeneration Generation, string? Note)>> GenerateCheckedAsync(DraftContext context, CancellationToken cancellationToken)
+    {
+        var first = await CallAsync(() => generator.GenerateAsync(context.Input, cancellationToken), cancellationToken);
+        var problems = FactGuard.Check(first.Letter, context.Input, context.Profile, KnownTechnologies())
+            .Where(w => RetryCodes.Contains(w.Code)).Select(w => w.Message).ToList();
+        if (problems.Count == 0 || await CallsTodayAsync(cancellationToken) + 1 >= _claude.DailyCallLimit)
+        {
+            return [(first, null)];
+        }
+
+        LogRetry(logger, problems.Count);
+        var second = await CallAsync(() => generator.GenerateAsync(context.Input, cancellationToken, string.Join("\n", problems)), cancellationToken);
+        return [(first, "verworfen: " + string.Join(" ", problems)), (second, "automatisch neu erstellt")];
+    }
+
+    private IEnumerable<string> KnownTechnologies() =>
+        fitOptions.Value.CommonRequirements.SelectMany(r => r.Terms.Append(r.Name)).Concat(Core.Fit.TechnologyCatalog.All.SelectMany(t => t.AllNames()));
 
     private static async Task<T> CallAsync<T>(Func<Task<T>> call, CancellationToken cancellationToken)
     {
@@ -452,9 +477,7 @@ public sealed partial class ApplicationDocumentsService(
         var (cv, cvPages) = FitCv(context, draft.CvOptions);
         var letterPages = renderer.RenderLetter(Print(context, draft.Letter, cv), RenderFormat.Png).Pages;
         // The configured requirements plus the technology catalog (05d): DevExpress claimed as experience is caught too.
-        var known = fitOptions.Value.CommonRequirements.SelectMany(r => r.Terms.Append(r.Name))
-            .Concat(Core.Fit.TechnologyCatalog.All.SelectMany(t => t.AllNames()));
-        var warnings = FactGuard.Check(draft.Letter, context.Input, context.Profile, known, letterPages).ToList();
+        var warnings = FactGuard.Check(draft.Letter, context.Input, context.Profile, KnownTechnologies(), letterPages).ToList();
         if (cvPages > 1)
         {
             warnings.Add(new DraftWarning(DraftWarning.CvTooLong, $"Der Lebenslauf hat {cvPages} Seiten – Stichpunkte ausblenden."));
@@ -588,6 +611,9 @@ public sealed partial class ApplicationDocumentsService(
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Draft {Operation} for application {ApplicationId}, draft {DraftId}: {InputTokens} input / {OutputTokens} output tokens")]
     private static partial void LogCall(ILogger logger, string operation, Guid applicationId, Guid draftId, int inputTokens, int outputTokens);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Letter generated again with {Problems} review point(s) as feedback (du/Sie, achievements)")]
+    private static partial void LogRetry(ILogger logger, int problems);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Documents for application {ApplicationId} created in {ElapsedMs} ms")]
     private static partial void LogDuration(ILogger logger, Guid applicationId, long elapsedMs);

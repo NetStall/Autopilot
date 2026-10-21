@@ -24,11 +24,11 @@ public sealed class LetterGenerator(ILlmRouter llm, IOptions<ClaudeOptions> opti
 
     private LetterPrompt Prompt => LetterPrompt.For(options.Value.LetterPromptVersion);
 
-    public async Task<LetterGeneration> GenerateAsync(LetterInput input, CancellationToken cancellationToken)
+    public async Task<LetterGeneration> GenerateAsync(LetterInput input, CancellationToken cancellationToken, string? feedback = null)
     {
         ArgumentNullException.ThrowIfNull(input);
         var response = await CallAsync(
-            "generate", Prompt.GenerateMessage(input, options.Value.MaxVacancyCharacters), LetterPrompt.LetterSchema, cancellationToken);
+            feedback is null ? "generate" : "generate-retry", Prompt.GenerateMessage(input, options.Value.MaxVacancyCharacters, feedback), LetterPrompt.LetterSchema, cancellationToken);
         var letter = ParseLetter(response.Json, input, Prompt.Name != "letter.v1");
         return new LetterGeneration(letter, response.Usage, response.Model, Prompt.Name);
     }

@@ -24,10 +24,13 @@ public sealed class FakeLetterGenerator : ILetterGenerator
 
     public int Calls { get; private set; }
 
-    public Task<LetterGeneration> GenerateAsync(LetterInput input, CancellationToken cancellationToken)
+    public List<string?> Feedback { get; } = [];
+
+    public Task<LetterGeneration> GenerateAsync(LetterInput input, CancellationToken cancellationToken, string? feedback = null)
     {
         Calls++;
         Inputs.Add(input);
+        Feedback.Add(feedback);
         if (Failure is not null)
         {
             throw Failure;

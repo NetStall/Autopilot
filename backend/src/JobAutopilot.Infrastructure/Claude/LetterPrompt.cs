@@ -80,13 +80,20 @@ public sealed partial class LetterPrompt
         }
         """);
 
-    public string GenerateMessage(LetterInput input, int maxVacancyCharacters)
+    /// <param name="feedback">The review of a first attempt; the model writes the letter again and fixes these points.</param>
+    public string GenerateMessage(LetterInput input, int maxVacancyCharacters, string? feedback = null)
     {
         ArgumentNullException.ThrowIfNull(input);
         var message = new StringBuilder();
         AppendTask(message, input);
         AppendFacts(message, input);
         AppendVacancy(message, input, maxVacancyCharacters);
+        if (!string.IsNullOrWhiteSpace(feedback))
+        {
+            message.AppendLine("<review>").AppendLine(Neutralize(feedback.Trim())).AppendLine("</review>");
+            message.AppendLine("A first draft had the problems in <review>. Write the whole letter again and fix them; all other rules still apply.");
+        }
+
         message.AppendLine().AppendLine(Generate);
         return message.ToString();
     }

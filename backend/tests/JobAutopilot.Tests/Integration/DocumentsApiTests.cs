@@ -126,6 +126,26 @@ public class DocumentsApiTests(PostgresFixture postgres) : DocumentsTestBase(pos
         applications!.Single().Status.Should().Be(ApplicationStatus.Draft);
     }
 
+    [Fact]
+    public async Task A_letter_mixing_du_and_sie_is_generated_once_more_with_the_warning_as_feedback()
+    {
+        // SOS case (08a): the first attempt mixes the forms of address; the retry gets the warning and fixes it.
+        var vacancy = await SeedVacancyAsync();
+        Generator.Respond = input =>
+        {
+            var clean = FakeLetterGenerator.CleanLetter(input);
+            return Generator.Calls == 1 ? clean with { Paragraphs = [.. clean.Paragraphs.Take(3), "Meine Deutschkenntnisse liegen bei B2. Ich freue mich auf dich."] } : clean;
+        };
+
+        var documents = await CreateAsync(vacancy.Id);
+
+        Generator.Calls.Should().Be(2);
+        Generator.Feedback[1].Should().Contain("gemischt");
+        documents.Warnings.Should().NotContain(w => w.Code == DraftWarning.MixedFormality);
+        documents.Revisions.Should().HaveCount(2).And.Contain(r => r.Note != null && r.Note.StartsWith("verworfen", StringComparison.Ordinal));
+        documents.Usage.Calls.Should().Be(2, "both attempts count against the daily limit");
+    }
+
     [Theory]
     [InlineData(LetterGenerationError.RateLimited, HttpStatusCode.TooManyRequests)]
     [InlineData(LetterGenerationError.NotConfigured, HttpStatusCode.ServiceUnavailable)]

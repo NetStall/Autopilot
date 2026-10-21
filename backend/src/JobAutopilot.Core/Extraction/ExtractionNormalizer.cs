@@ -35,6 +35,8 @@ public static partial class ExtractionNormalizer
     private static readonly string[] TestingSkills = ["xUnit", "NUnit", "MSTest", "Vitest", "Jest", "Playwright", "Cypress", "Selenium"];
     private static readonly string[] CiNames = ["CI/CD", "CI", "Continuous Integration", "Continuous Delivery"];
     private static readonly string[] CiSkills = ["GitHub Actions", "GitLab CI", "Jenkins", "TeamCity", "Azure DevOps"];
+    private static readonly string[] AiNames = ["KI", "AI", "LLM", "LLMs", "KI-Tools", "AI tools", "KI-Coding-Tools", "AI coding", "Generative AI"];
+    private static readonly string[] AiSkills = ["Claude Code", "GitHub Copilot", "Copilot", "Cursor", "ChatGPT", "Claude API", "OpenAI API"];
 
     /// <summary>Names the prompt offers the model so it writes „C#" rather than „C-Sharp-Kenntnisse".</summary>
     public static IReadOnlyList<string> KnownNames(CandidateProfile profile)
@@ -100,6 +102,7 @@ public static partial class ExtractionNormalizer
         var inProfile = new HashSet<string>(profile.Skills.SelectMany(s => s.AllNames()).Select(SkillTerms.Key), StringComparer.Ordinal);
         var testing = ConceptSkill(profile, TestingNames, TestingSkills);
         var ci = ConceptSkill(profile, CiNames, CiSkills);
+        var ai = ConceptSkill(profile, AiNames, AiSkills);
         var result = new Dictionary<string, ResolvedRequirement>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var (entries, importance, domain) in new[]
@@ -121,6 +124,12 @@ public static partial class ExtractionNormalizer
                 if (found.Count == 0 && !domain && CiConcept().IsMatch(entry) && ci is not null)
                 {
                     found.Add((ci.Name, ci));
+                }
+
+                // „KI in der Entwicklung", „Erfahrung mit KI-Tools" → my AI coding skill (08a).
+                if (found.Count == 0 && !domain && AiConcept().IsMatch(entry) && ai is not null)
+                {
+                    found.Add((ai.Name, ai));
                 }
 
                 found.AddRange(TechnologyCatalog.Matchers
@@ -180,7 +189,10 @@ public static partial class ExtractionNormalizer
     [GeneratedRegex(@"\b(?:CI/CD|CI|CD|continuous\s+(?:integration|delivery|deployment))\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex CiConcept();
 
-    [GeneratedRegex(@"(?:praktik|kultur|bewusstsein|denken|mindset|verständnis|best practices|moderne softwareentwicklung|sauberer code|teamfähig|kommunikation|engineering culture)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    [GeneratedRegex(@"\b(?:KI|AI|LLMs?|künstliche[rn]?\s+Intelligenz|generative\s+(?:KI|AI)|GenAI)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    private static partial Regex AiConcept();
+
+    [GeneratedRegex(@"(?:praktik|kultur|bewusstsein|denken|mindset|verständnis|best practices|moderne softwareentwicklung|sauberer code|teamfähig|kommunikation|engineering culture|teamarbeit|neue technologien|kontinuierlich|webanwendungen|softwareprojekte|innovative lösungen)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex GenericPractice();
 
     [GeneratedRegex(@"^\W*(?:(?:sehr\s+)?gute\s+|fließende\s+|verhandlungssichere\s+)?(?:deutsch(?!land)|englisch|german|english)\w*(?:\s*(?:\(?[ABC][12]\)?|in\s+wort\s+und\s+schrift|sprachkenntnisse|kenntnisse|language|skills|fließend|verhandlungssicher))*\W*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]

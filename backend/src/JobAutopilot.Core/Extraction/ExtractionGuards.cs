@@ -18,6 +18,7 @@ namespace JobAutopilot.Core.Extraction;
 /// <item>an item after „idealerweise" / „von Vorteil" inside a requirement line is a plus („DDD, CQRS und idealerweise
 /// Event Sourcing");</item>
 /// <item>a summary sentence with „zwingend", „erforderlich", „Pflicht" … is dropped when the posting never says so;</item>
+/// <item>alternatives the text joins become one entry (<see cref="ExtractionAlternatives"/>, 08a);</item>
 /// <item>a German level stays only when the text mentions the language at all — a German posting alone asks for no
 /// level (07c, MCA GROUP got „C1" from nothing).</item>
 /// </list>
@@ -34,6 +35,14 @@ public static partial class ExtractionGuards
         ArgumentNullException.ThrowIfNull(description);
         var sentences = FitAnalyzer.Sentences(description);
         var sections = Sections(description);
+
+        // Alternatives the text joins („A oder B", „z. B. X, Y") are one requirement (08a) — per line, as „z. B." ends no sentence.
+        var lines = description.Split('\n');
+        extraction = extraction with
+        {
+            MustHave = ExtractionAlternatives.Merge(extraction.MustHave, lines),
+            NiceToHave = ExtractionAlternatives.Merge(extraction.NiceToHave, lines),
+        };
 
         var niceToHave = new HashSet<string>(extraction.NiceToHave, StringComparer.OrdinalIgnoreCase);
         var extraPlus = new List<string>();
@@ -106,7 +115,7 @@ public static partial class ExtractionGuards
     [GeneratedRegex(@"\b(?:zwingend\w*|erforderlich\w*|Pflicht\w*|vorausgesetzt|Voraussetzung\w*|unabdingbar|mandatory|required)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex StrongWord();
 
-    [GeneratedRegex(@"b(?:deutsch(?!land)\w*|german|DaF)b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    [GeneratedRegex(@"\b(?:deutsch(?!land)\w*|german|DaF)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex GermanMentioned();
 
     [GeneratedRegex(@"(?<=[.!?])\s+", RegexOptions.CultureInvariant, 250)]
