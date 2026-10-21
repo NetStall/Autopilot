@@ -1,0 +1,37 @@
+title: Softwareentwickler (m/w/d) mit in C# und .NET.
+company: MCA GROUP
+location: 80331 München
+source: Arbeitsagentur
+remoteHint: Hybrid
+---
+## Deine Aufgaben:
+
+- Entwicklung, Implementierung und Wartung moderner Softwarelösungen auf Basis von C# und dem .NET-Framework.
+- Mitwirkung am gesamten Softwareentwicklungsprozess, von der Analyse und Konzeption bis hin zur Implementierung, Testung und Dokumentation.
+- Entwurf und Optimierung von Softwarearchitekturen sowie die Entwicklung neuer Features und Module für bestehende und neue Anwendungen.
+- Zusammenarbeit mit cross-funktionalen Teams (z.B. UI/UX, Datenbankentwicklung, DevOps) zur Sicherstellung eines nahtlosen Entwicklungsprozesses.
+- Analyse und Behebung von Bugs und Performance-Problemen sowie kontinuierliche Verbesserung der Codequalität.
+
+## Das bringst du mit:
+
+- Abgeschlossenes Studium der Informatik, Softwareentwicklung, oder eine vergleichbare Qualifikation.
+- Mehrjährige Berufserfahrung in der Softwareentwicklung, insbesondere in C# und dem .NET-Framework.
+- Fundierte Kenntnisse in der Entwicklung von Anwendungen mit .NET Core, .NET Framework und idealerweise Erfahrung mit ASP.NET, WPF oder Xamarin.
+- Erfahrung in der Arbeit mit relationalen Datenbanken (z.B. SQL Server) und ORM-Technologien (z.B. Entity Framework).
+- Gute Kenntnisse in der agilen Softwareentwicklung (Scrum/Kanban) und in der Anwendung von Versionskontrollsystemen (z.B. Git).
+
+## Deine Entwicklungsperspektiven
+
+Wir möchten langfristig mit Dir zusammenarbeiten! Unser erstes Ziel ist daher Dein Erfolg – damit Du die vielfältigen Möglichkeiten, die wir zu bieten haben, ergreifen kannst.
+
+Mit der Zeit kannst Du in andere Tätigkeitsbereiche wechseln oder auch intern, z.B. in Teamleiterpositionen, aufsteigen.
+
+Bei Interesse bieten wir Dir auch gerne Stellen in unseren europäischen Tochtergesellschaften an.
+
+## Was wir zu bieten haben? Eine ganze Menge!
+
+- Abwechslungsreiche Projekte bei renommierten Industrieunternehmen
+- Traumkarriere: Individuelle Förderung und Weiterbildungsmöglichkeiten
+- Work-Life-Balance (u.a. Home Office, Events)
+- Betriebliche Altersvorsorge
+- Zahlreiche Mitarbeiterrabatte

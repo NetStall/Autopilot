@@ -97,6 +97,28 @@ public class RankingRegressionTests
     }
 
     [Fact]
+    public void Meierhofer_with_the_real_v3_extraction_counts_german_once()
+    {
+        // The real qwen3:8b answer (07b) lists „Deutsch (C1)" as a must-have: before 07c that cost −15 as a skill gap on
+        // top of the German penalty, and the rank fell from 79 to 58 although my label is „Passt".
+        var (vacancy, _) = RealWorldFixtures.ScoredWithExtraction("meierhofer-full", "v3");
+
+        vacancy.RankScore.Should().BeGreaterThanOrEqualTo(70, "gold label Passt; reasons: {0}", string.Join(" | ", vacancy.RelevanceReasons));
+        vacancy.RelevanceReasons.Should().NotContain(r => r.StartsWith("Fit: Muss-Anforderung", StringComparison.Ordinal) && r.Contains("Deutsch", StringComparison.Ordinal));
+        vacancy.RelevanceReasons.Should().ContainSingle(r => r.StartsWith("Fit: Deutsch C1 gefordert", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Mca_gets_no_german_level_the_posting_never_mentions()
+    {
+        // The real v3 answer says „C1", but the posting has no word about German: no penalty for it (07c).
+        var (vacancy, extraction) = RealWorldFixtures.ScoredWithExtraction("mca-group-dotnet", "v3");
+
+        extraction.GermanLevel.Should().BeNull();
+        vacancy.RelevanceReasons.Should().NotContain(r => r.Contains("Deutsch", StringComparison.Ordinal), "reasons: {0}", string.Join(" | ", vacancy.RelevanceReasons));
+    }
+
+    [Fact]
     public void Apaleo_states_five_years_and_ranks_below_the_rules()
     {
         var rules = RealWorldFixtures.Scored("apaleo-senior-dotnet");

@@ -25,7 +25,8 @@ public sealed record ExtractionChips(
 /// Maps the model's names to my profile skills (name and specific aliases, <see cref="SkillTerms.Evidence"/>) and to the
 /// technology catalog. Concepts the model may phrase freely — testing („automatisierte Qualitätssicherung", „TDD",
 /// „Unit Tests") and CI/CD — map to the profile skill that covers them, generic aliases included. Generic practices
-/// („Cloud- und DevOps-Praktiken", „Qualitätsbewusstsein") are dropped. An entry like „Angular oder Vue.js" that names a
+/// („Cloud- und DevOps-Praktiken", „Qualitätsbewusstsein") and languages („Deutsch (C1)" — the German level has its own
+/// penalty, 07c) are dropped. An entry like „Angular oder Vue.js" that names a
 /// skill I cover makes the others in it an alternative (no penalty); a part of a counted gap (ECS next to AWS) is none.
 /// </summary>
 public static partial class ExtractionNormalizer
@@ -108,7 +109,7 @@ public static partial class ExtractionNormalizer
                      (extraction.NiceToHave, RequirementImportance.NiceToHave, false),
                  })
         {
-            foreach (var entry in entries)
+            foreach (var entry in entries.Where(e => !IsLanguage(e)))
             {
                 var found = new List<(string Name, Skill? Skill)>();
                 found.AddRange(skills.Where(s => s.Matcher.FindFirst(entry) is not null).Select(s => (s.Skill.Name, (Skill?)s.Skill)));
@@ -156,6 +157,9 @@ public static partial class ExtractionNormalizer
         return [.. result.Values];
     }
 
+    /// <summary>„Deutsch (C1)", „sehr gute Englischkenntnisse", „German B2" — scored by the language level, never as a skill gap.</summary>
+    public static bool IsLanguage(string entry) => Language().IsMatch(entry);
+
     private static bool IsShortName(string entry) =>
         entry.Trim().Length <= 40 && entry.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= 4;
 
@@ -178,6 +182,9 @@ public static partial class ExtractionNormalizer
 
     [GeneratedRegex(@"(?:praktik|kultur|bewusstsein|denken|mindset|verständnis|best practices|moderne softwareentwicklung|sauberer code|teamfähig|kommunikation|engineering culture)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex GenericPractice();
+
+    [GeneratedRegex(@"^\W*(?:(?:sehr\s+)?gute\s+|fließende\s+|verhandlungssichere\s+)?(?:deutsch(?!land)|englisch|german|english)\w*(?:\s*(?:\(?[ABC][12]\)?|in\s+wort\s+und\s+schrift|sprachkenntnisse|kenntnisse|language|skills|fließend|verhandlungssicher))*\W*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    private static partial Regex Language();
 
     [GeneratedRegex(@"(?:teamgeist|teamfähig|teamplayer|team player|selbstständig|selbständig|eigenverantwort|eigeninitiative|zuverlässig|kommunikations|kommunikativ|analytisch|strukturiert|lernbereit|engagement|motivation|motiviert|flexibilität|belastbar|kundenorientiert|verantwortungsbewusst|hands-on-mentalität|neugier|freude an|spaß an|communication skills|self-motivated|proactive|ownership)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex SoftSkill();

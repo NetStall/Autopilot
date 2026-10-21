@@ -1,0 +1,30 @@
+{
+    "summary": "Der Softwareentwickler entwickelt und wartet moderne Softwarelösungen mit C# und .NET. Er/Er arbeitet im agilen Prozess und hat Erfahrung mit Datenbanken und Git.",
+    "minYears": null,
+    "mustHave": [
+        "C#",
+        ".NET-Framework",
+        ".NET Core",
+        "SQL Server",
+        "Entity Framework",
+        "Scrum",
+        "Git"
+    ],
+    "seniority": "Unknown",
+    "niceToHave": [
+        "ASP.NET",
+        "WPF",
+        "Xamarin"
+    ],
+    "softSkills": [
+    ],
+    "germanLevel": "C1",
+    "remoteLevel": "Unknown",
+    "englishLevel": null,
+    "employmentType": "FullTime",
+    "germanNotRequired": false,
+    "homeOfficePercent": null,
+    "domainRequirements": [
+    ],
+    "homeOfficeDaysPerWeek": null
+}

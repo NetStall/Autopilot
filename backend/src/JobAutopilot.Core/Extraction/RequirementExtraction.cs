@@ -84,7 +84,10 @@ public sealed record StoredExtraction(
         }
     }
 
-    /// <summary>The stored extraction when it still belongs to <paramref name="description"/>; otherwise <c>null</c> (the text changed).</summary>
+    /// <summary>
+    /// The stored extraction when it still belongs to <paramref name="description"/>; otherwise <c>null</c> (the text
+    /// changed). The guards run again on read (they are idempotent), so a fixed guard applies without a new model call (07c).
+    /// </summary>
     public static StoredExtraction? ForDescription(string? json, string? description)
     {
         if (string.IsNullOrWhiteSpace(json) || string.IsNullOrWhiteSpace(description))
@@ -95,7 +98,9 @@ public sealed record StoredExtraction(
         try
         {
             var stored = JsonSerializer.Deserialize<StoredExtraction>(json, JsonOptions);
-            return stored is not null && stored.DescriptionHash == ExtractionKey.HashOf(description) ? stored : null;
+            return stored is not null && stored.DescriptionHash == ExtractionKey.HashOf(description)
+                ? stored with { Result = ExtractionGuards.Apply(stored.Result, description) }
+                : null;
         }
         catch (JsonException)
         {
