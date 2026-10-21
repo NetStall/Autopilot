@@ -175,7 +175,41 @@ public sealed partial class VacancyExtractionService(
             entry.Status == ExtractionStatus.Succeeded ? ExtractionOutcomeKind.Extracted : ExtractionOutcomeKind.Failed, entry.DurationMs, entry.OutputTokens);
     }
 
-    private async Task<VacancyExtraction> CallAsync(Core.Vacancies.Vacancy vacancy, string hash, string model, CancellationToken cancellationToken)
+    /// <summary>
+    /// The extraction of this vacancy by <paramref name="model"/> (same provider and prompt): from the cache or asked now
+    /// and cached — the vacancy itself is not changed. For the evaluation of other models (07c).
+    /// </summary>
+    public async Task<RequirementExtraction?> ExtractWithAsync(Guid vacancyId, string model, CancellationToken cancellationToken)
+    {
+        var vacancy = await db.Vacancies.AsNoTracking().SingleOrDefaultAsync(v => v.Id == vacancyId, cancellationToken);
+        if (vacancy is null || string.IsNullOrWhiteSpace(vacancy.Description))
+        {
+            return null;
+        }
+
+        var entry = await CachedWithAsync(vacancy.Description, model, cancellationToken);
+        if (entry is null)
+        {
+            entry = await CallAsync(vacancy, ExtractionKey.HashOf(vacancy.Description), model, cancellationToken, model);
+            db.VacancyExtractions.Add(entry);
+            await db.SaveChangesAsync(cancellationToken);
+            LogExtracted(logger, vacancy.Id, model, entry.PromptVersion, entry.Status, entry.Attempts, entry.OutputTokens, entry.DurationMs);
+        }
+
+        return entry.Status == ExtractionStatus.Succeeded ? StoredExtraction.DeserializeResult(entry.ResultJson) : null;
+    }
+
+    /// <summary>The cached extraction of <paramref name="description"/> by <paramref name="model"/> with the current prompt.</summary>
+    public Task<VacancyExtraction?> CachedWithAsync(string description, string model, CancellationToken cancellationToken)
+    {
+        var hash = ExtractionKey.HashOf(description);
+        var version = Prompt.Version;
+        return db.VacancyExtractions.AsNoTracking()
+            .SingleOrDefaultAsync(e => e.DescriptionHash == hash && e.Model == model && e.PromptVersion == version, cancellationToken);
+    }
+
+    private async Task<VacancyExtraction> CallAsync(
+        Core.Vacancies.Vacancy vacancy, string hash, string model, CancellationToken cancellationToken, string? modelOverride = null)
     {
         var prompt = Prompt;
         var profile = profiles.Current.Usable;
@@ -201,7 +235,7 @@ public sealed partial class VacancyExtractionService(
             {
                 var response = await llm.CompleteJsonAsync(
                     new LlmRequest(LlmOptions.ExtractionTask, entry.Attempts == 1 ? "extract" : "extract-retry", prompt.Version, prompt.System, user, prompt.JsonSchema,
-                        Thinking: options.Value.Thinking, MaxOutputTokens: options.Value.MaxOutputTokens),
+                        Thinking: options.Value.Thinking, MaxOutputTokens: options.Value.MaxOutputTokens, Model: modelOverride),
                     cancellationToken);
                 entry.InputTokens += response.Usage.InputTokens;
                 entry.OutputTokens += response.Usage.OutputTokens;

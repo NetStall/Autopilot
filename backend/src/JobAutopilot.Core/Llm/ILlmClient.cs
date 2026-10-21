@@ -8,6 +8,7 @@ namespace JobAutopilot.Core.Llm;
 /// <see cref="Task"/> names the job („Letter") so the router can pick provider and model;
 /// <see cref="Operation"/> („generate", „rephrase") and <see cref="PromptVersion"/> only go to the log.
 /// <see cref="Thinking"/> = false asks a reasoning model to answer directly (Ollama <c>reasoning_effort: none</c>).
+/// <see cref="Model"/> replaces the task's model at the same provider — only the evaluation uses it (07c).
 /// </summary>
 public sealed record LlmRequest(
     string Task,
@@ -17,7 +18,8 @@ public sealed record LlmRequest(
     string User,
     IReadOnlyDictionary<string, JsonElement> JsonSchema,
     bool Thinking = true,
-    int? MaxOutputTokens = null);
+    int? MaxOutputTokens = null,
+    string? Model = null);
 
 /// <summary>The answer as JSON text, with what it cost and which model gave it.</summary>
 public sealed record LlmResponse(string Json, TokenUsage Usage, string Model);

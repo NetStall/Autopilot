@@ -96,6 +96,21 @@ public class AiFitScoreApiTests(PostgresFixture postgres) : IntegrationTestBase(
         AiFitScoreValidator.Parse(json).Result.Should().Match<AiFitScore?>(r => (r != null) == valid);
     }
 
+    [Theory]
+    [InlineData(80, "nicht erreichbar: Gronau", false, 40, "eher nicht")]
+    [InlineData(75, "Dienstleister (Einsatz beim Kunden)", false, 60, "eher nicht")]
+    [InlineData(80, "nicht erreichbar: München", true, 80, "passt")]
+    [InlineData(35, "nicht erreichbar: Bautzen", false, 35, "passt nicht")]
+    [InlineData(85, "Deutsch C1 gefordert", false, 85, "passt")]
+    public void The_blockers_cap_the_score_the_model_kept(int score, string blocker, bool fullRemote, int expected, string verdict)
+    {
+        var capped = AiFitScoreGuards.Apply(new AiFitScore(score, "passt", ["a"], [blocker]), fullRemote);
+
+        capped.Score.Should().Be(expected);
+        capped.Verdict.Should().Be(verdict);
+        capped.Blockers.Should().HaveCount(fullRemote ? 0 : 1, "a fully remote posting is reachable from anywhere");
+    }
+
     private async Task WaitIdleAsync()
     {
         var coordinator = Factory.Services.GetRequiredService<ExtractionCoordinator>();

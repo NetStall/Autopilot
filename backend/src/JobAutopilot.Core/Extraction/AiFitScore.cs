@@ -53,6 +53,36 @@ public sealed record StoredFitScore(AiFitScore Result, string Key, string Model,
     }
 }
 
+/// <summary>
+/// The caps the prompt states, applied in code because qwen3:8b names the blocker but keeps the score (07c: monari
+/// „nicht erreichbar: Gronau" with 80): not reachable → at most 40, service provider / agency → at most 60. A
+/// „nicht erreichbar" blocker on a fully remote posting is dropped — the job board's remote flag wins. The verdict
+/// always follows the (capped) score.
+/// </summary>
+public static class AiFitScoreGuards
+{
+    public const int UnreachableMax = 40;
+
+    public const int ProviderMax = 60;
+
+    public static AiFitScore Apply(AiFitScore score, bool fullRemote)
+    {
+        ArgumentNullException.ThrowIfNull(score);
+        var blockers = score.Blockers.Where(b => !(fullRemote && IsUnreachable(b))).ToList();
+        var cap = blockers.Any(IsUnreachable) ? UnreachableMax : blockers.Any(IsProvider) ? ProviderMax : 100;
+        var value = Math.Min(score.Score, cap);
+        return score with { Score = value, Verdict = VerdictOf(value), Blockers = blockers };
+    }
+
+    public static string VerdictOf(int score) => score >= 70 ? "passt" : score >= 40 ? "eher nicht" : "passt nicht";
+
+    private static bool IsUnreachable(string blocker) => blocker.Contains("nicht erreichbar", StringComparison.OrdinalIgnoreCase);
+
+    private static readonly string[] ProviderWords = ["Dienstleister", "Personalvermittlung", "Zeitarbeit", "Arbeitnehmerüberlassung"];
+
+    private static bool IsProvider(string blocker) => ProviderWords.Any(w => blocker.Contains(w, StringComparison.OrdinalIgnoreCase));
+}
+
 /// <summary>Checks the model's answer: score 0–100, one of the verdicts, at most three short reasons.</summary>
 public static class AiFitScoreValidator
 {
@@ -168,6 +198,13 @@ public static class FitScoreProfile
             }
 
             text.Append(CultureInfo.InvariantCulture, $"Remote-Wunsch: {searchProfile.RemotePreference}, deutschlandweit remote: {(searchProfile.RemoteGermany ? "ja" : "nein")}\n");
+
+            // 07c: the model needs the preference to name a service provider or an agency as a blocker.
+            var lower = searchProfile.RankedLowerEmployerTypes().Concat(searchProfile.HiddenEmployerTypes()).ToList();
+            if (lower.Count > 0)
+            {
+                text.Append("Arbeitgeber: direkte Arbeitgeber bevorzugt; Personalvermittlung, Zeitarbeit und Dienstleister mit Einsatz beim Kunden passen schlechter\n");
+            }
         }
 
         return text.ToString();

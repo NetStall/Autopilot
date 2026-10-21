@@ -43,7 +43,16 @@ Dependency rule: `Api → Infrastructure → Core`; Core references nothing. The
 2. `ExtractionWorker` → `VacancyExtractionService`: cache lookup (hash + model + prompt), else one call to
    `ILlmRouter` (task `Extraction`), validation, one retry; result cached in `VacancyExtractions`, copied to the vacancy.
 3. `VacancyEnricher` re-scores: `FitAnalyzer` takes requirements, German and years from the extraction (source „KI").
-4. Without Ollama nothing is queued and the rules decide (source „Regeln").
+4. Without Ollama nothing is queued and the rules decide (source „Regeln"). The enricher also stores
+   `RuleRankScore` — the same rank without the extraction — for the sort „Nur Regeln" and the evaluation (07c).
+5. Stored extractions pass `ExtractionGuards` again on read, so a fixed guard applies without a new model call.
+
+**Ranking evaluation (07c)**
+1. Labels = my explicit gold labels + automatic ones (`LabelSet`: applied → Passt, Ausblenden → Passt nicht).
+2. `GET /api/evaluation/ranking` orders the labelled vacancies per variant (rules, combined, KI, rank + w × KI) and
+   computes `RankingMetrics` (P@10, P@20, NDCG@20).
+3. `POST /api/evaluation/model-run?model=…` lets another model extract and score the labelled vacancies
+   (`LlmRequest.Model` override, same provider); results go only to the caches, then step 2 adds its variants.
 
 **Applications and tracker import**
 1. `POST /api/vacancies/{id}/apply` or `/documents` creates an `Application` (status `Draft`).

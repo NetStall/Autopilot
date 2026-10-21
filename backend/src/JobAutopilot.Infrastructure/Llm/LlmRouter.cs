@@ -40,7 +40,7 @@ public sealed class LlmRouter(IEnumerable<ILlmClient> clients, IOptions<LlmOptio
             ?? throw new LlmException(LlmError.NotConfigured, $"Für „{request.Task}“ ist kein Modell eingerichtet (Llm:Tasks:{request.Task}).");
         var (provider, model) = target;
         return _clients.TryGetValue(provider, out var client)
-            ? client.CompleteJsonAsync(request, model, cancellationToken)
+            ? client.CompleteJsonAsync(request, string.IsNullOrWhiteSpace(request.Model) ? model : request.Model.Trim(), cancellationToken)
             : throw new LlmException(LlmError.NotConfigured, $"Kein KI-Anbieter „{provider}“ eingerichtet (Llm:Tasks:{request.Task}).");
     }
 

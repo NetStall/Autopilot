@@ -27,7 +27,8 @@ public sealed partial class VacancyFitScoreService(
     TimeProvider timeProvider,
     ILogger<VacancyFitScoreService> logger)
 {
-    public const string PromptVersion = "fitscore.v1";
+    /// <summary>v2 (07c): fixed checks of location and employer type before the score; v1 stays in the cache.</summary>
+    public const string PromptVersion = "fitscore.v2";
 
     private static readonly Lazy<(string System, string Score, string Retry)> Prompt = new(Load);
 
@@ -118,8 +119,45 @@ public sealed partial class VacancyFitScoreService(
         return result is not null;
     }
 
+    /// <summary>
+    /// The „KI-Bewertung" of this vacancy by <paramref name="model"/>: cached or asked now — the vacancy is not changed
+    /// (evaluation of other models, 07c).
+    /// </summary>
+    public async Task<AiFitScore?> ScoreWithAsync(Guid vacancyId, string model, CancellationToken cancellationToken)
+    {
+        if (CurrentProfile() is not { } current)
+        {
+            return null;
+        }
+
+        var vacancy = await db.Vacancies.AsNoTracking().SingleOrDefaultAsync(v => v.Id == vacancyId, cancellationToken);
+        if (vacancy is null || string.IsNullOrWhiteSpace(vacancy.Description))
+        {
+            return null;
+        }
+
+        var entry = await CachedWithAsync(vacancy.Description, current.Hash, model, cancellationToken);
+        if (entry is null)
+        {
+            entry = await CallAsync(vacancy, current.Text, ExtractionKey.HashOf(vacancy.Description), current.Hash, model, cancellationToken, model);
+            db.VacancyFitScores.Add(entry);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return entry.Status == ExtractionStatus.Succeeded ? StoredFitScore.DeserializeResult(entry.ResultJson) : null;
+    }
+
+    /// <summary>The cached score of <paramref name="description"/> for this profile, model and the current prompt.</summary>
+    public Task<VacancyFitScore?> CachedWithAsync(string description, string profileHash, string model, CancellationToken cancellationToken)
+    {
+        var hash = ExtractionKey.HashOf(description);
+        return db.VacancyFitScores.AsNoTracking()
+            .SingleOrDefaultAsync(s => s.DescriptionHash == hash && s.ProfileHash == profileHash && s.Model == model && s.PromptVersion == PromptVersion, cancellationToken);
+    }
+
     private async Task<VacancyFitScore> CallAsync(
-        Core.Vacancies.Vacancy vacancy, string profileText, string hash, string profileHash, string model, CancellationToken cancellationToken)
+        Core.Vacancies.Vacancy vacancy, string profileText, string hash, string profileHash, string model, CancellationToken cancellationToken,
+        string? modelOverride = null)
     {
         var (system, score, retry) = Prompt.Value;
         var description = vacancy.Description!;
@@ -129,6 +167,8 @@ public sealed partial class VacancyFitScoreService(
             .Replace("{title}", LetterPrompt.Neutralize(vacancy.Title))
             .Replace("{company}", LetterPrompt.Neutralize(vacancy.Company))
             .Replace("{location}", LetterPrompt.Neutralize(vacancy.Location ?? "–"))
+            .Replace("{remote}", RemoteText(vacancy.RemoteLevel))
+            .Replace("{homeOffice}", vacancy.HomeOfficePercent is { } percent ? $"bis {percent.ToString(System.Globalization.CultureInfo.InvariantCulture)} %" : "nicht angegeben")
             .Replace("{description}", LetterPrompt.Neutralize(description.Length > max ? description[..max] + " […]" : description))
             .ToString();
         var entry = new VacancyFitScore
@@ -150,7 +190,7 @@ public sealed partial class VacancyFitScoreService(
             {
                 var response = await llm.CompleteJsonAsync(
                     new LlmRequest(LlmOptions.FitScoreTask, attempt == 1 ? "fitscore" : "fitscore-retry", PromptVersion, system, user, Schema,
-                        Thinking: options.Value.Thinking, MaxOutputTokens: 600),
+                        Thinking: options.Value.Thinking, MaxOutputTokens: 600, Model: modelOverride),
                     cancellationToken);
                 entry.InputTokens += response.Usage.InputTokens;
                 entry.OutputTokens += response.Usage.OutputTokens;
@@ -158,7 +198,7 @@ public sealed partial class VacancyFitScoreService(
                 if (result is not null)
                 {
                     entry.Status = ExtractionStatus.Succeeded;
-                    entry.ResultJson = StoredFitScore.SerializeResult(result);
+                    entry.ResultJson = StoredFitScore.SerializeResult(AiFitScoreGuards.Apply(result, vacancy.RemoteLevel == Core.Vacancies.RemoteLevel.FullRemote));
                     entry.DurationMs = watch.ElapsedMilliseconds;
                     return entry;
                 }
@@ -183,6 +223,14 @@ public sealed partial class VacancyFitScoreService(
         return entry;
     }
 
+    private static string RemoteText(Core.Vacancies.RemoteLevel level) => level switch
+    {
+        Core.Vacancies.RemoteLevel.FullRemote => "voll remote",
+        Core.Vacancies.RemoteLevel.Hybrid => "hybrid (teilweise Homeoffice)",
+        Core.Vacancies.RemoteLevel.OnSite => "nur vor Ort",
+        _ => "nicht angegeben",
+    };
+
     private static Dictionary<string, JsonElement> ParseSchema(string json)
     {
         using var document = JsonDocument.Parse(json);
@@ -191,7 +239,7 @@ public sealed partial class VacancyFitScoreService(
 
     private static (string System, string Score, string Retry) Load()
     {
-        const string resourceName = "JobAutopilot.Infrastructure.Llm.Prompts.fitscore.v1.md";
+        const string resourceName = $"JobAutopilot.Infrastructure.Llm.Prompts.{PromptVersion}.md";
         using var stream = typeof(VacancyFitScoreService).Assembly.GetManifestResourceStream(resourceName)
             ?? throw new InvalidOperationException($"Embedded prompt '{resourceName}' is missing.");
         using var reader = new StreamReader(stream, Encoding.UTF8);

@@ -126,6 +126,7 @@ Invoke-RestMethod -Method Post http://localhost:5080/api/imports   # start a bac
 dotnet user-secrets set "Claude:ApiKey" "<key>" --project backend/src/JobAutopilot.Api   # Claude key (never in appsettings)
 ./scripts/draft-top-vacancies.ps1 -Count 3    # documents for the 3 best vacancies (3 Claude calls), output to console only
 ./scripts/seed-gold-labels.ps1                # gold labels from chat (Passt / Passt nicht), via the API
+./scripts/eval-ranking.ps1 [-Model qwen3.5:9b] # ranking evaluation over the labels (step 07c)
 ollama pull qwen3:8b                          # local model for the requirement extraction (step 07a, optional)
 docker compose up -d db                       # start PostgreSQL only
 dotnet build backend/JobAutopilot.sln

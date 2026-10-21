@@ -528,13 +528,22 @@ one vacancy right away. Statistik → „KI-Analyse" starts or cancels a full ru
 **KI-Bewertung.** With the task `Llm:Tasks:FitScore` (default `ollama:qwen3:8b`), the same background queue also asks
 the model for its own judgement of each vacancy: score 0–100, verdict („passt" / „eher nicht" / „passt nicht"),
 three reasons and the blockers. The model gets my profile (skills by level, gaps in my own phrasing, languages,
-places, remote wish — no name or contact data). The list shows „KI 72" next to the rank, „Warum?" the reasons. It
-does **not** change the rank. Step 07b compares it with the rules on my gold labels. Cached per text, profile, model
-and prompt.
+places, remote wish, employer preference — no name or contact data). The list shows „KI 72" next to the rank, „Warum?"
+the reasons. It does **not** change the rank. Cached per text, profile, model and prompt. Prompt `fitscore.v2` (07c)
+checks location, employer type, German and must-haves first; its caps (not reachable ≤ 40, service provider ≤ 60) are
+enforced in code.
 
-**Gold labels.** On the detail page, „Passt" / „Passt nicht" (keys `p` / `n`; press again to remove) store my own
-judgement for the evaluation in step 07b. The header shows „Bewertet: N / 30". `./scripts/seed-gold-labels.ps1`
-sets the labels already given in chat.
+**Sort.** „Sortierung" in the list: *Kombiniert* (rank = rules + extraction, default), *Nur Regeln* (the rank without
+any AI input), *Nur KI* (KI-Bewertung, vacancies without one last), plus newest / last imported (`sort=combined|rules|ai|published|fetched`).
+
+**Gold labels.** „Passt" / „Passt nicht" store my own judgement: on the detail page, or in the list with `p` / `n` on
+the focused card (`j` / `k` move; the same key again removes it). Automatic labels need no click: applied
+(„Gesendet" or later) → Passt, „Ausblenden" → Passt nicht; my own label always wins. The header shows
+„Bewertet: 12 + 9 automatisch / 30". `./scripts/seed-gold-labels.ps1` sets the labels already given in chat.
+
+**Evaluation.** `./scripts/eval-ranking.ps1` prints precision@10/20 and NDCG@20 of every ranking variant over the
+labels, with and without the automatic ones; `-Model qwen3.5:9b` first lets that model analyse the labelled
+vacancies (real local calls, cached; the vacancies do not change). Reports: [docs/evaluation/](docs/evaluation/).
 
 ### Create a vacancy by hand
 

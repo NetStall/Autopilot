@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using JobAutopilot.Api.Common;
 using JobAutopilot.Api.Features.Applications;
 using JobAutopilot.Api.Features.Documents;
+using JobAutopilot.Api.Features.Evaluation;
 using JobAutopilot.Api.Features.Extraction;
 using JobAutopilot.Api.Features.Health;
 using JobAutopilot.Api.Features.Llm;
@@ -130,5 +131,6 @@ app.MapDocumentEndpoints();
 app.MapStatisticsEndpoints();
 app.MapLlmEndpoints();
 app.MapExtractionEndpoints();
+app.MapEvaluationEndpoints();
 
 await app.RunAsync();
