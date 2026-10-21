@@ -34,6 +34,7 @@ public sealed record VacancyDto(
     string? RemoteNote = null,
     int? AiScore = null,
     int? RuleRankScore = null,
+    bool GoldLabelAutomatic = false,
     Core.Extraction.AiFitScore? AiFitScore = null);
 
 /// <summary>The model's extraction for the current description (detail view only), step 07a.</summary>

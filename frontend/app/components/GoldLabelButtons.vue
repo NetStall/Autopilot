@@ -1,10 +1,12 @@
 <script setup lang="ts">
 /**
  * „Passt" / „Passt nicht" (keys p / n): my judgement of a vacancy, the ground truth for the evaluation in step 07b.
- * Pressing the active one again removes the label.
+ * Pressing the active one again removes the label. An automatic label (applied / Ausblenden, 07c) is shown as such;
+ * pressing either button turns it into my own.
  */
 const props = defineProps<{ vacancyId: string }>()
 const label = defineModel<boolean | null>({ default: null })
+const automatic = defineModel<boolean>('automatic', { default: false })
 
 const api = useVacanciesApi()
 const { refresh } = useLabelSummary()
@@ -15,9 +17,11 @@ async function choose(fits: boolean) {
   if (saving.value) {
     return
   }
-  const next = label.value === fits ? null : fits
+  const next = label.value === fits && !automatic.value ? null : fits
   const previous = label.value
+  const wasAutomatic = automatic.value
   label.value = next
+  automatic.value = false
   saving.value = true
   error.value = null
   try {
@@ -26,6 +30,7 @@ async function choose(fits: boolean) {
   }
   catch (e: unknown) {
     label.value = previous
+    automatic.value = wasAutomatic
     error.value = `Bewertung nicht gespeichert: ${describeApiError(e)}`
   }
   finally {
@@ -71,6 +76,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     >
       👎 Passt nicht <kbd>n</kbd>
     </button>
+    <span v-if="automatic && label != null" class="label__auto" title="Aus meinem Verhalten abgeleitet: beworben → Passt, ausgeblendet → Passt nicht">automatisch</span>
     <p v-if="error" class="label__error" role="alert">
       {{ error }}
     </p>
@@ -92,6 +98,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
   &__error {
     color: var(--color-error-text);
+  }
+
+  &__auto {
+    font-size: 0.8rem;
+    color: var(--color-muted);
   }
 
   kbd {

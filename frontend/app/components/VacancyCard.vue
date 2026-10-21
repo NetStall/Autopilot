@@ -51,6 +51,12 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
       <div class="card__heading">
         <ScoreBadge :vacancy="vacancy" />
         <span v-if="vacancy.aiScore != null" class="badge card__ai" title="KI-Bewertung des lokalen Modells – ändert den Rang nicht">KI {{ vacancy.aiScore }}</span>
+        <span
+          v-if="vacancy.goldLabel != null"
+          class="badge card__label"
+          :class="vacancy.goldLabel ? 'card__label--fits' : 'card__label--not'"
+          :title="vacancy.goldLabelAutomatic ? 'Automatisch: beworben → Passt, ausgeblendet → Passt nicht (p / n überschreibt)' : 'Meine Bewertung (p / n ändert, nochmal drücken entfernt)'"
+        >{{ vacancy.goldLabel ? '👍 Passt' : '👎 Passt nicht' }}<template v-if="vacancy.goldLabelAutomatic"> · automatisch</template></span>
         <NuxtLink
           v-if="vacancy.applied && canEditDocuments(vacancy.applied.status)"
           :to="`/unterlagen/${vacancy.applied.applicationId}`"
@@ -168,6 +174,14 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
 
   &--seen {
     border-left-color: var(--color-border);
+  }
+
+  &__label--fits {
+    color: var(--color-new-text);
+  }
+
+  &__label--not {
+    color: var(--color-error-text);
   }
 
   &--dismissed {

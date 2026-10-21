@@ -83,6 +83,18 @@ describe('GoldLabelButtons', () => {
     input.remove()
     wrapper.unmount()
   })
+
+  it('marks an automatic label and makes it mine on the same key instead of removing it', async () => {
+    const wrapper = await mountSuspended(GoldLabelButtons, { props: { vacancyId: 'v1', modelValue: false, automatic: true } })
+    expect(wrapper.text()).toContain('automatisch')
+
+    await wrapper.findAll('button')[1]!.trigger('click')
+    await flushPromises()
+
+    expect(api.setLabel).toHaveBeenLastCalledWith('v1', false)
+    expect(wrapper.emitted('update:automatic')!.at(-1)).toEqual([false])
+    wrapper.unmount()
+  })
 })
 
 describe('VacancyRequirements', () => {

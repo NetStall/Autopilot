@@ -11,6 +11,7 @@ const router = useRouter()
 const api = useVacanciesApi()
 const importVersion = useImportVersion()
 const toasts = useToasts()
+const { refresh: refreshLabels } = useLabelSummary()
 
 const filters = computed(() => filtersFromQuery(route.query))
 const listQuery = computed(() => filtersToQuery(filters.value))
@@ -98,10 +99,30 @@ function setInterest(vacancy: Vacancy, interest: VacancyInterest) {
   })
 }
 
+/**
+ * Quick label mode (07c): p / n on the focused card; the same key on my own label removes it, on an automatic one makes
+ * it mine. Without my label the server's automatic one comes back on the next load.
+ */
+async function setLabel(vacancy: Vacancy, fits: boolean) {
+  const next = vacancy.goldLabel === fits && !vacancy.goldLabelAutomatic ? null : fits
+  const ok = await runOptimistic({
+    apply: () => patchVacancy(vacancy.id, { goldLabel: next, goldLabelAutomatic: false }),
+    rollback: () => patchVacancy(vacancy.id, { goldLabel: vacancy.goldLabel, goldLabelAutomatic: vacancy.goldLabelAutomatic }),
+    request: () => api.setLabel(vacancy.id, next),
+    onError: saveFailed,
+  })
+  if (ok) {
+    void refreshLabels()
+  }
+}
+
 const toggleSeen = (vacancy: Vacancy) => void setSeen(vacancy, !vacancy.isSeen)
 const toggleStar = (vacancy: Vacancy) => void setInterest(vacancy, vacancy.interest === 'Starred' ? 'None' : 'Starred')
+// „Ausblenden" is an automatic „Passt nicht": the header counter follows.
 const toggleDismiss = (vacancy: Vacancy) =>
-  void setInterest(vacancy, vacancy.interest === 'Dismissed' ? 'None' : 'Dismissed')
+  void setInterest(vacancy, vacancy.interest === 'Dismissed' ? 'None' : 'Dismissed').then((ok) => {
+    if (ok) void refreshLabels()
+  })
 
 function openedOriginal(vacancy: Vacancy) {
   if (!vacancy.isSeen) {
@@ -182,6 +203,10 @@ function onKeydown(event: KeyboardEvent) {
           focusCard(nextVacancy.id)
         }
       }
+      break
+    case 'labelFits':
+    case 'labelNotFits':
+      if (vacancy) void setLabel(vacancy, action === 'labelFits')
       break
     case 'help':
       helpOpen.value = !helpOpen.value

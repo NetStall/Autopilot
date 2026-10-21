@@ -64,8 +64,9 @@ public static partial class VacancyEndpoints
         // The list does not need the (long) descriptions; the detail endpoint returns them.
         var duplicates = await DuplicatesOfAsync(db, vacancies, cancellationToken);
         var applications = await db.Applications.AsNoTracking().ToListAsync(cancellationToken);
+        var labels = await Extraction.LabelSet.LoadAsync(db, vacancies.ConvertAll(v => v.Id), cancellationToken);
         var items = vacancies.ConvertAll(v =>
-            v.ToDto(includeDescription: false, AlsoFoundAt(v, duplicates), AppliedTo(v, duplicates, applications)));
+            v.ToDto(includeDescription: false, AlsoFoundAt(v, duplicates), AppliedTo(v, duplicates, applications), label: labels.GetValueOrDefault(v.Id)));
         return TypedResults.Ok(new VacancyPageDto(items, page, pageSize, totalCount, matching, request.Top, facets));
     }
 
@@ -112,9 +113,9 @@ public static partial class VacancyEndpoints
 
         var duplicates = await DuplicatesOfAsync(db, [vacancy], cancellationToken);
         var applications = await db.Applications.AsNoTracking().ToListAsync(cancellationToken);
-        var label = await db.GoldLabels.AsNoTracking().Where(l => l.VacancyId == id).Select(l => (bool?)l.Fits).FirstOrDefaultAsync(cancellationToken);
+        var labels = await Extraction.LabelSet.LoadAsync(db, [id], cancellationToken);
         return TypedResults.Ok(vacancy.ToDto(
-            alsoFoundAt: AlsoFoundAt(vacancy, duplicates), applied: AppliedTo(vacancy, duplicates, applications), goldLabel: label,
+            alsoFoundAt: AlsoFoundAt(vacancy, duplicates), applied: AppliedTo(vacancy, duplicates, applications), label: labels.GetValueOrDefault(id),
             profile: profiles.Current.Usable));
     }
 

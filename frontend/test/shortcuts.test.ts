@@ -11,6 +11,8 @@ describe('shortcutFor', () => {
     ['s', 'toggleSeen'],
     ['m', 'toggleStar'],
     ['x', 'toggleDismiss'],
+    ['p', 'labelFits'],
+    ['n', 'labelNotFits'],
     ['?', 'help'],
     ['Escape', 'close'],
   ])('maps %s to %s', (key, action) => {

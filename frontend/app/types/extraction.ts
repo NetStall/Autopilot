@@ -87,10 +87,13 @@ export interface FailedExtraction {
   failedAt: string
 }
 
-/** GET /api/labels/summary — „Bewertet: 12 / 30". */
+/** GET /api/labels/summary — „Bewertet: 12 + 9 automatisch / 30" (explicit, then implicit labels, 07c). */
 export interface GoldLabelSummary {
   labeled: number
   fits: number
   notFits: number
   target: number
+  automatic?: number
+  automaticFits?: number
+  automaticNotFits?: number
 }

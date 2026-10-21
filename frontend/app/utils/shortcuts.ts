@@ -1,4 +1,4 @@
-export type ListShortcut = 'next' | 'previous' | 'open' | 'toggleSeen' | 'toggleStar' | 'toggleDismiss' | 'help' | 'close'
+export type ListShortcut = 'next' | 'previous' | 'open' | 'toggleSeen' | 'toggleStar' | 'toggleDismiss' | 'labelFits' | 'labelNotFits' | 'help' | 'close'
 
 export const SHORTCUT_HELP: readonly { keys: string, action: string }[] = [
   { keys: 'j', action: 'Nächste Stelle' },
@@ -7,6 +7,8 @@ export const SHORTCUT_HELP: readonly { keys: string, action: string }[] = [
   { keys: 's', action: 'Gesehen / neu umschalten' },
   { keys: 'm', action: 'Merken / nicht mehr merken' },
   { keys: 'x', action: 'Ausblenden / wieder einblenden' },
+  { keys: 'p', action: 'Bewerten: Passt (nochmal = entfernen)' },
+  { keys: 'n', action: 'Bewerten: Passt nicht (nochmal = entfernen)' },
   { keys: '?', action: 'Diese Hilfe' },
   { keys: 'Esc', action: 'Hilfe schließen' },
 ]
@@ -18,6 +20,8 @@ const KEYS: Record<string, ListShortcut> = {
   s: 'toggleSeen',
   m: 'toggleStar',
   x: 'toggleDismiss',
+  p: 'labelFits',
+  n: 'labelNotFits',
   '?': 'help',
   Escape: 'close',
 }

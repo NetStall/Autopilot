@@ -271,6 +271,37 @@ public class ExtractionApiTests(PostgresFixture postgres) : IntegrationTestBase(
     }
 
     [Fact]
+    public async Task Applied_and_dismissed_vacancies_get_automatic_labels_an_explicit_one_wins()
+    {
+        var applied = await SeedAsync("Applied");
+        var draft = await SeedAsync("Draft only");
+        var dismissed = await SeedAsync("Dismissed");
+        var overridden = await SeedAsync("Dismissed but labelled");
+        await using (var db = Postgres.CreateDbContext())
+        {
+            Core.Applications.Application Make(Guid vacancyId, Core.Applications.ApplicationStatus status) =>
+                new() { Id = Guid.NewGuid(), VacancyId = vacancyId, Company = "Beispiel GmbH", Position = "Entwickler", Status = status };
+            db.Applications.AddRange(Make(applied.Id, Core.Applications.ApplicationStatus.Rejected), Make(draft.Id, Core.Applications.ApplicationStatus.Draft));
+            await db.Vacancies.Where(v => v.Id == dismissed.Id || v.Id == overridden.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(v => v.Interest, Core.Vacancies.VacancyInterest.Dismissed), CancellationToken);
+            await db.SaveChangesAsync(CancellationToken);
+        }
+
+        await Client.PutAsJsonAsync($"/api/vacancies/{overridden.Id}/label", new { fits = true }, CancellationToken);
+
+        var summary = await Client.GetFromJsonAsync<GoldLabelSummaryDto>("/api/labels/summary", CancellationToken);
+        summary.Should().Be(new GoldLabelSummaryDto(1, 1, 0, ExtractionEndpoints.LabelTarget, 2, 1, 1));
+        var detail = await Client.GetFromJsonAsync<JsonElement>($"/api/vacancies/{applied.Id}", CancellationToken);
+        detail.GetProperty("goldLabel").GetBoolean().Should().BeTrue();
+        detail.GetProperty("goldLabelAutomatic").GetBoolean().Should().BeTrue();
+        var list = await Client.GetFromJsonAsync<JsonElement>("/api/vacancies?minScore=0&includeDismissed=true", CancellationToken);
+        var byId = list.GetProperty("items").EnumerateArray().ToDictionary(v => v.GetProperty("id").GetGuid());
+        byId[dismissed.Id].GetProperty("goldLabel").GetBoolean().Should().BeFalse();
+        byId[overridden.Id].GetProperty("goldLabelAutomatic").GetBoolean().Should().BeFalse();
+        byId[draft.Id].GetProperty("goldLabel").ValueKind.Should().Be(JsonValueKind.Null, "a draft is no application yet");
+    }
+
+    [Fact]
     public async Task Gold_labels_are_stored_changed_counted_and_removed()
     {
         var a = await SeedAsync("A");

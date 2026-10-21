@@ -51,7 +51,7 @@ const newSinceLink = computed(() => (lastImport.value?.startedAt
         </NuxtLink>
       </p>
       <p v-if="labels" class="header__labels" title="Meine Bewertungen „Passt“ / „Passt nicht“ (Ziel für die Auswertung)">
-        Bewertet: {{ labels.labeled }} / {{ labels.target }}
+        Bewertet: {{ labels.labeled }}<template v-if="labels.automatic"> + {{ labels.automatic }} automatisch</template> / {{ labels.target }}
       </p>
       <ImportButton />
     </div>

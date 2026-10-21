@@ -233,7 +233,7 @@ function openedOriginal() {
         <h2 id="label-heading">
           Meine Bewertung
         </h2>
-        <GoldLabelButtons v-model="vacancy.goldLabel" :vacancy-id="vacancy.id" />
+        <GoldLabelButtons v-model="vacancy.goldLabel" v-model:automatic="vacancy.goldLabelAutomatic" :vacancy-id="vacancy.id" />
       </section>
 
       <section class="detail__reasons" aria-labelledby="requirements-heading">

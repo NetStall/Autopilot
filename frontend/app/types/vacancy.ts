@@ -66,8 +66,10 @@ export interface Vacancy {
   descriptionIsManual: boolean
   /** The model's extraction for the current description (detail only, step 07a). */
   extraction?: VacancyExtraction | null
-  /** My judgement „Passt" (true) / „Passt nicht" (false); null = not labelled (detail only). */
+  /** My judgement „Passt" (true) / „Passt nicht" (false), explicit or automatic; null = not labelled. */
   goldLabel?: boolean | null
+  /** The label comes from what I did (applied → Passt, Ausblenden → Passt nicht), not from a click (07c). */
+  goldLabelAutomatic?: boolean
   /** What the remote badge is based on, e.g. „Homeoffice: bis 40 % (Feld)" or „Homeoffice: teilweise (laut Text)". */
   remoteNote?: string | null
   /** „KI-Bewertung" 0–100 of the local model (07b); shown next to the rank, not part of it. */

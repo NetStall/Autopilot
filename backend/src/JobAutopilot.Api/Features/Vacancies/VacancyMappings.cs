@@ -9,7 +9,7 @@ public static class VacancyMappings
         bool includeDescription = true,
         IReadOnlyList<VacancyLinkDto>? alsoFoundAt = null,
         AppliedDto? applied = null,
-        bool? goldLabel = null,
+        Core.Extraction.VacancyLabel? label = null,
         Core.Profile.CandidateProfile? profile = null) => new(
         vacancy.Id,
         vacancy.Source,
@@ -41,10 +41,11 @@ public static class VacancyMappings
             ? new ExtractionDto(extraction.Result, extraction.Model, extraction.PromptVersion, extraction.ExtractedAt,
                 Core.Extraction.ExtractionNormalizer.Chips(extraction.Result, profile))
             : null,
-        goldLabel,
+        label?.Fits,
         vacancy.RemoteNote,
         CurrentAiScore(vacancy)?.Result.Score,
         vacancy.RuleRankScore,
+        label?.Automatic ?? false,
         includeDescription ? CurrentAiScore(vacancy)?.Result : null);
 
     /// <summary>The „KI-Bewertung" when it still belongs to the current description (the key starts with its hash).</summary>

@@ -14,8 +14,8 @@ public sealed record GoldLabelDto(Guid VacancyId, bool Fits, DateTimeOffset Labe
 /// <summary>How many of the current Top N still need an extraction, and how long that takes at the measured speed.</summary>
 public sealed record PendingExtractionsDto(int Top, int Pending, double SecondsPerVacancy, int EstimatedSeconds);
 
-/// <summary>„Bewertet: 12 / 30" in the header.</summary>
-public sealed record GoldLabelSummaryDto(int Labeled, int Fits, int NotFits, int Target);
+/// <summary>„Bewertet: 12 + 9 automatisch / 30" in the header: explicit labels and, apart, implicit ones (07c).</summary>
+public sealed record GoldLabelSummaryDto(int Labeled, int Fits, int NotFits, int Target, int Automatic = 0, int AutomaticFits = 0, int AutomaticNotFits = 0);
 
 public static class ExtractionEndpoints
 {
@@ -155,9 +155,9 @@ public static class ExtractionEndpoints
 
     private static async Task<Ok<GoldLabelSummaryDto>> GetLabelSummary(AppDbContext db, CancellationToken cancellationToken)
     {
-        var counts = await db.GoldLabels.AsNoTracking().GroupBy(l => l.Fits).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(cancellationToken);
-        var fits = counts.Where(c => c.Key).Sum(c => c.Count);
-        var notFits = counts.Where(c => !c.Key).Sum(c => c.Count);
-        return TypedResults.Ok(new GoldLabelSummaryDto(fits + notFits, fits, notFits, LabelTarget));
+        var labels = (await LabelSet.LoadAsync(db, null, cancellationToken)).Values.ToList();
+        int Count(bool automatic, bool fits) => labels.Count(l => l.Automatic == automatic && l.Fits == fits);
+        var (fits, notFits, autoFits, autoNotFits) = (Count(false, true), Count(false, false), Count(true, true), Count(true, false));
+        return TypedResults.Ok(new GoldLabelSummaryDto(fits + notFits, fits, notFits, LabelTarget, autoFits + autoNotFits, autoFits, autoNotFits));
     }
 }
