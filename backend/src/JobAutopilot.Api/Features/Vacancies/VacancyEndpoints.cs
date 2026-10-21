@@ -100,6 +100,7 @@ public static partial class VacancyEndpoints
     private static async Task<Results<Ok<VacancyDto>, NotFound>> GetVacancy(
         Guid id,
         AppDbContext db,
+        Core.Profile.ICandidateProfileSource profiles,
         CancellationToken cancellationToken)
     {
         var vacancy = await db.Vacancies.AsNoTracking()
@@ -113,7 +114,8 @@ public static partial class VacancyEndpoints
         var applications = await db.Applications.AsNoTracking().ToListAsync(cancellationToken);
         var label = await db.GoldLabels.AsNoTracking().Where(l => l.VacancyId == id).Select(l => (bool?)l.Fits).FirstOrDefaultAsync(cancellationToken);
         return TypedResults.Ok(vacancy.ToDto(
-            alsoFoundAt: AlsoFoundAt(vacancy, duplicates), applied: AppliedTo(vacancy, duplicates, applications), goldLabel: label));
+            alsoFoundAt: AlsoFoundAt(vacancy, duplicates), applied: AppliedTo(vacancy, duplicates, applications), goldLabel: label,
+            profile: profiles.Current.Usable));
     }
 
     /// <summary>

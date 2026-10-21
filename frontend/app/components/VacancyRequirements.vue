@@ -25,6 +25,15 @@ const employment: Record<string, string> = {
 }
 
 const result = computed(() => props.extraction?.result ?? null)
+/** Chips from the server (short names + source text); older answers fall back to the raw entries. */
+const chips = computed(() => {
+  const r = result.value
+  if (!r) {
+    return null
+  }
+  const raw = (entries: string[]) => entries.map(e => ({ name: e, sourceText: e }))
+  return props.extraction?.chips ?? { mustHave: raw(r.mustHave), niceToHave: raw(r.niceToHave), domains: raw(r.domainRequirements), softSkills: r.softSkills ?? [] }
+})
 const german = computed(() => {
   const r = result.value
   return !r ? null : r.germanNotRequired ? 'nicht nötig' : r.germanLevel
@@ -77,17 +86,17 @@ onBeforeUnmount(() => clearTimeout(timer))
         {{ result.summary }}
       </p>
       <dl class="req__facts">
-        <div v-if="result.mustHave.length">
-          <dt>Muss</dt>
-          <dd>{{ result.mustHave.join(', ') }}</dd>
+        <div v-for="group in [{ label: 'Muss', items: chips!.mustHave }, { label: 'Ein Plus', items: chips!.niceToHave }, { label: 'Fachgebiet', items: chips!.domains }].filter(g => g.items.length)" :key="group.label">
+          <dt>{{ group.label }}</dt>
+          <dd class="req__chips">
+            <span v-for="chip in group.items" :key="chip.name" class="req__chip" :title="chip.sourceText">{{ chip.name }}</span>
+          </dd>
         </div>
-        <div v-if="result.niceToHave.length">
-          <dt>Ein Plus</dt>
-          <dd>{{ result.niceToHave.join(', ') }}</dd>
-        </div>
-        <div v-if="result.domainRequirements.length">
-          <dt>Fachgebiet</dt>
-          <dd>{{ result.domainRequirements.join(', ') }}</dd>
+        <div v-if="chips!.softSkills.length">
+          <dt>Soft Skills</dt>
+          <dd class="req__chips">
+            <span v-for="skill in chips!.softSkills" :key="skill" class="req__chip req__chip--soft" title="wird nicht bewertet">{{ skill }}</span>
+          </dd>
         </div>
         <div v-if="german">
           <dt>Deutsch</dt>
@@ -168,6 +177,26 @@ onBeforeUnmount(() => clearTimeout(timer))
 
   &__error {
     color: var(--color-error-text);
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  &__chip {
+    padding: 0.05rem 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: var(--color-surface-muted);
+    font-size: 0.9em;
+
+    &--soft {
+      color: var(--color-muted);
+      border-style: dashed;
+      background: none;
+    }
   }
 }
 </style>

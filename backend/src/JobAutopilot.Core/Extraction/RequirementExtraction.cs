@@ -43,7 +43,9 @@ public sealed record RequirementExtraction(
     int? HomeOfficePercent,
     EmploymentType EmploymentType,
     IReadOnlyList<string> DomainRequirements,
-    string Summary);
+    string Summary,
+    int? HomeOfficeDaysPerWeek = null,
+    IReadOnlyList<string>? SoftSkills = null);
 
 /// <summary>An extraction as stored on the vacancy: the result plus what it was made from.</summary>
 public sealed record StoredExtraction(
@@ -158,6 +160,7 @@ public static class ExtractionValidator
         var mustHave = List(raw.MustHave, "mustHave", errors);
         var niceToHave = List(raw.NiceToHave, "niceToHave", errors);
         var domains = List(raw.DomainRequirements, "domainRequirements", errors);
+        var softSkills = List(raw.SoftSkills, "softSkills", errors);
         var (german, germanNone) = Language(raw.GermanLevel, "germanLevel", errors);
         var (english, _) = Language(raw.EnglishLevel, "englishLevel", errors);
         var seniority = Enum<Seniority>(raw.Seniority, "seniority", errors);
@@ -180,6 +183,11 @@ public static class ExtractionValidator
             errors.Add("homeOfficePercent must be between 0 and 100, or null.");
         }
 
+        if (raw.HomeOfficeDaysPerWeek is < 0 or > 5)
+        {
+            errors.Add("homeOfficeDaysPerWeek must be between 0 and 5, or null.");
+        }
+
         var summary = (raw.Summary ?? string.Empty).Trim();
         if (summary.Length == 0)
         {
@@ -197,7 +205,8 @@ public static class ExtractionValidator
 
         return (new RequirementExtraction(
             mustHave, niceToHave, german, germanNone, english, raw.MinYears is 0 ? null : raw.MinYears, seniority, remote,
-            raw.HomeOfficePercent is 0 ? null : raw.HomeOfficePercent, employment, domains, summary), []);
+            raw.HomeOfficePercent is 0 ? null : raw.HomeOfficePercent, employment, domains, summary,
+            raw.HomeOfficeDaysPerWeek is 0 ? null : raw.HomeOfficeDaysPerWeek, softSkills), []);
     }
 
     private static List<string> List(List<string>? values, string name, List<string> errors)
@@ -283,6 +292,10 @@ public static class ExtractionValidator
         public string? EmploymentType { get; init; }
 
         public List<string>? DomainRequirements { get; init; }
+
+        public int? HomeOfficeDaysPerWeek { get; init; }
+
+        public List<string>? SoftSkills { get; init; }
 
         public string? Summary { get; init; }
     }

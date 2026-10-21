@@ -27,6 +27,12 @@ const extraction: VacancyExtraction = {
     minYears: 3, seniority: 'Mid', remoteLevel: 'Hybrid', homeOfficePercent: 40, employmentType: 'FullTime',
     domainRequirements: ['Bauwesen'], summary: 'Full-Stack mit Blazor. Gefragt sind C# und DevExpress.',
   },
+  chips: {
+    mustHave: [{ name: 'C#', sourceText: 'C#' }, { name: 'DevExpress', sourceText: 'DevExpress (Pflicht)' }],
+    niceToHave: [{ name: 'Docker', sourceText: 'Docker' }],
+    domains: [{ name: 'Bauwesen', sourceText: 'Bauwesen' }],
+    softSkills: ['Teamgeist'],
+  },
 }
 
 beforeEach(() => {
@@ -88,7 +94,9 @@ describe('VacancyRequirements', () => {
 
     expect(wrapper.find('.req__badge').text()).toBe('KI')
     expect(wrapper.text()).toContain('qwen3:8b · extraction.v1')
-    expect(wrapper.text()).toContain('C#, DevExpress')
+    expect(wrapper.findAll('.req__chip').map(c => c.text())).toEqual(['C#', 'DevExpress', 'Docker', 'Bauwesen', 'Teamgeist'])
+    expect(wrapper.findAll('.req__chip')[1]!.attributes('title')).toBe('DevExpress (Pflicht)')
+    expect(wrapper.find('.req__chip--soft').text()).toBe('Teamgeist')
     expect(wrapper.text()).toContain('Bauwesen')
     expect(wrapper.text()).toContain('mind. 3 Jahre · Mid-Level')
     expect(wrapper.text()).toContain('Erneut mit KI analysieren')

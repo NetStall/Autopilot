@@ -13,7 +13,11 @@ namespace JobAutopilot.Core.Extraction;
 /// <item>a domain stays only when a sentence that names it also asks for experience or knowledge — the company's
 /// industry („Software für die digitale Patientenversorgung") is not a requirement;</item>
 /// <item>minimum years stay only when the text states a number of years;</item>
-/// <item>a home-office share stays only when the text states one; „bis zu 3 Tage" read as 3 % becomes 60 % (07b).</item>
+/// <item>a home-office share stays only when the text states one; „bis zu 3 Tage" read as 3 % becomes 60 %, stated
+/// days count 20 % each (07b);</item>
+/// <item>an item after „idealerweise" / „von Vorteil" inside a requirement line is a plus („DDD, CQRS und idealerweise
+/// Event Sourcing");</item>
+/// <item>a summary sentence with „zwingend", „erforderlich", „Pflicht" … is dropped when the posting never says so.</item>
 /// </list>
 /// </summary>
 public static partial class ExtractionGuards
@@ -30,10 +34,15 @@ public static partial class ExtractionGuards
         var sections = Sections(description);
 
         var niceToHave = new HashSet<string>(extraction.NiceToHave, StringComparer.OrdinalIgnoreCase);
+        var extraPlus = new List<string>();
         var mustHave = new List<string>();
         foreach (var item in extraction.MustHave)
         {
-            if (!niceToHave.Contains(item))
+            if (!niceToHave.Contains(item) && IntroducedAsPlus(item, sentences))
+            {
+                extraPlus.Add(item);
+            }
+            else if (!niceToHave.Contains(item))
             {
                 mustHave.Add(item);
             }
@@ -51,12 +60,51 @@ public static partial class ExtractionGuards
         return extraction with
         {
             MustHave = mustHave,
-            NiceToHave = [.. extraction.NiceToHave.Where(niceToHave.Contains)],
+            NiceToHave = [.. extraction.NiceToHave.Where(niceToHave.Contains), .. extraPlus],
             DomainRequirements = domains,
             MinYears = extraction.MinYears is not null && StatedYears().IsMatch(description) ? extraction.MinYears : null,
-            HomeOfficePercent = HomeOffice(extraction.HomeOfficePercent, description),
+            HomeOfficePercent = extraction.HomeOfficeDaysPerWeek is { } days and > 0 and <= 5 && HomeOfficeDays().IsMatch(description)
+                ? days * 20
+                : HomeOffice(extraction.HomeOfficePercent, description),
+            Summary = SupportedSummary(extraction.Summary, description),
         };
     }
+
+    /// <summary>„… DDD, CQRS und idealerweise Event Sourcing": a plus marker between the item and the last comma before it.</summary>
+    private static bool IntroducedAsPlus(string item, IReadOnlyList<(int Start, string Text)> sentences)
+    {
+        foreach (var (_, sentence) in sentences)
+        {
+            var at = sentence.IndexOf(item, StringComparison.OrdinalIgnoreCase);
+            if (at < 0)
+            {
+                continue;
+            }
+
+            var before = sentence[..at];
+            var clause = before[(Math.Max(before.LastIndexOf(',') , before.LastIndexOf(';')) + 1)..];
+            return PlusMarker().IsMatch(clause);
+        }
+
+        return false;
+    }
+
+    /// <summary>Drops summary sentences that claim a strictness the posting never states.</summary>
+    private static string SupportedSummary(string summary, string description)
+    {
+        var sentences = SummarySentence().Split(summary).Where(s => s.Trim().Length > 0).ToList();
+        var kept = sentences.Where(s => StrongWord().Matches(s).All(m => description.Contains(m.Value, StringComparison.OrdinalIgnoreCase))).ToList();
+        return kept.Count == sentences.Count ? summary : string.Join(" ", kept.Select(s => s.Trim()));
+    }
+
+    [GeneratedRegex(@"\b(?:idealerweise|wünschenswert|von\s+Vorteil|gerne|ideally|nice\s+to\s+have|ein\s+Plus)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    private static partial Regex PlusMarker();
+
+    [GeneratedRegex(@"\b(?:zwingend\w*|erforderlich\w*|Pflicht\w*|vorausgesetzt|Voraussetzung\w*|unabdingbar|mandatory|required)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    private static partial Regex StrongWord();
+
+    [GeneratedRegex(@"(?<=[.!?])\s+", RegexOptions.CultureInvariant, 250)]
+    private static partial Regex SummarySentence();
 
     /// <summary>The model's share only when the text states one; a share of at most 5 next to „Tag(e)" is days (× 20).</summary>
     private static int? HomeOffice(int? percent, string description)
@@ -75,7 +123,7 @@ public static partial class ExtractionGuards
         return HomeOfficeShare.Find(description) is { } stated ? stated : null;
     }
 
-    [GeneratedRegex(@"(?<n>[1-5])\s+(?:Tage?n?|days?)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    [GeneratedRegex(@"\b(?<n>[1-5])\s+(?:Tage?n?|days?)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex HomeOfficeDays();
 
     private static bool MarkedAsRequired(string item, string description, IReadOnlyList<(int Start, string Text)> sentences, RequirementSections sections)

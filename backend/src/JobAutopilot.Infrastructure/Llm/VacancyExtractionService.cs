@@ -200,7 +200,7 @@ public sealed partial class VacancyExtractionService(
             try
             {
                 var response = await llm.CompleteJsonAsync(
-                    new LlmRequest(LlmOptions.ExtractionTask, entry.Attempts == 1 ? "extract" : "extract-retry", prompt.Version, prompt.System, user, ExtractionPrompt.Schema,
+                    new LlmRequest(LlmOptions.ExtractionTask, entry.Attempts == 1 ? "extract" : "extract-retry", prompt.Version, prompt.System, user, prompt.JsonSchema,
                         Thinking: options.Value.Thinking, MaxOutputTokens: options.Value.MaxOutputTokens),
                     cancellationToken);
                 entry.InputTokens += response.Usage.InputTokens;

@@ -12,10 +12,10 @@ namespace JobAutopilot.Infrastructure.Llm;
 /// </summary>
 public sealed partial class ExtractionPrompt
 {
-    /// <summary>The default since step 07a2; v1 stays embedded for comparison.</summary>
-    public const string DefaultVersion = "extraction.v2";
+    /// <summary>The default since step 07b; v1 and v2 stay embedded for comparison.</summary>
+    public const string DefaultVersion = "extraction.v3";
 
-    public static readonly IReadOnlyList<string> Versions = ["extraction.v1", "extraction.v2"];
+    public static readonly IReadOnlyList<string> Versions = ["extraction.v1", "extraction.v2", "extraction.v3"];
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, ExtractionPrompt> Loaded = new(StringComparer.Ordinal);
 
@@ -39,6 +39,9 @@ public sealed partial class ExtractionPrompt
     }
 
     public string Version { get; }
+
+    /// <summary>The schema of this version: v3 adds home-office days and soft skills.</summary>
+    public IReadOnlyDictionary<string, JsonElement> JsonSchema => string.CompareOrdinal(Version, "extraction.v3") >= 0 ? SchemaV3 : Schema;
 
     public string System { get; }
 
@@ -64,6 +67,30 @@ public sealed partial class ExtractionPrompt
           },
           "required": ["mustHave", "niceToHave", "germanLevel", "englishLevel", "minYears", "seniority", "remoteLevel",
                        "homeOfficePercent", "employmentType", "domainRequirements", "summary"],
+          "additionalProperties": false
+        }
+        """);
+
+    public static IReadOnlyDictionary<string, JsonElement> SchemaV3 { get; } = ParseSchema("""
+        {
+          "type": "object",
+          "properties": {
+            "mustHave": { "type": "array", "items": { "type": "string" } },
+            "niceToHave": { "type": "array", "items": { "type": "string" } },
+            "softSkills": { "type": "array", "items": { "type": "string" } },
+            "germanLevel": { "type": "string", "enum": ["A1", "A2", "B1", "B2", "C1", "C2", "Native", "none", "unknown"] },
+            "englishLevel": { "type": "string", "enum": ["A1", "A2", "B1", "B2", "C1", "C2", "Native", "none", "unknown"] },
+            "minYears": { "type": ["integer", "null"] },
+            "seniority": { "type": "string", "enum": ["junior", "mid", "senior", "lead", "unknown"] },
+            "remoteLevel": { "type": "string", "enum": ["fullRemote", "hybrid", "onsite", "unknown"] },
+            "homeOfficePercent": { "type": ["integer", "null"] },
+            "homeOfficeDaysPerWeek": { "type": ["integer", "null"] },
+            "employmentType": { "type": "string", "enum": ["fullTime", "partTime", "contract", "internship", "workingStudent", "unknown"] },
+            "domainRequirements": { "type": "array", "items": { "type": "string" } },
+            "summary": { "type": "string" }
+          },
+          "required": ["mustHave", "niceToHave", "softSkills", "germanLevel", "englishLevel", "minYears", "seniority", "remoteLevel",
+                       "homeOfficePercent", "homeOfficeDaysPerWeek", "employmentType", "domainRequirements", "summary"],
           "additionalProperties": false
         }
         """);

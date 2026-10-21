@@ -53,6 +53,71 @@ public class ExtractionQualityTests
         ExtractionGuards.Apply(Base() with { MinYears = 5 }, text).MinYears.Should().Be(expected);
     }
 
+    [Theory]
+    [InlineData(3, null, 60)]
+    [InlineData(null, 3, 60)]
+    [InlineData(40, null, 60)]
+    public void Home_office_days_are_not_a_percentage(int? percent, int? days, int? expected)
+    {
+        const string text = "Mobile Arbeit an bis zu 3 Tagen pro Woche und Sabbaticals.";
+
+        ExtractionGuards.Apply(Base() with { HomeOfficePercent = percent, HomeOfficeDaysPerWeek = days }, text).HomeOfficePercent
+            .Should().Be(expected, "Meierhofer: „bis zu 3 Tage“ is 60 % — the text's own share wins over the model's number");
+        ExtractionGuards.Apply(Base() with { HomeOfficePercent = 40 }, "Homeoffice nach Absprache.").HomeOfficePercent.Should().BeNull("no share stated");
+    }
+
+    [Fact]
+    public void An_item_after_idealerweise_in_a_requirement_line_is_a_plus()
+    {
+        const string text = "Das sind deine Stärken\n- Du hast fundierte Kenntnisse moderner Softwarearchitekturen sowie von DDD, CQRS und idealerweise Event Sourcing";
+
+        var guarded = ExtractionGuards.Apply(Base() with { MustHave = ["DDD", "CQRS", "Event Sourcing"] }, text);
+
+        guarded.MustHave.Should().Equal("DDD", "CQRS");
+        guarded.NiceToHave.Should().Equal("Event Sourcing");
+    }
+
+    [Fact]
+    public void A_summary_may_not_claim_a_strictness_the_posting_never_states()
+    {
+        const string text = "Du entwickelst mit C# und Vue.js. Erfahrung mit SQL Server bringst du mit.";
+        var extraction = Base() with { Summary = "Fullstack-Entwicklung mit C# und Vue.js. SQL Server ist zwingend erforderlich." };
+
+        ExtractionGuards.Apply(extraction, text).Summary.Should().Be("Fullstack-Entwicklung mit C# und Vue.js.");
+        ExtractionGuards.Apply(extraction, text + " SQL Server ist zwingend erforderlich.").Summary.Should().Be(extraction.Summary);
+    }
+
+    [Fact]
+    public void Chips_show_short_names_with_the_source_text_and_soft_skills_apart()
+    {
+        var extraction = Base() with
+        {
+            MustHave = ["Du bringst Erfahrung mit SQL Server, REST APIs und Containerisierung mit", "selbstständige Arbeitsweise"],
+            NiceToHave = ["OpenTelemetry"],
+            SoftSkills = ["Teamgeist"],
+        };
+
+        var chips = ExtractionNormalizer.Chips(extraction, RealWorldFixtures.Profile);
+
+        chips.MustHave.Select(c => c.Name).Should().Contain(["REST"]).And.OnlyContain(n => n.Length <= 42);
+        chips.MustHave.Should().OnlyContain(c => c.SourceText.StartsWith("Du bringst", StringComparison.Ordinal));
+        chips.NiceToHave.Should().ContainSingle().Which.Should().Be(new ExtractionChip("OpenTelemetry", "OpenTelemetry"));
+        chips.SoftSkills.Should().BeEquivalentTo(["Teamgeist", "selbstständige Arbeitsweise"]);
+        ExtractionNormalizer.Resolve(extraction, RealWorldFixtures.Profile).Should().NotContain(r => r.Name.Contains("Arbeitsweise", StringComparison.Ordinal), "soft skills are never scored");
+    }
+
+    [Fact]
+    public void Version_three_asks_for_days_and_soft_skills_and_is_the_default()
+    {
+        ExtractionPrompt.Current.Version.Should().Be("extraction.v3");
+        ExtractionPrompt.Current.JsonSchema["required"].EnumerateArray().Select(e => e.GetString()).Should().Contain(["homeOfficeDaysPerWeek", "softSkills"]);
+        ExtractionPrompt.For("extraction.v2").JsonSchema["required"].EnumerateArray().Select(e => e.GetString()).Should().NotContain("softSkills");
+        var (result, errors) = ExtractionValidator.Parse("""{"softSkills":["Teamgeist"],"homeOfficeDaysPerWeek":3,"summary":"Zwei Sätze. Hier."}""");
+        errors.Should().BeEmpty();
+        result!.SoftSkills.Should().Equal("Teamgeist");
+        result.HomeOfficeDaysPerWeek.Should().Be(3);
+    }
+
     [Fact]
     public void Free_wording_maps_to_my_testing_and_ci_skills_and_generic_practices_are_dropped()
     {
@@ -115,12 +180,13 @@ public class ExtractionQualityTests
     }
 
     [Fact]
-    public void Both_prompt_versions_are_embedded_and_v2_is_the_default()
+    public void All_prompt_versions_are_embedded_and_v3_is_the_default()
     {
-        ExtractionPrompt.Current.Version.Should().Be("extraction.v2");
+        ExtractionPrompt.Current.Version.Should().Be("extraction.v3");
         ExtractionPrompt.For("extraction.v1").System.Should().NotBe(ExtractionPrompt.For("extraction.v2").System);
-        ExtractionPrompt.Current.System.Should().Contain("Each item appears in ONE list only");
-        new VacancyExtractionOptions().PromptVersion.Should().Be("extraction.v2");
+        ExtractionPrompt.For("extraction.v2").System.Should().Contain("Each item appears in ONE list only");
+        ExtractionPrompt.Current.System.Should().Contain("Each item appears in ONE list only").And.Contain("softSkills");
+        new VacancyExtractionOptions().PromptVersion.Should().Be("extraction.v3");
         new VacancyExtractionOptions().Thinking.Should().BeFalse();
         var act = () => ExtractionPrompt.For("extraction.v9");
         act.Should().Throw<ArgumentException>();

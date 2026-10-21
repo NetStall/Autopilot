@@ -34,7 +34,12 @@ public sealed record VacancyDto(
     string? RemoteNote = null);
 
 /// <summary>The model's extraction for the current description (detail view only), step 07a.</summary>
-public sealed record ExtractionDto(Core.Extraction.RequirementExtraction Result, string Model, string PromptVersion, DateTimeOffset ExtractedAt);
+public sealed record ExtractionDto(
+    Core.Extraction.RequirementExtraction Result,
+    string Model,
+    string PromptVersion,
+    DateTimeOffset ExtractedAt,
+    Core.Extraction.ExtractionChips? Chips = null);
 
 /// <summary>I already applied — to this vacancy, or to the same company with a similar title („Beworben").</summary>
 public sealed record AppliedDto(Guid ApplicationId, Core.Applications.ApplicationStatus Status, string StatusLabel, DateTimeOffset AppliedAt);

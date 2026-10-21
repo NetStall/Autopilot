@@ -12,6 +12,22 @@ export interface RequirementExtraction {
   employmentType: 'Unknown' | 'FullTime' | 'PartTime' | 'Contract' | 'Internship' | 'WorkingStudent'
   domainRequirements: string[]
   summary: string
+  homeOfficeDaysPerWeek?: number | null
+  softSkills?: string[] | null
+}
+
+/** A short name for a chip and the posting's own words it came from (tooltip). */
+export interface ExtractionChip {
+  name: string
+  sourceText: string
+}
+
+export interface ExtractionChips {
+  mustHave: ExtractionChip[]
+  niceToHave: ExtractionChip[]
+  domains: ExtractionChip[]
+  /** Personal qualities: shown greyed out, never scored. */
+  softSkills: string[]
 }
 
 /** On the vacancy detail: the extraction for the current description. */
@@ -20,6 +36,7 @@ export interface VacancyExtraction {
   model: string
   promptVersion: string
   extractedAt: string
+  chips?: ExtractionChips | null
 }
 
 /** GET /api/extractions — the background analysis. */

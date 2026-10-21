@@ -9,7 +9,8 @@ public static class VacancyMappings
         bool includeDescription = true,
         IReadOnlyList<VacancyLinkDto>? alsoFoundAt = null,
         AppliedDto? applied = null,
-        bool? goldLabel = null) => new(
+        bool? goldLabel = null,
+        Core.Profile.CandidateProfile? profile = null) => new(
         vacancy.Id,
         vacancy.Source,
         vacancy.ExternalId,
@@ -37,7 +38,8 @@ public static class VacancyMappings
         vacancy.HomeOfficePercent,
         vacancy.DescriptionIsManual,
         includeDescription && Core.Extraction.StoredExtraction.ForDescription(vacancy.ExtractionJson, vacancy.Description) is { } extraction
-            ? new ExtractionDto(extraction.Result, extraction.Model, extraction.PromptVersion, extraction.ExtractedAt)
+            ? new ExtractionDto(extraction.Result, extraction.Model, extraction.PromptVersion, extraction.ExtractedAt,
+                Core.Extraction.ExtractionNormalizer.Chips(extraction.Result, profile))
             : null,
         goldLabel,
         vacancy.RemoteNote);

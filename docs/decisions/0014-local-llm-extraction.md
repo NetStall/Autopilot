@@ -70,6 +70,18 @@ The changes:
   - Meierhofer 45 → 65;
   - Apaleo 63 → 29 (5 years stated; Kafka, AWS, Kubernetes required).
 
+## Revision 07b — extraction v3
+
+- Home office in days is its own field (`homeOfficeDaysPerWeek`, 20 % per day). A share ≤ 5 next to „Tag(e)" in the
+  text is read as days. A share counts only when the text states one, so the 40 % the model invented for Dimmel
+  and monari no longer appears.
+- An item after „idealerweise" / „von Vorteil" inside a requirement line is a plus („DDD, CQRS und idealerweise
+  Event Sourcing").
+- The summary only paraphrases the text: a sentence with „zwingend", „erforderlich", „Pflicht" … is dropped when the
+  posting never says so.
+- The UI shows chips with short names and the source text as a tooltip (`ExtractionNormalizer.Chips`). Soft skills
+  are a separate, greyed-out list and are never scored.
+
 ## Consequences
 
 - Without Ollama nothing changes: no calls, no queue, rules everywhere (tested with a fake client).

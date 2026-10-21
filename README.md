@@ -505,7 +505,7 @@ postings stay on the PC.
 | `Extraction:MaxPerRun` | 500 | upper limit of „Top N" (Statistik → KI-Analyse: Top 50 / 100 / 200 / 500, default 100) |
 | `Extraction:AutoTopN` | 100 | after an import only new or changed vacancies within the current Top N |
 | `Extraction:MaxOutputTokens` | 1500 | output cap per answer — a repetition loop ends early; a timeout fails only that vacancy |
-| `Extraction:PromptVersion` | `extraction.v2` | `extraction.v1` stays for comparison; part of the cache key |
+| `Extraction:PromptVersion` | `extraction.v3` | v1 and v2 stay for comparison; part of the cache key |
 | `Extraction:Thinking` | `false` | `reasoning_effort: none` — a thinking model answers directly (much faster) |
 
 Switch the extraction model in Docker with one line in `.env`: `Llm__Tasks__Extraction=ollama:qwen3.5:9b`. Everything
