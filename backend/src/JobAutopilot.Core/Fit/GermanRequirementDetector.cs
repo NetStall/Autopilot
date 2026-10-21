@@ -114,6 +114,9 @@ public static partial class GermanRequirementDetector
         return text.Count(c => c == '(') > text.Count(c => c == ')') ? text + ")" : text;
     }
 
+    /// <summary>„Deutschkenntnisse", „Deutschsprachkenntnissen" — the noun a quality after it can only describe.</summary>
+    private const string KnowledgeNoun = @"(?:deutsch(?:sprach)?kenntnissen?)";
+
     private const string GermanWord = @"(?:deutsch(?:e|en)?(?:kenntnisse|kenntnissen|sprachkenntnisse|sprachkenntnissen|sprachig|sprache)?|german)";
 
     /// <summary>Between the language word and the level no other language may appear („Englisch C1, Deutsch B2").</summary>
@@ -133,6 +136,9 @@ public static partial class GermanRequirementDetector
         @"|\b" + GermanWord + @"\b[^.\n]{0,40}?\bverhandlungssicher\w*" +
         @"|\b(?:sehr\s+gut\w*|exzellent\w*|hervorragend\w*|ausgezeichnet\w*|perfekt\w*)\s+(?:\w+\s+){0,2}?" + GermanWord + @"\b(?:\s+in\s+Wort\s+und\s+Schrift)?" +
         @"|\b" + GermanWord + @"\b\s+(?:\w+\s+){0,3}?(?:sehr\s+gut|fließend|fliessend|auf\s+muttersprach\w*|muttersprachlich\w*|als\s+Muttersprache)" +
+        // „Deine Deutschkenntnisse in Wort und Schrift sind sehr gut" (Meierhofer, 07b): only after the noun Kenntnisse,
+        // so „deutschen Kunden hervorragend betreuen" stays out.
+        @"|\b" + KnowledgeNoun + @"\b\s+(?:\w+\s+){0,6}?(?:sehr\s+gut|exzellent|hervorragend|ausgezeichnet|fließend|fliessend|verhandlungssicher)" +
         @"|\b(?:fließend\w*|fliessend\w*)\s+(?:\w+\s+){0,2}?" + GermanWord + @"\b" +
         @"|\b(?:Muttersprache|muttersprachlich\w*)\s+(?:\w+\s+){0,1}?" + GermanWord + @"\b" +
         @"|\bdeutsche\s+Muttersprache" +
@@ -144,6 +150,9 @@ public static partial class GermanRequirementDetector
         // „sehr gute Deutschkenntnisse" also matches here, but its C1 match wins (the strongest finding counts).
         @"\bgute\w*\s+(?:\w+\s+){0,2}?" + GermanWord + @"\b" +
         @"|\bsicher\w*\s+(?:auf|in)\s+Deutsch\b|\bsicheres?\s+Deutsch\b" +
+        // „Deine Deutschkenntnisse sind gut", „Deutsch in Wort und Schrift" (without „sehr gut" — that is C1 above).
+        @"|\b" + KnowledgeNoun + @"\b\s+(?:\w+\s+){0,4}?(?:gut|sicher)\b" +
+        @"|\bDeutsch(?:kenntnisse)?\s+in\s+Wort\s+und\s+Schrift" +
         @"|\bgood\s+(?:\w+\s+)?german\b|\bsolid\s+german\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex B2Phrases();

@@ -20,6 +20,12 @@ public class GermanRequirementTests
     [InlineData("Fluent German and English required.", RequiredGerman.C1Plus)]
     [InlineData("German (C1) is a must", RequiredGerman.C1Plus)]
     // B2
+    [InlineData("Deine Deutschkenntnisse in Wort und Schrift sind sehr gut", RequiredGerman.C1Plus)]
+    [InlineData("Deine Deutschkenntnisse sind verhandlungssicher.", RequiredGerman.C1Plus)]
+    [InlineData("Deine Deutschkenntnisse sind gut.", RequiredGerman.B2)]
+    [InlineData("Deutsch in Wort und Schrift", RequiredGerman.B2)]
+    [InlineData("Du betreust unsere deutschen Kunden hervorragend.", RequiredGerman.Unknown)]
+    [InlineData("Wir sind im deutschen Markt gut aufgestellt.", RequiredGerman.Unknown)]
     [InlineData("Gute Deutschkenntnisse (mind. B2)", RequiredGerman.B2)]
     [InlineData("Kommunizierst sicher auf Deutsch und Englisch", RequiredGerman.B2)]
     [InlineData("Sicheres Deutsch in Wort und Schrift", RequiredGerman.B2)]
