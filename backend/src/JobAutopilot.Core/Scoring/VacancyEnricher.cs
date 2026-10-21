@@ -40,6 +40,9 @@ public sealed class VacancyEnricher(
         var partialCue = remoteClassifier.FindPartial(vacancy.Title, vacancy.Description) ?? RemoteAssessor.OnSiteDays(vacancy.Description);
         var assessment = RemoteAssessor.Assess(
             remote, partialCue, HomeOfficeShare.Find(vacancy.Description), vacancy.RemoteHint, vacancy.HomeOfficePercent, extraction?.Result, remoteListing);
+        // „Nur Regeln" (07c): the same assessment without the model's answer.
+        var rulesAssessment = extraction is null ? assessment : RemoteAssessor.Assess(
+            remote, partialCue, HomeOfficeShare.Find(vacancy.Description), vacancy.RemoteHint, vacancy.HomeOfficePercent, null, remoteListing);
         vacancy.RemoteLevel = assessment.Level;
         vacancy.RemotePartial = assessment.Partial;
         vacancy.RemoteNote = assessment.Label;
@@ -89,6 +92,9 @@ public sealed class VacancyEnricher(
         var fitResult = fit?.Analyze(vacancy) ?? FitResult.Empty;
         vacancy.RankScore = Math.Clamp(relevance.Score - fitResult.Penalty, 0, 100);
         vacancy.Unreachable = fitResult.Unreachable;
+        vacancy.RuleRankScore = extraction is null || fit is null
+            ? vacancy.RankScore
+            : Math.Clamp(relevance.Score - fit.AnalyzeRules(vacancy, rulesAssessment.Level, rulesAssessment.Partial).Penalty, 0, 100);
         foreach (var warning in fitResult.Warnings.Where(w => w.Penalty > 0))
         {
             reasons.Add($"Fit: {warning.Text} (−{warning.Penalty})");

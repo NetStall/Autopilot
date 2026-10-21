@@ -75,7 +75,7 @@ Config: `Remote` (FullRemotePhrases, OnSitePhrases, HybridPhrases, FullRemoteTit
 
 | Feature | Files | Key symbols | API | Tests |
 |---|---|---|---|---|
-| List, filter, sort, facets | `Api/Features/Vacancies/VacancyEndpoints.cs`, `VacancyListQuery.cs`, `VacancyPageDto.cs`, `Core/Vacancies/VacancyFilter.cs`, `Infra/Persistence/VacancyQueryExtensions.cs` | `ApplyFilter`, `ApplySort`, `Filtered` | `GET /api/vacancies` | `Integration/VacancyQueryTests.cs`, `VacancyEndpointsTests.cs`, `Unit/VacancyQueryExtensionsTests.cs` |
+| List, filter, sort (`combined` / `rules` = `Vacancy.RuleRankScore` without AI / `ai` = KI-Bewertung, nulls last / `published` / `fetched`), facets | `Api/Features/Vacancies/VacancyEndpoints.cs`, `VacancyListQuery.cs`, `VacancyPageDto.cs`, `Core/Vacancies/VacancyFilter.cs`, `Infra/Persistence/VacancyQueryExtensions.cs` | `ApplyFilter`, `ApplySort`, `Filtered` | `GET /api/vacancies` | `Integration/VacancyQueryTests.cs`, `VacancyEndpointsTests.cs`, `Unit/VacancyQueryExtensionsTests.cs` |
 | Detail, edit, manual add | `VacancyEndpoints.cs`, `VacancyDto.cs`, `VacancyMappings.cs`, `CreateVacancyRequest.cs` | `VacancyMappings` | `GET/PATCH /api/vacancies/{id}`, `POST /api/vacancies` | `Unit/VacancyMappingsTests.cs`, `Unit/CreateVacancyRequestValidationTests.cs` |
 | Seen / interest | `SeenRequests.cs`, `Core/Vacancies/VacancyInterest.cs` | — | `POST /api/vacancies/seen` | `Integration/VacancySeenTests.cs`, `InterestTests.cs` |
 | UI settings | `Api/Features/Settings/UiSettingsEndpoints.cs` | `UiOptions` | `GET /api/settings/ui` | — |
@@ -172,7 +172,7 @@ Paths are under `fe/app/` unless they start with `fe/`.
 | Item | Files |
 |---|---|
 | DbContext + configurations | `Infra/Persistence/AppDbContext.cs`, `Infra/Persistence/Configurations/*Configuration.cs`, `UtcDateTimeOffsetConverter.cs` |
-| Migrations | `Infra/Persistence/Migrations/<timestamp>_<Name>.cs` (latest: `20261020155113_AddRequiredGerman`) |
+| Migrations | `Infra/Persistence/Migrations/<timestamp>_<Name>.cs` (latest: `*_AddRuleRankScore`) |
 | Schema doc | `docs/schema.md` |
 | DI + connection | `Infra/DependencyInjection.cs`, `DatabaseOptions.cs`; `ConnectionStrings`, `Database:MigrateOnStartup` |
 | Test DB | `Tests/Integration/PostgresFixture.cs`, `IntegrationTestBase.cs`, `ApiFactory.cs` (fakes: sources, offline Ollama), `VacancySeed.cs`; env `JOBAUTOPILOT_TEST_POSTGRES` or Testcontainers; `Tests/Fakes/FakeLlmClient.cs` |

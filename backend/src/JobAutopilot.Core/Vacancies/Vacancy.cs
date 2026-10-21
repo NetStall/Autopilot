@@ -66,6 +66,12 @@ public class Vacancy
     /// </summary>
     public int? RankScore { get; set; }
 
+    /// <summary>
+    /// The same rank without any AI input (no extraction, remote level from the rules): sort „Nur Regeln" and the
+    /// evaluation's baseline (07c). Equals <see cref="RankScore"/> while there is no extraction.
+    /// </summary>
+    public int? RuleRankScore { get; set; }
+
     /// <summary>The German the posting asks for (filter „Deutsch erforderlich"); set on every (re-)scoring.</summary>
     public RequiredGerman RequiredGerman { get; set; }
 

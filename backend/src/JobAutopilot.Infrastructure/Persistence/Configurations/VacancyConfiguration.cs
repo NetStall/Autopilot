@@ -84,6 +84,8 @@ internal sealed class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
         builder.HasIndex(v => v.RemoteLevel);
         builder.HasIndex(v => v.RelevanceLevel);
         builder.HasIndex(v => v.RankScore);
+        builder.HasIndex(v => v.RuleRankScore);
+        builder.HasIndex(v => v.AiScore);
         builder.HasIndex(v => v.RequiredGerman);
         builder.HasIndex(v => v.Interest);
         builder.HasIndex(v => v.FetchedAt);

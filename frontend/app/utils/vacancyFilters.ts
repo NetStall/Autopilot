@@ -91,7 +91,7 @@ export const DEFAULT_FILTERS: Readonly<VacancyFilters> = Object.freeze({
   showDismissed: false,
   showUnreachable: false,
   since: '',
-  sort: 'relevance',
+  sort: 'combined',
   page: 1,
 })
 
@@ -128,8 +128,9 @@ function parseRemote(value: string): RemoteFilter {
   return value === 'true' ? 'remote' : 'any'
 }
 
-function parseSort(value: string): VacancySort {
-  return value === 'published' || value === 'fetched' ? value : 'relevance'
+/** Unknown values and the older „relevance" mean the combined rank. */
+export function parseSort(value: string): VacancySort {
+  return value === 'published' || value === 'fetched' || value === 'rules' || value === 'ai' ? value : 'combined'
 }
 
 /** An integer within [min, max], otherwise <c>null</c>. */
@@ -232,7 +233,7 @@ export function filtersToQuery(filters: VacancyFilters): LocationQueryRaw {
   if (filters.since) {
     query.since = filters.since
   }
-  if (filters.sort !== 'relevance') {
+  if (filters.sort !== 'combined') {
     query.sort = filters.sort
   }
   if (filters.page > 1) {

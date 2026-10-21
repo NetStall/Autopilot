@@ -72,7 +72,9 @@ const statusOptions: { value: StatusFilter, label: string }[] = [
 ]
 
 const sortOptions: { value: VacancySort, label: string }[] = [
-  { value: 'relevance', label: 'Relevanz' },
+  { value: 'combined', label: 'Kombiniert' },
+  { value: 'rules', label: 'Nur Regeln' },
+  { value: 'ai', label: 'Nur KI' },
   { value: 'published', label: 'Neueste Veröffentlichung' },
   { value: 'fetched', label: 'Zuletzt importiert' },
 ]
@@ -191,7 +193,7 @@ function searchLabel(search: ConfiguredSearch): string {
 
 function onSortChange(event: Event) {
   const value = (event.target as HTMLSelectElement).value
-  update({ sort: value === 'fetched' || value === 'published' ? value : 'relevance' })
+  update({ sort: parseSort(value) })
 }
 
 function reset() {

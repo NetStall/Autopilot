@@ -44,6 +44,7 @@ public static class VacancyMappings
         goldLabel,
         vacancy.RemoteNote,
         CurrentAiScore(vacancy)?.Result.Score,
+        vacancy.RuleRankScore,
         includeDescription ? CurrentAiScore(vacancy)?.Result : null);
 
     /// <summary>The „KI-Bewertung" when it still belongs to the current description (the key starts with its hash).</summary>

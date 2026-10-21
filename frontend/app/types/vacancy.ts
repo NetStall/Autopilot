@@ -15,7 +15,8 @@ export interface VacancyLink {
   url: string | null
 }
 
-export type VacancySort = 'relevance' | 'published' | 'fetched'
+/** combined = rank (rules + extraction), rules = without any AI input, ai = „KI-Bewertung“ (07c). */
+export type VacancySort = 'combined' | 'rules' | 'ai' | 'published' | 'fetched'
 
 export type RemoteLevel = 'FullRemote' | 'Hybrid' | 'OnSite' | 'Unknown'
 
@@ -71,6 +72,8 @@ export interface Vacancy {
   remoteNote?: string | null
   /** „KI-Bewertung" 0–100 of the local model (07b); shown next to the rank, not part of it. */
   aiScore?: number | null
+  /** The rank without any AI input (sort „Nur Regeln“); equals rankScore without an extraction. */
+  ruleRankScore?: number | null
   /** Verdict, reasons and blockers (detail only). */
   aiFitScore?: AiFitScore | null
 }

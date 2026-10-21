@@ -125,6 +125,25 @@ public class VacancyQueryTests(PostgresFixture postgres) : IntegrationTestBase(p
     }
 
     [Fact]
+    public async Task Sort_modes_order_by_combined_rule_or_ai_score()
+    {
+        static Vacancy Scored(string title, int rank, int rules, int? ai)
+        {
+            var vacancy = Make(title: title);
+            (vacancy.RelevanceScore, vacancy.RankScore, vacancy.RuleRankScore, vacancy.AiScore) = (90, rank, rules, ai);
+            return vacancy;
+        }
+
+        await SeedAsync(Scored("A", 80, 60, null), Scored("B", 70, 90, 50), Scored("C", 60, 70, 95));
+
+        (await GetAsync("?sort=combined")).Items.Select(v => v.Title).Should().Equal("A", "B", "C");
+        (await GetAsync("?sort=relevance")).Items.Select(v => v.Title).Should().Equal("A", "B", "C");
+        (await GetAsync("?sort=rules")).Items.Select(v => v.Title).Should().Equal("B", "C", "A");
+        (await GetAsync("?sort=ai")).Items.Select(v => v.Title).Should().Equal(["C", "B", "A"], "without a KI score at the end");
+        (await GetAsync("?sort=rules&minScore=65")).Items.Select(v => v.Title).Should().Equal("B", "C");
+    }
+
+    [Fact]
     public async Task Filters_combine_and_the_envelope_counts_all_matches()
     {
         var matching = Enumerable.Range(1, 5)

@@ -605,6 +605,9 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(32)")
                         .HasDefaultValue("Unknown");
 
+                    b.Property<int?>("RuleRankScore")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -626,6 +629,8 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AiScore");
+
                     b.HasIndex("DuplicateKey");
 
                     b.HasIndex("FetchedAt");
@@ -639,6 +644,8 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.HasIndex("RemoteLevel");
 
                     b.HasIndex("RequiredGerman");
+
+                    b.HasIndex("RuleRankScore");
 
                     b.HasIndex("Source", "ExternalId")
                         .IsUnique();

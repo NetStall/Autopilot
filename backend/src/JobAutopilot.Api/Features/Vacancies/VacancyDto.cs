@@ -33,6 +33,7 @@ public sealed record VacancyDto(
     bool? GoldLabel = null,
     string? RemoteNote = null,
     int? AiScore = null,
+    int? RuleRankScore = null,
     Core.Extraction.AiFitScore? AiFitScore = null);
 
 /// <summary>The model's extraction for the current description (detail view only), step 07a.</summary>

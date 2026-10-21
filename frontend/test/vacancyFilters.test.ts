@@ -43,7 +43,7 @@ describe('filtersFromQuery', () => {
   it('returns the defaults for an empty query', () => {
     expect(filtersFromQuery({})).toEqual(DEFAULT_FILTERS)
     expect(DEFAULT_FILTERS.relevance).toEqual(['Relevant', 'Maybe'])
-    expect(DEFAULT_FILTERS.sort).toBe('relevance')
+    expect(DEFAULT_FILTERS.sort).toBe('combined')
   })
 
   it('reads every filter from the URL', () => {
@@ -83,7 +83,7 @@ describe('filtersFromQuery', () => {
 
     expect(filters.employerTypes).toEqual(['Agency'])
     expect(filters.status).toBe('all')
-    expect(filters.sort).toBe('relevance')
+    expect(filters.sort).toBe('combined')
     expect(filters.page).toBe(1)
     expect(filters.relevance).toEqual(['Maybe'])
     expect(filters.remote).toBe('any')
@@ -268,7 +268,7 @@ describe('filtersToApiParams', () => {
 
   it('sends paging, sort by relevance and the default levels for the defaults', () => {
     expect(filtersToApiParams(defaults(), 20))
-      .toEqual({ sort: 'relevance', relevance: ['Relevant', 'Maybe'], page: 1, pageSize: 20 })
+      .toEqual({ sort: 'combined', relevance: ['Relevant', 'Maybe'], page: 1, pageSize: 20 })
   })
 })
 
@@ -397,5 +397,21 @@ describe('score filters', () => {
     expect(totalLabel(1, 1, null)).toBe('1 Stelle')
     expect(totalLabel(20, 258, 20)).toBe('Top 20 von 258')
     expect(totalLabel(7, 7, 20)).toBe('Top 7 von 7')
+  })
+})
+
+describe('sort modes (07c)', () => {
+  it('reads rules and ai, and the older relevance as combined', () => {
+    expect(filtersFromQuery({ sort: 'rules' }).sort).toBe('rules')
+    expect(filtersFromQuery({ sort: 'ai' }).sort).toBe('ai')
+    expect(filtersFromQuery({ sort: 'relevance' }).sort).toBe('combined')
+  })
+
+  it('keeps a non-default mode in the URL and sends it to the API', () => {
+    const filters = { ...defaultFilters(), sort: 'ai' as const }
+
+    expect(filtersToQuery(filters).sort).toBe('ai')
+    expect(filtersToQuery(defaultFilters()).sort).toBeUndefined()
+    expect(filtersToApiParams(filters, 20).sort).toBe('ai')
   })
 })

@@ -104,7 +104,7 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
       </p>
       <div v-if="reasonsOpen" :id="reasonsId" class="card__reasons">
         <p v-if="scoreLine(vacancy.relevanceScore, vacancy.rankScore)" class="card__score-line">
-          {{ scoreLine(vacancy.relevanceScore, vacancy.rankScore, vacancy.aiScore) }}
+          {{ scoreLine(vacancy.relevanceScore, vacancy.rankScore, vacancy.aiScore, vacancy.ruleRankScore) }}
         </p>
         <VacancyReasons :reasons="vacancy.relevanceReasons" />
       </div>

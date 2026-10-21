@@ -77,7 +77,7 @@ Cache of requirement extractions — one row per text, model and prompt version 
 
 Cache of the „KI-Bewertung": one row per description hash, profile hash, model and prompt version (unique). The
 columns are `Status`, `ResultJson` (score, verdict, reasons, blockers), `Error`, tokens and duration. On the vacancy,
-`AiScore`, `AiScoreKey` and `AiScoreJson` hold the current one.
+`AiScore`, `AiScoreKey` and `AiScoreJson` hold the current one. `RuleRankScore` (07c) is the rank without any AI input (no extraction, remote level from the rules) for the sort „Nur Regeln" and the evaluation; indexes on `RuleRankScore` and `AiScore`.
 
 ## GoldLabels (step 07a)
 

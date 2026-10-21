@@ -36,7 +36,10 @@ public static class VacancyQueryExtensions
 
         if (filter.MinScore is > 0 and var minScore)
         {
-            query = query.Where(v => (v.RankScore ?? v.RelevanceScore) >= minScore);
+            // „Nur Regeln" filters by the rule rank; the other modes by the combined one (unscored ones stay in „Nur KI").
+            query = filter.Sort == VacancySort.Rules
+                ? query.Where(v => (v.RuleRankScore ?? v.RankScore ?? v.RelevanceScore) >= minScore)
+                : query.Where(v => (v.RankScore ?? v.RelevanceScore) >= minScore);
         }
 
         if (filter.RequiredGerman is { Count: > 0 } german)
@@ -130,6 +133,21 @@ public static class VacancyQueryExtensions
                 : 3)
             .ThenBy(v => v.PublishedAt == null)
             .ThenByDescending(v => v.PublishedAt)
+            .ThenByDescending(v => v.FetchedAt)
+            .ThenByDescending(v => v.Id),
+        VacancySort.Rules => query
+            .OrderBy(v => v.RelevanceScore == null)
+            .ThenByDescending(v => v.RuleRankScore ?? v.RankScore ?? v.RelevanceScore)
+            .ThenBy(v => v.EmployerType == EmployerType.Direct ? 0
+                : v.EmployerType == EmployerType.Unknown ? 1
+                : v.EmployerType == EmployerType.Agency ? 2
+                : 3)
+            .ThenByDescending(v => v.FetchedAt)
+            .ThenByDescending(v => v.Id),
+        VacancySort.Ai => query
+            .OrderBy(v => v.AiScore == null)
+            .ThenByDescending(v => v.AiScore)
+            .ThenByDescending(v => v.RankScore ?? v.RelevanceScore)
             .ThenByDescending(v => v.FetchedAt)
             .ThenByDescending(v => v.Id),
         VacancySort.Fetched => query

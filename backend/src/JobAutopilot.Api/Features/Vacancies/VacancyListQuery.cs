@@ -172,9 +172,9 @@ public sealed class VacancyListQuery : IValidatableObject
                 [nameof(Search)]);
         }
 
-        if (Sort is not null && !TryParseEnum<VacancySort>(Sort, out _))
+        if (Sort is not null && SortOf(Sort) is null)
         {
-            yield return new ValidationResult("Sort must be 'relevance', 'published' or 'fetched'.", [nameof(Sort)]);
+            yield return new ValidationResult("Sort must be 'combined', 'rules', 'ai', 'published' or 'fetched'.", [nameof(Sort)]);
         }
     }
 
@@ -187,7 +187,7 @@ public sealed class VacancyListQuery : IValidatableObject
             : null,
         Seen,
         Source is { Length: > 0 } ? Source.Select(Parse<VacancySource>).Distinct().ToList() : null,
-        Sort is null ? VacancySort.Relevance : Parse<VacancySort>(Sort),
+        Sort is null ? VacancySort.Relevance : SortOf(Sort)!.Value,
         Remote is { Length: > 0 } ? Remote.Select(Parse<RemoteLevel>).Distinct().ToList() : null,
         Search is { Length: > 0 } ? Search.Select(n => n.Trim()).Distinct(StringComparer.Ordinal).ToList() : null,
         Interest is { Length: > 0 } ? Interest.Select(Parse<VacancyInterest>).Distinct().ToList() : null,
@@ -196,6 +196,12 @@ public sealed class VacancyListQuery : IValidatableObject
         Relevance is { Length: > 0 } ? Relevance.Select(Parse<RelevanceLevel>).Distinct().ToList() : null,
         MinScore: MinScore,
         RequiredGerman: German is { Length: > 0 } ? Split(German).Select(Parse<RequiredGerman>).Distinct().ToList() : null);
+
+    /// <summary>„combined" is the rank sort (also as „relevance": older links and saved filters).</summary>
+    private static VacancySort? SortOf(string value) =>
+        string.Equals(value, "combined", StringComparison.OrdinalIgnoreCase) ? VacancySort.Relevance
+        : TryParseEnum<VacancySort>(value, out var sort) ? sort
+        : null;
 
     /// <summary>Repeated and comma-separated values alike.</summary>
     private static IEnumerable<string> Split(string[]? values) =>

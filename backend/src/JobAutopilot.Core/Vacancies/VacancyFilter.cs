@@ -32,8 +32,14 @@ public sealed record VacancyFilter(
 
 public enum VacancySort
 {
-    /// <summary>Highest relevance score first; at the same score direct employers before agencies, then newest.</summary>
+    /// <summary>„Kombiniert": highest rank first; at the same score direct employers before agencies, then newest.</summary>
     Relevance,
+
+    /// <summary>„Nur Regeln": the rank without any AI input (<see cref="Vacancy.RuleRankScore"/>).</summary>
+    Rules,
+
+    /// <summary>„Nur KI": the „KI-Bewertung" first, vacancies without one at the end (by rank).</summary>
+    Ai,
 
     /// <summary>Newest publication first; vacancies without a publication date last.</summary>
     Published,
