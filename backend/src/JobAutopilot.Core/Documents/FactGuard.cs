@@ -357,7 +357,7 @@ public static partial class FactGuard
     private static partial Regex ThousandsPattern();
 
     /// <summary>A sentence that is honest about a gap or about learning („Ganz offen", „noch nicht", „not yet").</summary>
-    [GeneratedRegex(@"ganz offen|offen gesagt|ehrlich|noch nicht|noch keine|keine (praktische |berufliche |produktive )?Erfahrung|bisher (nur|keine|nicht)|nicht produktiv|nur in der Theorie|lerne|einarbeiten|einzuarbeiten|kenne ich (bisher )?nur|Lücke|not yet|no (hands-on |professional |production )?experience|haven't|have not|only in theory|learning|to be honest|honestly",
+    [GeneratedRegex(@"ganz offen|offen gesagt|ehrlich|noch nicht|noch keine|habe ich (noch )?(nicht|keine)|nicht gearbeitet|keine (praktische |berufliche |produktive )?Erfahrung|bisher (nur|keine|nicht)|nicht produktiv|nur in der Theorie|lerne|einarbeiten|einzuarbeiten|kenne ich (bisher )?nur|Lücke|not yet|no (hands-on |professional |production )?experience|haven't|have not|only in theory|learning|to be honest|honestly",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex HonestMarker();
 

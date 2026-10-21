@@ -74,6 +74,14 @@ public class FactGuardTests
         warnings.Should().NotContain(w => w.Code == DraftWarning.InventedTechnology, "a gap phrased honestly is what the letter should do");
     }
 
+    [Fact]
+    public void A_plain_no_experience_sentence_is_honest()
+    {
+        // Second real run (Bonisoft, 06c).
+        Check(WithParagraph(2, "Erfahrung mit Kubernetes habe ich nicht."))
+            .Should().NotContain(w => w.Code == DraftWarning.InventedTechnology);
+    }
+
     [Theory]
     [InlineData("Mein Deutsch liegt auf B1 (DTZ im Oktober 2026), ein B2-Kurs ist geplant.", false)]
     [InlineData("Im Arbeitsalltag nutze ich Englisch auf B2.", false)]
