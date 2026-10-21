@@ -44,6 +44,32 @@ personal data and postings on the machine. The app must keep working without it.
   - The header shows „Bewertet: N / 30".
   - `scripts/seed-gold-labels.ps1` sets the eight labels given in chat.
 
+## Revision 07a2 — extraction quality
+
+Meierhofer (my label „Passt") fell to rank 45 with `qwen3:8b` + `extraction.v1`:
+- almost everything was a must-have, partly in both lists;
+- the company's industry („Healthcare") became a required domain;
+- „Senior, 5 Jahre" was inferred.
+
+The changes:
+- **`extraction.v2`** is the default (`Llm:Extraction:PromptVersion`), and v1 stays embedded. The rules: must-have
+  only when marked as required, one list per item, only concrete items, domains only with required experience,
+  years only from a stated number.
+- **`ExtractionGuards`** check every answer against the text, so a model that over-reads cannot undo the rules:
+  - an item in both lists stays a must-have only with a requirements section or marker;
+  - a domain stays only when a sentence naming it asks for experience;
+  - `minYears` stays only when a number of years is stated.
+- **`ExtractionNormalizer`** maps free wording to my testing and CI skills (generic aliases included) and drops
+  generic practices.
+- **Methods:** missing DDD/CQRS/Event Sourcing/TDD/BDD cost like a plus, together at most `Fit:MethodsGapMax` (6),
+  unless their line marks them as required.
+- With an extraction, years come only from `minYears` — never from „Senior".
+- **Thinking off** for the extraction (`reasoning_effort: none`, `Llm:Extraction:Thinking`).
+- **Himalayas „Remote (…)"** is FullRemote; „hybrid setup" in the perks no longer downgrades it, only „vor Ort" does.
+- Real profile:
+  - Meierhofer 45 → 65;
+  - Apaleo 63 → 29 (5 years stated; Kafka, AWS, Kubernetes required).
+
 ## Consequences
 
 - Without Ollama nothing changes: no calls, no queue, rules everywhere (tested with a fake client).

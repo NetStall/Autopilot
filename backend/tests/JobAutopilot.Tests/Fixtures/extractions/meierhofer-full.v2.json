@@ -1,0 +1,36 @@
+{
+  "mustHave": [
+    "C#",
+    ".NET",
+    "Vue.js",
+    "HTML",
+    "CSS",
+    "JavaScript oder TypeScript",
+    "DDD",
+    "CQRS",
+    "SQL Server",
+    "REST",
+    "CI/CD",
+    "Docker",
+    "Unit Tests"
+  ],
+  "niceToHave": [
+    "Event Sourcing",
+    "OpenTelemetry",
+    "GitHub Copilot oder Claude Code",
+    "Azure DevOps",
+    "Kubernetes",
+    "TDD",
+    "Code Reviews",
+    "Scrum oder Kanban"
+  ],
+  "germanLevel": "C1",
+  "englishLevel": "unknown",
+  "minYears": null,
+  "seniority": "unknown",
+  "remoteLevel": "hybrid",
+  "homeOfficePercent": 60,
+  "employmentType": "fullTime",
+  "domainRequirements": [],
+  "summary": "Fullstack-Entwicklung mit C#/.NET und Vue.js für eine Healthcare-Plattform. Gefragt sind DDD, CQRS, SQL Server, CI/CD und Testautomatisierung."
+}

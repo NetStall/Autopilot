@@ -80,6 +80,25 @@ internal static class RealWorldFixtures
         return vacancy;
     }
 
+    /// <summary>
+    /// Scores a fixture with a model answer from <c>Fixtures/extractions/{name}.{version}.json</c>: a raw answer goes
+    /// through validation and the guards like in production; the v1 file holds the stored result of a real run.
+    /// </summary>
+    public static (Vacancy Vacancy, Core.Extraction.RequirementExtraction Extraction) ScoredWithExtraction(string name, string version)
+    {
+        var (vacancy, hint) = Load(name);
+        var json = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "extractions", $"{name}.{version}.json"));
+        var extraction = version == "v1"
+            ? Core.Extraction.StoredExtraction.DeserializeResult(json)!
+            : Core.Extraction.ExtractionGuards.Apply(
+                Core.Extraction.ExtractionValidator.Parse(json).Result ?? throw new InvalidOperationException($"{name}.{version}: invalid answer"),
+                vacancy.Description!);
+        vacancy.ExtractionJson = new Core.Extraction.StoredExtraction(
+            extraction, Core.Extraction.ExtractionKey.HashOf(vacancy.Description!), "qwen3:8b", $"extraction.{version}", DateTimeOffset.UnixEpoch).ToJson();
+        Enricher().Apply(vacancy, hint);
+        return (vacancy, extraction);
+    }
+
     private sealed class FixedProfileSource(CandidateProfile profile) : ICandidateProfileSource
     {
         public ProfileSnapshot Current { get; } = new(ProfileStatus.Loaded, profile, [], [], "regression-profile.json", null, 1);

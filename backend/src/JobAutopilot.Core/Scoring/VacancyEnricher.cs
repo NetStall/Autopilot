@@ -23,9 +23,18 @@ public sealed class VacancyEnricher(
         ArgumentNullException.ThrowIfNull(vacancy);
 
         vacancy.DuplicateKey = DuplicateKeys.For(vacancy.Company, vacancy.Title);
+        // Himalayas lists remote jobs for a country („Remote (Deutschland)"): remote, not hybrid (07a2).
+        if (vacancy.Source == VacancySource.Himalayas && vacancy.Location?.StartsWith("Remote", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            remoteHint = RemoteLevel.FullRemote;
+        }
+
         vacancy.RaiseRemoteHint(remoteHint);
         var remote = remoteClassifier.Classify(vacancy.Title, vacancy.Description);
-        vacancy.RemoteLevel = CombineRemote(remote.Level, vacancy.RemoteHint);
+        vacancy.RemoteLevel = vacancy.Source == VacancySource.Himalayas && vacancy.RemoteHint == RemoteLevel.FullRemote && remote.Level == RemoteLevel.Hybrid
+            // „work from home, the office or in a hybrid setup" is an offer, not a restriction; only „vor Ort" downgrades.
+            ? RemoteLevel.FullRemote
+            : CombineRemote(remote.Level, vacancy.RemoteHint);
 
         // Himalayas lists the hiring company itself: direct unless agency signals say otherwise.
         if (employerHint == EmployerType.Unknown && vacancy.Source == VacancySource.Himalayas)
@@ -147,6 +156,7 @@ public sealed class VacancyEnricher(
 
         return level switch
         {
+            RemoteLevel.FullRemote when found.Level == RemoteLevel.Hybrid => $"Voll remote laut Quelle ({found.Reason} ist nur ein Angebot)",
             RemoteLevel.FullRemote => "Voll remote laut Quelle",
             RemoteLevel.Hybrid => "Homeoffice möglich (Remote-Suche bzw. Angabe der Quelle)",
             _ => null,

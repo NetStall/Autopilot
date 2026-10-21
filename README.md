@@ -500,6 +500,11 @@ postings stay on the PC.
 | `Providers:Ollama:TimeoutSeconds` / `MaxRetries` | 180 / 1 | per attempt; 429/5xx/connection errors are retried |
 | `Extraction:AutoAfterImport` | `true` | analyse new/changed vacancies after each import (only when Ollama is on) |
 | `Extraction:MaxPerRun` | 500 | vacancies per background run, most relevant first |
+| `Extraction:PromptVersion` | `extraction.v2` | `extraction.v1` stays for comparison; part of the cache key |
+| `Extraction:Thinking` | `false` | `reasoning_effort: none` — a thinking model answers directly (much faster) |
+
+Switch the extraction model in Docker with one line in `.env`: `Llm__Tasks__Extraction=ollama:qwen3.5:9b`. Everything
+after the first colon is the model with its tag, so `ollama:qwen3:14b` works too.
 
 **Requirement extraction.** With Ollama on, every vacancy with a description gets its requirements read by the model
 in the background, one at a time and most relevant first. The model reads must-have and nice-to-have, German and
@@ -509,7 +514,10 @@ one vacancy right away. Statistik → „KI-Analyse" starts or cancels a full ru
 
 - The result is cached per text, model and prompt version, so nothing is sent twice.
 - An invalid answer is retried once, then the rules stay in charge.
-- A required domain I don't have („Broadcast/MAM") is a must-have gap.
+- A required domain I don't have („Broadcast/MAM") is a must-have gap. The company's industry is not one.
+- `extraction.v2` and the guards behind it: must-have only when the text marks it as required, one list per item,
+  only concrete items (generic practices dropped; „automatisierte Qualitätssicherung" → my testing skill), years only
+  from a stated number. Missing methods (DDD, CQRS, Event Sourcing …) cost like a plus and share a cap of 6.
 - Decision: [ADR 0014](docs/decisions/0014-local-llm-extraction.md).
 
 **Gold labels.** On the detail page, „Passt" / „Passt nicht" (keys `p` / `n`; press again to remove) store my own

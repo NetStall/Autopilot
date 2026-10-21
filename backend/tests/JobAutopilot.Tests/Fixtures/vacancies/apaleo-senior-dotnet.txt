@@ -1,0 +1,90 @@
+title: Senior Software Engineer (.NET) (f/m/d)
+company: Apaleo
+location: Remote (Deutschland)
+source: Himalayas
+remoteHint: FullRemote
+---
+Join Apaleo and Shape the Future of Hospitality Tech!
+
+Apaleo is the world’s most open, API-first property management platform powering the next generation of hospitality operations. Its modular, AI-powered infrastructure enables hoteliers to customise their tech stack, automate routine work, and deliver seamless, personalised guest experiences, powered by best-in-class apps and autonomous AI agents that adapt to every stay.
+
+If you’re driven by the idea of making hospitality smarter, more human, and powered by cutting-edge technology, we’d love to hear from you.
+
+What You’ll Be Up To:
+
+- Implementing Core services for the platform in .NET 10 that runs in Docker containers;
+
+- Developing features from DB to the APIs;
+
+- Ensuring the platform remains scalable and the codebase remains maintainable;
+
+- Proactively monitoring the services in production and spotting potential issues;
+
+- Care about the quality of produced code by covering it with unit and e2e tests;
+
+- You will be a part of an exciting, open, and agile team, where your voice matters and has a company-wide impact.
+
+What You’ll Bring to the Team:
+
+- You have a degree in Computer Science or a related technical field, or equivalent practical experience;
+
+- You bring at least 5 years of experience working in software engineering with relevant programming experience;
+
+- Proficient in .NET backend development, including technologies such as Kafka (or equivalents), AWS, Docker, ECS/Kubernetes, and PostgreSQL.
+
+- Experience using AI-assisted coding tools (e.g., GitHub Copilot, Cursor AI, Claude Code) to accelerate development, troubleshoot code, and generate documentation;
+
+- A growth mindset toward continuously exploring new AI technologies that can positively impact our engineering culture and delivery pipeline.
+
+-
+Nice to have: Experience applying Kafka for real-time processing, leveraging AWS/Docker for DevOps workflows, or performing PostgreSQL optimizations.
+
+- You know how to break down large epics into smaller issues;
+
+- You worked with the concepts of IaaS/ PaaS/ SaaS;
+
+- You worked extensively with microservices-based architecture and used asynchronous message-based communication;
+
+- You communicate fluently in English; German and any other languages are always welcomed;
+
+What We Offer
+
+Culture & Growth
+
+-
+A Diverse & International Team: Work alongside passionate professionals from over 20 nationalities, bringing unique cultural perspectives, backgrounds, and experiences to shape the future of hospitality tech.
+
+-
+Growth & Development: As we scale, so do your opportunities. You’ll benefit from 360° feedback reviews, a dedicated learning budget, and plenty of chances to take on more responsibility. Our evolving career framework ensures you have increasing opportunities to learn new skills, advance your career, and make an impact.
+
+-
+Autonomy & Ownership: Great ideas can come from anywhere. We empower you to take responsibility, make decisions, and contribute directly in an environment built on trust, transparency, and collaboration.
+
+-
+Shape the Future of Hospitality Tech: Be part of a fast-growing scale-up transforming the hospitality industry. From day one, your work drives real impact and you’ll have the freedom to bring your ideas to life.
+
+-
+Competitive & Fair Compensation: We believe great work deserves great pay. Our salaries are competitive and guided by benchmarking data to ensure fairness across all roles and teams. We make sure to recognize and reward performance and contribution.
+
+Perks & Lifestyle
+
+-
+Flexible & Remote Work Options: We focus on results, not clocking hours. You can work from home, the office or in a hybrid setup, with flexibility to adapt your schedule as long as it makes sense for your role, your team and our business.
+
+-
+Free Public Transport: Travel across Germany with ease using our fully covered Deutschland Ticket.
+
+-
+Team Connection: Strong connections fuel collaboration. We celebrate and connect through regular team dinners, company meetups, Oktoberfest celebrations, Christmas parties, and other offsite events.
+
+-
+Paid Time Off: Enjoy 30 days of vacation to fully disconnect, recharge, and return inspired.
+
+-
+Health & Wellbeing: Prioritize your health with access to hundreds of gyms, fitness studios, and wellness options through our EGYM Wellpass membership.
+
+How you make an impact joining Apaleo:Joining Apaleo means more than just taking on a role, it’s about driving real change in the hospitality industry. Your contributions will directly shape our innovative platform, influence company-wide decisions, and help redefine the future of hospitality tech. At Apaleo, your voice matters, your ideas are valued, and your impact is tangible. Be part of a team where your work fuels progress, collaboration sparks innovation, and growth is a shared journey.
+
+We are proud to be an Equal Opportunity and Affirmative Action Employer, committed to fostering a diverse, inclusive, and welcoming workplace. We encourage applications from individuals of all backgrounds, regardless of race, color, religion, gender identity or expression, sex, national origin, age, marital status, disability, or any other characteristic protected by applicable law. Your personal data will be handled with the utmost care and in compliance with GDPR and relevant data protection regulations. We celebrate differences and believe that diversity enriches our team and drives innovation.
+
+Originally posted on Himalayas

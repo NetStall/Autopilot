@@ -1,0 +1,40 @@
+{
+  "mustHave": [
+    ".NET",
+    "Vue.js",
+    "C#",
+    "SQL Server",
+    "REST APIs",
+    "CI/CD",
+    "Containerisierung",
+    "Cloud- und DevOps-Praktiken",
+    "Domain-Driven Design",
+    "CQRS",
+    "Event Sourcing",
+    "TDD",
+    "Unit Tests",
+    "Code Reviews",
+    "automatisierte Qualitätssicherung",
+    "Azure DevOps",
+    "Docker",
+    "Kubernetes",
+    "OpenTelemetry"
+  ],
+  "niceToHave": [
+    "OpenTelemetry",
+    "GitHub Copilot",
+    "Claude Code"
+  ],
+  "germanLevel": "C1",
+  "germanNotRequired": false,
+  "englishLevel": null,
+  "minYears": null,
+  "seniority": "Senior",
+  "remoteLevel": "Hybrid",
+  "homeOfficePercent": 60,
+  "employmentType": "FullTime",
+  "domainRequirements": [
+    "Healthcare"
+  ],
+  "summary": "Als Software Engineer Fullstack (m/w/d) entwickelst du moderne Webanwendungen mit C#/.NET und Vue.js für die digitale Patientenversorgung. Du gestaltest die technische Weiterentwicklung unserer Plattform mit Domain-Driven Design und CQRS. Du bringst Erfahrung mit SQL Server, CI/CD und Cloud-Praktiken sowie ein hohes Qualitätsbewusstsein mit. Du arbeitest hybrid mit bis zu 3 Tagen Home Office und hast sehr gute Deutschkenntnisse."
+}

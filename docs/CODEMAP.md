@@ -110,15 +110,17 @@ MaxRetries, DailyCallLimit, DraftTokenBudget, prices, MaxVacancyCharacters; ApiK
 | Feature | Files | Key symbols | API | Tests |
 |---|---|---|---|---|
 | Ollama provider + status | `Infra/Llm/OllamaLlmClient.cs` (`OllamaOptions`), `Api/Features/Llm/LlmEndpoints.cs` | `CompleteJsonAsync`, `GetStatusAsync` | `GET /api/llm/status` | `Unit/Llm/OllamaLlmClientTests.cs`, `Integration/HealthEndpointTests.cs` |
-| Extraction model + validation | `Core/Extraction/RequirementExtraction.cs` (`StoredExtraction`, `ExtractionKey`, `ExtractionValidator`), `ExtractionNormalizer.cs`, `VacancyExtraction.cs` | `ExtractionValidator.Parse`, `ExtractionNormalizer.Resolve` | — | `Unit/Llm/ExtractionTests.cs` |
-| Extraction service + prompt | `Infra/Llm/VacancyExtractionService.cs`, `ExtractionPrompt.cs`, `Infra/Llm/Prompts/extraction.v1.md` | `ExtractAsync`, `PendingAsync` | — | `Integration/ExtractionApiTests.cs` |
+| Extraction model + validation | `Core/Extraction/RequirementExtraction.cs` (`StoredExtraction`, `ExtractionKey`, `ExtractionValidator`), `ExtractionGuards.cs` (text has the last word), `ExtractionNormalizer.cs` (skills, catalog, testing/CI concepts, methods), `VacancyExtraction.cs` | `ExtractionValidator.Parse`, `ExtractionGuards.Apply`, `ExtractionNormalizer.Resolve` | — | `Unit/Llm/ExtractionTests.cs`, `ExtractionQualityTests.cs` |
+| Extraction service + prompts | `Infra/Llm/VacancyExtractionService.cs`, `ExtractionPrompt.cs` (`For(version)`), `Infra/Llm/Prompts/extraction.v1.md`, `extraction.v2.md` (default) | `ExtractAsync`, `PendingAsync` | — | `Integration/ExtractionApiTests.cs` |
+| Extraction regression | `Tests/Unit/Scoring/RankingRegressionTests.cs` (`RealWorldFixtures.ScoredWithExtraction`), `Tests/Fixtures/extractions/*.json` | — | — | itself |
 | Background run | `Api/Features/Extraction/ExtractionWorker.cs`, `ExtractionCoordinator.cs`; trigger in `ImportWorker` | `RequestBackfill`, `RequestVacancy`, `Cancel` | `GET/POST /api/extractions`, `DELETE /api/extractions/current`, `POST /api/vacancies/{id}/extract` | `Integration/ExtractionApiTests.cs` |
 | Fit check with extraction | `Core/Fit/FitAnalyzer.cs` (`FitInput.Extraction`, `FitSource`), `Core/Fit/VacancyFitService.cs`, `Core/Scoring/VacancyEnricher.cs` | `AddExtracted`, `ExtractedYears` | `GET /api/vacancies/{id}/fit` (`source`) | `Unit/Llm/ExtractionTests.cs` |
 | Gold labels | `Core/Extraction/VacancyExtraction.cs` (`GoldLabel`), `Api/Features/Extraction/ExtractionEndpoints.cs`, `scripts/seed-gold-labels.ps1` | `SetLabel`, `GetLabelSummary` | `PUT/DELETE /api/vacancies/{id}/label`, `GET /api/labels/summary` | `Integration/ExtractionApiTests.cs` |
 | UI | `fe/app/components/VacancyRequirements.vue`, `GoldLabelButtons.vue`, `ExtractionPanel.vue` (Statistik), `AppHeader.vue` (counter), `composables/useLabelSummary.ts`, `types/extraction.ts` | — | — | `fe/test/nuxt/goldLabelAndRequirements.test.ts` |
 
 Config: `Llm:Tasks:Extraction`, `Llm:Providers:Ollama` (Enabled, BaseUrl, TimeoutSeconds, MaxRetries, Temperature),
-`Llm:Extraction` (AutoAfterImport, MaxPerRun, MaxDescriptionCharacters). Docker: `OLLAMA_ENABLED` in `.env`.
+`Llm:Extraction` (AutoAfterImport, MaxPerRun, MaxDescriptionCharacters, PromptVersion, Thinking), `Fit:MethodsGapMax`.
+Docker: `OLLAMA_ENABLED`, `Llm__Tasks__Extraction` in `.env`.
 
 ## Background jobs, scheduler, locks
 

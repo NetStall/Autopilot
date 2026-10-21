@@ -29,7 +29,8 @@ public sealed record FitRequirement(
     FitCoverage Coverage,
     bool Optional,
     string Note,
-    RequirementImportance Importance = RequirementImportance.Required);
+    RequirementImportance Importance = RequirementImportance.Required,
+    bool Method = false);
 
 /// <summary>Years of experience a posting asks for; <see cref="Strong"/> = more than „Senior" in the title alone.</summary>
 public sealed record ExperienceRequirement(int Years, string Phrase, bool Strong);
@@ -174,11 +175,11 @@ public sealed partial class FitAnalyzer(FitOptions options)
         }
         else
         {
-            AddExtracted(profile, extraction, requirements);
+            AddExtracted(profile, extraction, sentences, requirements);
         }
 
         var penalties = settings.Penalties;
-        AddGapWarnings(requirements, penalties, warnings);
+        AddGapWarnings(requirements, penalties, options.MethodsGapMax, warnings);
 
         var german = GermanRequirementDetector.Detect(title, description);
         var (germanLevel, germanPhrase) = extraction switch
@@ -195,7 +196,8 @@ public sealed partial class FitAnalyzer(FitOptions options)
                 steps * penalties.GermanPerLevel));
         }
 
-        var years = (extraction is not null ? ExtractedYears(extraction) : null) ?? RequiredYears(title, sentences);
+        // With an extraction only a stated number of years counts — never years derived from „Senior" (07a2).
+        var years = extraction is not null ? ExtractedYears(extraction) : RequiredYears(title, sentences);
         var myYears = ProfileValidator.ExperienceMonths(profile, today) / 12.0;
         if (years is { } needed && needed.Years > myYears)
         {
@@ -238,11 +240,22 @@ public sealed partial class FitAnalyzer(FitOptions options)
             extraction is null ? FitSource.Rules : FitSource.Ai);
     }
 
-    /// <summary>The extracted requirements, resolved to my skills and the catalog, with the coverage of my level.</summary>
-    private static void AddExtracted(CandidateProfile profile, RequirementExtraction extraction, List<FitRequirement> requirements)
+    /// <summary>
+    /// The extracted requirements, resolved to my skills and the catalog, with the coverage of my level. A missing method
+    /// (DDD, CQRS …) is nice to have unless its line marks it as required („zwingend", „(Pflicht)").
+    /// </summary>
+    private void AddExtracted(
+        CandidateProfile profile, RequirementExtraction extraction, IReadOnlyList<(int Start, string Text)> sentences, List<FitRequirement> requirements)
     {
-        foreach (var resolved in ExtractionNormalizer.Resolve(extraction, profile))
+        foreach (var found in ExtractionNormalizer.Resolve(extraction, profile))
         {
+            var resolved = found;
+            if (resolved.Method && resolved.Importance > RequirementImportance.NiceToHave
+                && !sentences.Any(s => new TermMatcher([resolved.Name]).FindFirst(s.Text) is not null && _mustHaveMarkers.FindFirst(s.Text) is not null))
+            {
+                resolved = resolved with { Importance = RequirementImportance.NiceToHave };
+            }
+
             var names = resolved.Skill?.AllNames() ?? [resolved.Name];
             var gap = GapFor(profile, names);
             var (coverage, note) = resolved.Skill?.Level switch
@@ -253,19 +266,16 @@ public sealed partial class FitAnalyzer(FitOptions options)
                 SkillLevel.None => (FitCoverage.Gap, gap?.De ?? "keine Erfahrung"),
                 _ => (FitCoverage.Gap, gap?.De ?? (resolved.Domain ? "Fachgebiet nicht im Profil" : "nicht im Profil")),
             };
-            requirements.Add(new FitRequirement(resolved.Name, coverage, resolved.Importance <= RequirementImportance.NiceToHave, note, resolved.Importance));
+            requirements.Add(new FitRequirement(
+                resolved.Name, coverage, resolved.Importance <= RequirementImportance.NiceToHave, note, resolved.Importance, resolved.Method && resolved.Skill is null));
         }
     }
 
-    /// <summary>Years from the extraction: the minimum asked for, or Senior/Lead as seniority (strong from 5 years or Lead).</summary>
-    private static ExperienceRequirement? ExtractedYears(RequirementExtraction extraction) => extraction switch
-    {
-        { MinYears: { } years } => new ExperienceRequirement(years, $"laut KI mindestens {years.ToString(CultureInfo.InvariantCulture)} Jahre",
-            years >= 5 || extraction.Seniority == Seniority.Lead),
-        { Seniority: Seniority.Lead } => new ExperienceRequirement(5, "laut KI Lead-Rolle", Strong: true),
-        { Seniority: Seniority.Senior } => new ExperienceRequirement(5, "laut KI Senior-Rolle", Strong: false),
-        _ => null,
-    };
+    /// <summary>Years from the extraction: only the stated minimum (strong from 5 years).</summary>
+    private static ExperienceRequirement? ExtractedYears(RequirementExtraction extraction) =>
+        extraction.MinYears is { } years
+            ? new ExperienceRequirement(years, $"laut KI mindestens {years.ToString(CultureInfo.InvariantCulture)} Jahre", years >= 5)
+            : null;
 
     /// <summary>
     /// Technologies of the dictionary the profile does not list at all: a gap wherever they are asked for — not when
@@ -311,8 +321,17 @@ public sealed partial class FitAnalyzer(FitOptions options)
     /// Gap penalties by importance: must-have gaps up to <c>MustHaveGapMax</c>, all others sharing
     /// <c>RequiredGapMax</c> (most important first).
     /// </summary>
-    private static void AddGapWarnings(List<FitRequirement> requirements, SearchPenalties penalties, List<FitWarning> warnings)
+    private static void AddGapWarnings(List<FitRequirement> requirements, SearchPenalties penalties, int methodsMax, List<FitWarning> warnings)
     {
+        // Methods (DDD, CQRS, Event Sourcing …) at nice-to-have level share one small cap, unless marked as required.
+        var methods = requirements.Where(r => r.Method && r.Coverage == FitCoverage.Gap && r.Importance == RequirementImportance.NiceToHave).ToList();
+        if (methods.Count > 0)
+        {
+            warnings.Add(new FitWarning(
+                $"Methoden, nicht im Profil: {string.Join(", ", methods.Select(r => r.Name))}",
+                Math.Min(methods.Count * penalties.NiceToHaveGap, Math.Max(methodsMax, 0))));
+        }
+
         var budget = penalties.RequiredGapMax;
         foreach (var (importance, perGap, label) in new[]
                  {
@@ -322,7 +341,7 @@ public sealed partial class FitAnalyzer(FitOptions options)
                      (RequirementImportance.NiceToHave, penalties.NiceToHaveGap, "Ein Plus, nicht im Profil"),
                  })
         {
-            var gaps = requirements.Where(r => r.Coverage == FitCoverage.Gap && r.Importance == importance).ToList();
+            var gaps = requirements.Where(r => r.Coverage == FitCoverage.Gap && r.Importance == importance && !methods.Contains(r)).ToList();
             if (gaps.Count == 0)
             {
                 continue;

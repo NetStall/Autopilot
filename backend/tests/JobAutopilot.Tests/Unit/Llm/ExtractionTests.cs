@@ -84,7 +84,7 @@ public class ExtractionTests
         resolved["DevExpress"].Skill.Should().BeNull("a catalog technology I don't have");
         resolved["Docker"].Importance.Should().Be(RequirementImportance.NiceToHave);
         resolved["Medizintechnik (MDR)"].Should().Match<ResolvedRequirement>(r => r.Domain && r.Importance == RequirementImportance.MustHave);
-        resolved.Should().ContainKey("Teamfähigkeit", "the prompt excludes soft skills; an unknown name stays visible as a gap");
+        resolved.Should().NotContainKey("Teamfähigkeit", "soft skills and generic practices are dropped (07a2)");
         resolved.Should().NotContainKey("CI/CD", "generic words are dropped");
     }
 

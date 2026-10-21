@@ -60,6 +60,17 @@ public sealed class OllamaLlmClientTests : IDisposable
         json["response_format"]!["type"]!.GetValue<string>().Should().Be("json_schema");
         json["response_format"]!["json_schema"]!["schema"]!["type"]!.GetValue<string>().Should().Be("object");
         json["messages"]!.AsArray().Select(m => m!["role"]!.GetValue<string>()).Should().Equal("system", "user");
+        json["reasoning_effort"].Should().BeNull("thinking is the model's default unless the request switches it off");
+    }
+
+    [Fact]
+    public async Task Thinking_off_sends_reasoning_effort_none()
+    {
+        _handler.Enqueue(HttpStatusCode.OK, Completion("{}"));
+
+        await Client().CompleteJsonAsync(Request with { Thinking = false }, "qwen3:8b", Token);
+
+        JsonNode.Parse(_handler.Requests.Single().Body)!["reasoning_effort"]!.GetValue<string>().Should().Be("none");
     }
 
     [Fact]

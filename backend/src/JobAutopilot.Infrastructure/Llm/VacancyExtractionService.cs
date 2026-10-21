@@ -23,6 +23,12 @@ public sealed class VacancyExtractionOptions
 
     /// <summary>Longer descriptions are cut (with „[…]") so prompt and answer fit the model's context.</summary>
     public int MaxDescriptionCharacters { get; set; } = 12000;
+
+    /// <summary>Prompt version (<c>extraction.v2</c>; <c>extraction.v1</c> for comparison). Part of the cache key.</summary>
+    public string PromptVersion { get; set; } = ExtractionPrompt.DefaultVersion;
+
+    /// <summary>Let a thinking model reason first. Off: faster and the schema-bound answer is as good for extraction.</summary>
+    public bool Thinking { get; set; }
 }
 
 public enum ExtractionOutcomeKind
@@ -62,16 +68,19 @@ public sealed partial class VacancyExtractionService(
 
     public string Model => llm.ModelFor(LlmOptions.ExtractionTask);
 
+    private ExtractionPrompt Prompt => ExtractionPrompt.For(options.Value.PromptVersion);
+
     /// <summary>Vacancies with a description whose extraction is missing or belongs to another text, model or prompt — most relevant first.</summary>
     public async Task<IReadOnlyList<Guid>> PendingAsync(int max, CancellationToken cancellationToken)
     {
         var model = Model;
+        var version = Prompt.Version;
         var candidates = await db.Vacancies.AsNoTracking()
             .Where(v => v.Description != null && v.Description != string.Empty)
             .Select(v => new { v.Id, v.Description, v.ExtractionKey, Rank = v.RankScore ?? v.RelevanceScore ?? 0, v.FetchedAt })
             .ToListAsync(cancellationToken);
         return [.. candidates
-            .Where(c => c.ExtractionKey != ExtractionKey.For(ExtractionKey.HashOf(c.Description!), model, ExtractionPrompt.Version))
+            .Where(c => c.ExtractionKey != ExtractionKey.For(ExtractionKey.HashOf(c.Description!), model, version))
             .OrderByDescending(c => c.Rank)
             .ThenByDescending(c => c.FetchedAt)
             .Take(max)
@@ -87,10 +96,11 @@ public sealed partial class VacancyExtractionService(
         }
 
         var model = Model;
+        var version = Prompt.Version;
         var hash = ExtractionKey.HashOf(vacancy.Description);
-        var key = ExtractionKey.For(hash, model, ExtractionPrompt.Version);
+        var key = ExtractionKey.For(hash, model, version);
         var cached = await db.VacancyExtractions.AsNoTracking()
-            .SingleOrDefaultAsync(e => e.DescriptionHash == hash && e.Model == model && e.PromptVersion == ExtractionPrompt.Version, cancellationToken);
+            .SingleOrDefaultAsync(e => e.DescriptionHash == hash && e.Model == model && e.PromptVersion == version, cancellationToken);
         if (cached is not null)
         {
             Apply(vacancy, cached, hash, key);
@@ -102,14 +112,14 @@ public sealed partial class VacancyExtractionService(
         db.VacancyExtractions.Add(entry);
         Apply(vacancy, entry, hash, key);
         await db.SaveChangesAsync(cancellationToken);
-        LogExtracted(logger, vacancy.Id, model, ExtractionPrompt.Version, entry.Status, entry.Attempts, entry.OutputTokens, entry.DurationMs);
+        LogExtracted(logger, vacancy.Id, model, version, entry.Status, entry.Attempts, entry.OutputTokens, entry.DurationMs);
         return new ExtractionOutcome(
             entry.Status == ExtractionStatus.Succeeded ? ExtractionOutcomeKind.Extracted : ExtractionOutcomeKind.Failed, entry.DurationMs, entry.OutputTokens);
     }
 
     private async Task<VacancyExtraction> CallAsync(Core.Vacancies.Vacancy vacancy, string hash, string model, CancellationToken cancellationToken)
     {
-        var prompt = ExtractionPrompt.Current;
+        var prompt = Prompt;
         var profile = profiles.Current.Usable;
         var knownNames = profile is null ? [.. Core.Fit.TechnologyCatalog.All.Select(t => t.Name)] : ExtractionNormalizer.KnownNames(profile);
         var first = prompt.ExtractMessage(vacancy.Title, vacancy.Company, vacancy.Description!, knownNames, options.Value.MaxDescriptionCharacters);
@@ -118,7 +128,7 @@ public sealed partial class VacancyExtractionService(
             Id = Guid.CreateVersion7(timeProvider.GetUtcNow()),
             DescriptionHash = hash,
             Model = model,
-            PromptVersion = ExtractionPrompt.Version,
+            PromptVersion = prompt.Version,
             CreatedAt = timeProvider.GetUtcNow(),
         };
 
@@ -132,7 +142,8 @@ public sealed partial class VacancyExtractionService(
             try
             {
                 var response = await llm.CompleteJsonAsync(
-                    new LlmRequest(LlmOptions.ExtractionTask, entry.Attempts == 1 ? "extract" : "extract-retry", ExtractionPrompt.Version, prompt.System, user, ExtractionPrompt.Schema),
+                    new LlmRequest(LlmOptions.ExtractionTask, entry.Attempts == 1 ? "extract" : "extract-retry", prompt.Version, prompt.System, user, ExtractionPrompt.Schema,
+                        Thinking: options.Value.Thinking),
                     cancellationToken);
                 entry.InputTokens += response.Usage.InputTokens;
                 entry.OutputTokens += response.Usage.OutputTokens;
@@ -148,8 +159,9 @@ public sealed partial class VacancyExtractionService(
             var (result, found) = ExtractionValidator.Parse(json);
             if (result is not null)
             {
+                // The text has the last word: one list per item, domains and years only when the posting says so (07a2).
                 entry.Status = ExtractionStatus.Succeeded;
-                entry.ResultJson = StoredExtraction.SerializeResult(result);
+                entry.ResultJson = StoredExtraction.SerializeResult(ExtractionGuards.Apply(result, vacancy.Description!));
                 entry.DurationMs = watch.ElapsedMilliseconds;
                 return entry;
             }

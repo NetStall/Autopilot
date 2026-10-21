@@ -1,0 +1,24 @@
+{
+  "mustHave": [
+    ".NET",
+    "Kafka",
+    "AWS",
+    "Docker",
+    "ECS oder Kubernetes",
+    "PostgreSQL",
+    "GitHub Copilot oder Claude Code"
+  ],
+  "niceToHave": [
+    "Kafka",
+    "Microservices"
+  ],
+  "germanLevel": "none",
+  "englishLevel": "C1",
+  "minYears": 5,
+  "seniority": "senior",
+  "remoteLevel": "fullRemote",
+  "homeOfficePercent": null,
+  "employmentType": "fullTime",
+  "domainRequirements": [],
+  "summary": "Backend-Entwicklung von Plattform-Services in .NET 10 für Hotel-Software. Gefragt sind mindestens 5 Jahre Erfahrung, Kafka, AWS, Docker/Kubernetes und PostgreSQL."
+}

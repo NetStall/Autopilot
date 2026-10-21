@@ -6,26 +6,39 @@ using JobAutopilot.Infrastructure.Claude;
 namespace JobAutopilot.Infrastructure.Llm;
 
 /// <summary>
-/// The versioned extraction prompt (<c>Llm/Prompts/extraction.v1.md</c>, embedded) and the JSON schema the answer must
-/// follow. The posting is untrusted: it is neutralised (no tags, no control characters), cut to a maximum length and
+/// The versioned extraction prompts (<c>Llm/Prompts/extraction.v1.md</c>, <c>extraction.v2.md</c>, embedded; the version
+/// comes from <c>Llm:Extraction:PromptVersion</c>) and the JSON schema the answer must follow. The posting is untrusted: it is neutralised (no tags, no control characters), cut to a maximum length and
 /// placed between <c>&lt;vacancy&gt;</c> markers.
 /// </summary>
 public sealed partial class ExtractionPrompt
 {
-    public const string Version = "extraction.v1";
+    /// <summary>The default since step 07a2; v1 stays embedded for comparison.</summary>
+    public const string DefaultVersion = "extraction.v2";
 
-    private const string ResourceName = "JobAutopilot.Infrastructure.Llm.Prompts.extraction.v1.md";
+    public static readonly IReadOnlyList<string> Versions = ["extraction.v1", "extraction.v2"];
 
-    private static readonly Lazy<ExtractionPrompt> Loaded = new(Load);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, ExtractionPrompt> Loaded = new(StringComparer.Ordinal);
 
-    private ExtractionPrompt(string system, string extract, string retry)
+    private ExtractionPrompt(string version, string system, string extract, string retry)
     {
+        Version = version;
         System = system;
         Extract = extract;
         Retry = retry;
     }
 
-    public static ExtractionPrompt Current => Loaded.Value;
+    public static ExtractionPrompt Current => For(DefaultVersion);
+
+    /// <summary>The prompt of one version, e.g. <c>extraction.v1</c>.</summary>
+    public static ExtractionPrompt For(string version)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(version);
+        return Versions.Contains(version, StringComparer.Ordinal)
+            ? Loaded.GetOrAdd(version, Load)
+            : throw new ArgumentException($"Unknown extraction prompt version '{version}'. Known: {string.Join(", ", Versions)}.", nameof(version));
+    }
+
+    public string Version { get; }
 
     public string System { get; }
 
@@ -81,10 +94,11 @@ public sealed partial class ExtractionPrompt
         return document.RootElement.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.Clone(), StringComparer.Ordinal);
     }
 
-    private static ExtractionPrompt Load()
+    private static ExtractionPrompt Load(string version)
     {
-        using var stream = typeof(ExtractionPrompt).Assembly.GetManifestResourceStream(ResourceName)
-            ?? throw new InvalidOperationException($"Embedded prompt '{ResourceName}' is missing.");
+        var resourceName = $"JobAutopilot.Infrastructure.Llm.Prompts.{version}.md";
+        using var stream = typeof(ExtractionPrompt).Assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"Embedded prompt '{resourceName}' is missing.");
         using var reader = new StreamReader(stream, Encoding.UTF8);
         var text = HtmlComment().Replace(reader.ReadToEnd(), string.Empty);
         var sections = SectionHeading().Split(text);
@@ -94,13 +108,13 @@ public sealed partial class ExtractionPrompt
             bodies[sections[i].Trim()] = sections[i + 1].Trim();
         }
 
-        return new ExtractionPrompt(Section(bodies, "system"), Section(bodies, "extract"), Section(bodies, "retry"));
+        return new ExtractionPrompt(version, Section(bodies, "system", resourceName), Section(bodies, "extract", resourceName), Section(bodies, "retry", resourceName));
     }
 
-    private static string Section(Dictionary<string, string> bodies, string name) =>
+    private static string Section(Dictionary<string, string> bodies, string name, string resourceName) =>
         bodies.TryGetValue(name, out var body) && body.Length > 0
             ? body
-            : throw new InvalidOperationException($"Prompt section '## {name}' is missing in {ResourceName}.");
+            : throw new InvalidOperationException($"Prompt section '## {name}' is missing in {resourceName}.");
 
     [GeneratedRegex(@"<!--.*?-->", RegexOptions.Singleline | RegexOptions.CultureInvariant, 1000)]
     private static partial Regex HtmlComment();

@@ -29,6 +29,9 @@ public sealed class FitOptions
     /// <summary>The dictionary of common technologies (<see cref="TechnologyCatalog"/>) finds requirements not in the profile.</summary>
     public bool UseTechnologyCatalog { get; init; } = true;
 
+    /// <summary>Missing methods (DDD, CQRS, Event Sourcing, TDD …) at nice-to-have level together at most this much (07a2).</summary>
+    public int MethodsGapMax { get; init; } = 6;
+
     /// <summary>Outside my places, not fully remote and a stated home-office share of at most this much = not reachable.</summary>
     public int ReachableFromHomeOfficePercent { get; init; } = 60;
 
@@ -43,7 +46,8 @@ public sealed class FitOptions
         "Was du mitbringst", "Das bringst du mit", "Was du mitbringen solltest", "Das solltest du mitbringen", "mitbringst",
         "mitbringen", "Dein Profil", "Ihr Profil", "Profil", "Anforderungen", "Voraussetzungen", "Qualifikation",
         "Qualifikationen", "Was wir erwarten", "Das erwarten wir", "Requirements", "Must have", "Must-have",
-        "Your profile", "What you bring", "What you need", "Qualifications", "Who you are",
+        "Your profile", "What you bring", "What you need", "Qualifications", "Who you are", "What You'll Bring",
+        "What You’ll Bring", "What you will bring",
     ];
 
     public static readonly string[] DefaultNiceToHaveHeadings =

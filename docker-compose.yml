@@ -53,6 +53,8 @@ services:
       # Local model on the host (step 07a), off unless OLLAMA_ENABLED=true in .env.
       Llm__Providers__Ollama__Enabled: "${OLLAMA_ENABLED:-false}"
       Llm__Providers__Ollama__BaseUrl: "http://host.docker.internal:11434"
+      # provider:model for the extraction; the model's own tag may contain colons (ollama:qwen3.5:9b).
+      Llm__Tasks__Extraction: "${Llm__Tasks__Extraction:-ollama:qwen3:8b}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

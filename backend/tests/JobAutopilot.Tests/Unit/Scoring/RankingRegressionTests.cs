@@ -81,6 +81,36 @@ public class RankingRegressionTests
     }
 
     [Fact]
+    public void Meierhofer_with_the_v2_extraction_ranks_where_my_label_says()
+    {
+        var (before, _) = RealWorldFixtures.ScoredWithExtraction("meierhofer-full", "v1");
+        var (after, extraction) = RealWorldFixtures.ScoredWithExtraction("meierhofer-full", "v2");
+
+        after.RankScore.Should().BeGreaterThanOrEqualTo(60, "gold label Passt; reasons: {0}", string.Join(" | ", after.RelevanceReasons));
+        after.RankScore.Should().BeGreaterThan(before.RankScore!.Value);
+        extraction.DomainRequirements.Should().BeEmpty("the product is for patient care; healthcare experience is not required");
+        extraction.MinYears.Should().BeNull("„mehrjährige Erfahrung“ states no number");
+        after.RelevanceReasons.Should().NotContain(r => r.Contains("Healthcare", StringComparison.Ordinal) || r.Contains("Praktiken", StringComparison.Ordinal));
+        after.RelevanceReasons.Should().NotContain(r => r.Contains("Senior-Rolle", StringComparison.Ordinal));
+        after.RelevanceReasons.Should().Contain(r => r.StartsWith("Fit: Methoden, nicht im Profil:", StringComparison.Ordinal) && r.Contains("CQRS", StringComparison.Ordinal));
+        after.RemoteLevel.Should().Be(RemoteLevel.Hybrid);
+    }
+
+    [Fact]
+    public void Apaleo_states_five_years_and_ranks_below_the_rules()
+    {
+        var rules = RealWorldFixtures.Scored("apaleo-senior-dotnet");
+        var (after, extraction) = RealWorldFixtures.ScoredWithExtraction("apaleo-senior-dotnet", "v2");
+
+        extraction.MinYears.Should().Be(5);
+        extraction.MustHave.Should().Contain("Kafka");
+        extraction.NiceToHave.Should().NotContain("Kafka", "one list per item; „What You'll Bring“ is a requirements section");
+        after.RankScore.Should().BeLessThan(rules.RankScore!.Value, "reasons: {0}", string.Join(" | ", after.RelevanceReasons));
+        after.RemoteLevel.Should().Be(RemoteLevel.FullRemote, "Himalayas „Remote (Deutschland)“; the hybrid setup is only an offer");
+        rules.RemoteLevel.Should().Be(RemoteLevel.FullRemote);
+    }
+
+    [Fact]
     public void Medifox_requirements_are_classified_by_section()
     {
         var (vacancy, _) = RealWorldFixtures.Load("medifox-senior-aws");
