@@ -8,7 +8,8 @@ public static class VacancyMappings
         this Vacancy vacancy,
         bool includeDescription = true,
         IReadOnlyList<VacancyLinkDto>? alsoFoundAt = null,
-        AppliedDto? applied = null) => new(
+        AppliedDto? applied = null,
+        bool? goldLabel = null) => new(
         vacancy.Id,
         vacancy.Source,
         vacancy.ExternalId,
@@ -34,7 +35,11 @@ public static class VacancyMappings
         vacancy.RequiredGerman,
         vacancy.Unreachable,
         vacancy.HomeOfficePercent,
-        vacancy.DescriptionIsManual);
+        vacancy.DescriptionIsManual,
+        includeDescription && Core.Extraction.StoredExtraction.ForDescription(vacancy.ExtractionJson, vacancy.Description) is { } extraction
+            ? new ExtractionDto(extraction.Result, extraction.Model, extraction.PromptVersion, extraction.ExtractedAt)
+            : null,
+        goldLabel);
 
     public static Vacancy ToManualVacancy(this CreateVacancyRequest request, DateTimeOffset now) =>
         Vacancy.CreateManual(

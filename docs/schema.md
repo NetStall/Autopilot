@@ -16,6 +16,8 @@ stored as strings. Only what is not obvious from the entity classes is noted her
 | `EmployerType` | from Arbeitsagentur flags / known agencies / phrases; Himalayas (lists the hiring company) = `Direct` unless agency signals are found; for manual vacancies the user's choice |
 | `Unreachable` | `true` = practically not reachable (outside my places and on site only or at most 60 % home office stated); recomputed on every scoring; hidden from the list while the Suchprofil says so (05d, 06a) |
 | `HomeOfficePercent` | the home-office share the source states as a field (Arbeitsagentur `homeofficeprozent`, „Homeoffice (bis zu 40 %)"); wins over the text |
+| `ExtractionJson` | jsonb: the model's requirement extraction for the current description (07a); ignored when the description's hash differs |
+| `ExtractionKey` | description hash + model + prompt version of `ExtractionJson`; finds vacancies still to analyse |
 | `DescriptionIsManual` | `true` = description pasted by hand („Beschreibung einfügen"); fetching details never replaces it |
 | `RequiredGerman` | `C1Plus` / `B2` / `B1OrLower` / `None` / `Unknown` — the German the posting asks for (filter „Deutsch erforderlich"), recomputed on every scoring; indexed. Rows from before step 05c are `Unknown` until the next re-scoring (runs at start-up) |
 | `DuplicateKey` | company + title normalised (no gender markers, no legal forms) — the same job from several sources is listed once |
@@ -55,3 +57,21 @@ old revision into a new one. The daily call limit counts `Generated` + `Rephrase
 
 One row per import; a filtered unique index on `IsActive` allows only one queued/running import (ADR 0005/0006).
 `Searches` is a jsonb column with the per-search counts (incl. source and error).
+
+## VacancyExtractions (step 07a)
+
+Cache of requirement extractions — one row per text, model and prompt version (unique index on the three).
+
+| Column | Meaning |
+|---|---|
+| `DescriptionHash` | SHA-256 of the description (line ends normalised) |
+| `Model` / `PromptVersion` | e.g. `qwen3:8b` / `extraction.v1` |
+| `Status` | `Succeeded` / `Failed` (invalid twice — not retried for this text, model and prompt) |
+| `ResultJson` | jsonb, the validated extraction; null when failed |
+| `Error` | validation errors of the last attempt |
+| `InputTokens` / `OutputTokens` / `DurationMs` / `Attempts` | cost and speed |
+
+## GoldLabels (step 07a)
+
+My judgement per vacancy for the evaluation in step 07b: `VacancyId` (key, cascade delete), `Fits` (true = „Passt"),
+`LabeledAt`.

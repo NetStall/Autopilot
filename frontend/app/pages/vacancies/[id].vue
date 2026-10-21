@@ -21,7 +21,12 @@ const badges = computed(() => (vacancy.value ? vacancyBadges(vacancy.value) : []
 const statusBadges = computed(() => badges.value.filter(b => b.variant === 'new' || b.variant === 'remote' || b.variant === 'hybrid'))
 const thresholds = useScoreThresholds()
 const score = computed(() => (vacancy.value ? scoreBadge(vacancy.value, thresholds.value) : null))
-const { data: fit } = useAsyncData(() => `vacancy-fit-${id.value}`, () => api.fit(id.value), { server: false, lazy: true })
+const { data: fit, refresh: refreshFit } = useAsyncData(() => `vacancy-fit-${id.value}`, () => api.fit(id.value), { server: false, lazy: true })
+
+/** After „Mit KI analysieren": the vacancy (extraction, rank) and its fit check come back from the server. */
+async function reloadAnalysis() {
+  await Promise.all([refresh(), refreshFit()])
+}
 const attribution = computed(() => (vacancy.value ? sourceAttribution(vacancy.value.source) : null))
 const employerBadge = computed(() => badges.value.find(b => b.variant === 'employer' || b.variant === 'intermediary'))
 const notFound = computed(() => errorStatus(error.value) === 404)
@@ -223,6 +228,26 @@ function openedOriginal() {
       <p v-if="actionError" class="detail__error" role="alert">
         {{ actionError }}
       </p>
+
+      <section class="detail__reasons" aria-labelledby="label-heading">
+        <h2 id="label-heading">
+          Meine Bewertung
+        </h2>
+        <GoldLabelButtons v-model="vacancy.goldLabel" :vacancy-id="vacancy.id" />
+      </section>
+
+      <section class="detail__reasons" aria-labelledby="requirements-heading">
+        <h2 id="requirements-heading">
+          Anforderungen
+        </h2>
+        <VacancyRequirements
+          :vacancy-id="vacancy.id"
+          :extraction="vacancy.extraction"
+          :source="fit?.source"
+          :has-description="!!vacancy.description"
+          @analysed="reloadAnalysis"
+        />
+      </section>
 
       <section v-if="fit" class="detail__reasons" aria-labelledby="fit-heading">
         <h2 id="fit-heading">

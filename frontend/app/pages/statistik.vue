@@ -141,6 +141,7 @@ function listLink(level: GermanLevelCount['level'], kind?: 'remote' | 'source', 
         </div>
       </section>
     </template>
+    <ExtractionPanel />
   </main>
 </template>
 

@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Claude\Prompts\*.md" />
+    <EmbeddedResource Include="Llm\Prompts\*.md" />
     <EmbeddedResource Include="Documents\Fonts\*.ttf" />
     <None Include="Documents\Fonts\Inter-OFL.txt" />
   </ItemGroup>

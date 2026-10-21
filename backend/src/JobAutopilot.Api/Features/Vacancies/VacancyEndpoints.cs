@@ -111,8 +111,9 @@ public static partial class VacancyEndpoints
 
         var duplicates = await DuplicatesOfAsync(db, [vacancy], cancellationToken);
         var applications = await db.Applications.AsNoTracking().ToListAsync(cancellationToken);
+        var label = await db.GoldLabels.AsNoTracking().Where(l => l.VacancyId == id).Select(l => (bool?)l.Fits).FirstOrDefaultAsync(cancellationToken);
         return TypedResults.Ok(vacancy.ToDto(
-            alsoFoundAt: AlsoFoundAt(vacancy, duplicates), applied: AppliedTo(vacancy, duplicates, applications)));
+            alsoFoundAt: AlsoFoundAt(vacancy, duplicates), applied: AppliedTo(vacancy, duplicates, applications), goldLabel: label));
     }
 
     /// <summary>
@@ -156,7 +157,8 @@ public static partial class VacancyEndpoints
             result.Warnings,
             result.RequiredGerman,
             result.RequiredYears,
-            result.Penalty));
+            result.Penalty,
+            result.Source));
     }
 
     /// <summary>All vacancies sharing a duplicate key with one of <paramref name="vacancies"/>, by key.</summary>

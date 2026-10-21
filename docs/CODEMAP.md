@@ -99,11 +99,26 @@ Config: `SearchProfileDefaults` (MinScore, TopN, MustHaveFromWeight, RemotePrefe
 | Tracker import | `Core/Applications/TrackerImport.cs`, `ApplicationMatcher.cs`, `Infra/Applications/TrackerImporter.cs` | `TrackerImporter.ImportFileAsync` | `POST /api/applications/import-tracker` | `Unit/Applications/TrackerMapperTests.cs` |
 | Documents (letter, CV, PDF) | `Core/Documents/*` (`ApplicationDraft`, `CvBuilder`, `FactGuard`, `LetterFacts`, `CheatSheet`, `ToneDetector`, `VacancyTerms`), `Infra/Documents/ApplicationDocumentsService.cs`, `QuestPdfDocumentRenderer.cs`, `DocumentFileStore.cs`, `Api/Features/Documents/*` | `ApplicationDocumentsService.ApproveAsync`, `MarkSentAsync`, `FactGuard` | `POST /api/vacancies/{id}/documents`, `/api/applications/{id}/documents` (GET, PUT, POST, `regenerate`, `paragraphs/{i}/rephrase`, `restore`, `preview/{doc}`, `approve`, `{doc}.pdf`), `POST …/{id}/mark-sent` | `Integration/DocumentsApiTests.cs`, `Unit/Documents/*` |
 | Letter generation | `Infra/Documents/LetterGenerator.cs`, `Infra/Claude/LetterPrompt.cs`, `Infra/Claude/Prompts/letter.v1.md`, `Core/Documents/ILetterGenerator.cs` | `GenerateAsync`, `RephraseParagraphAsync` | — | `Unit/Documents/LetterGeneratorTests.cs`, `LetterPromptTests.cs`, `Fakes/FakeLetterGenerator.cs` |
-| LLM abstraction | `Core/Llm/ILlmClient.cs`, `Infra/Llm/LlmRouter.cs` (`LlmOptions`), `Infra/Claude/ClaudeLlmClient.cs`, `ClaudeOptions.cs` | `ILlmClient.CompleteJsonAsync`, `ILlmRouter.ModelFor` | — | `Unit/Documents/LetterGeneratorTests.cs` |
+| LLM abstraction | `Core/Llm/ILlmClient.cs`, `Infra/Llm/LlmRouter.cs` (`LlmOptions`), `Infra/Claude/ClaudeLlmClient.cs`, `ClaudeOptions.cs` | `ILlmClient.CompleteJsonAsync`, `ILlmRouter.ModelFor`, `IsConfigured` | — | `Unit/Documents/LetterGeneratorTests.cs` |
 | Script | `scripts/draft-top-vacancies.ps1` | real Claude calls, console output only | — | — |
 
 Config: `Applications:TrackerImportPath`, `Documents:OutputPath`, `Llm:Tasks` (`Letter = claude:<model>`), `Claude` (Model, MaxTokens, Effort, TimeoutSeconds,
 MaxRetries, DailyCallLimit, DraftTokenBudget, prices, MaxVacancyCharacters; ApiKey only via user-secrets/env).
+
+## Local model, requirement extraction, gold labels (07a)
+
+| Feature | Files | Key symbols | API | Tests |
+|---|---|---|---|---|
+| Ollama provider + status | `Infra/Llm/OllamaLlmClient.cs` (`OllamaOptions`), `Api/Features/Llm/LlmEndpoints.cs` | `CompleteJsonAsync`, `GetStatusAsync` | `GET /api/llm/status` | `Unit/Llm/OllamaLlmClientTests.cs`, `Integration/HealthEndpointTests.cs` |
+| Extraction model + validation | `Core/Extraction/RequirementExtraction.cs` (`StoredExtraction`, `ExtractionKey`, `ExtractionValidator`), `ExtractionNormalizer.cs`, `VacancyExtraction.cs` | `ExtractionValidator.Parse`, `ExtractionNormalizer.Resolve` | — | `Unit/Llm/ExtractionTests.cs` |
+| Extraction service + prompt | `Infra/Llm/VacancyExtractionService.cs`, `ExtractionPrompt.cs`, `Infra/Llm/Prompts/extraction.v1.md` | `ExtractAsync`, `PendingAsync` | — | `Integration/ExtractionApiTests.cs` |
+| Background run | `Api/Features/Extraction/ExtractionWorker.cs`, `ExtractionCoordinator.cs`; trigger in `ImportWorker` | `RequestBackfill`, `RequestVacancy`, `Cancel` | `GET/POST /api/extractions`, `DELETE /api/extractions/current`, `POST /api/vacancies/{id}/extract` | `Integration/ExtractionApiTests.cs` |
+| Fit check with extraction | `Core/Fit/FitAnalyzer.cs` (`FitInput.Extraction`, `FitSource`), `Core/Fit/VacancyFitService.cs`, `Core/Scoring/VacancyEnricher.cs` | `AddExtracted`, `ExtractedYears` | `GET /api/vacancies/{id}/fit` (`source`) | `Unit/Llm/ExtractionTests.cs` |
+| Gold labels | `Core/Extraction/VacancyExtraction.cs` (`GoldLabel`), `Api/Features/Extraction/ExtractionEndpoints.cs`, `scripts/seed-gold-labels.ps1` | `SetLabel`, `GetLabelSummary` | `PUT/DELETE /api/vacancies/{id}/label`, `GET /api/labels/summary` | `Integration/ExtractionApiTests.cs` |
+| UI | `fe/app/components/VacancyRequirements.vue`, `GoldLabelButtons.vue`, `ExtractionPanel.vue` (Statistik), `AppHeader.vue` (counter), `composables/useLabelSummary.ts`, `types/extraction.ts` | — | — | `fe/test/nuxt/goldLabelAndRequirements.test.ts` |
+
+Config: `Llm:Tasks:Extraction`, `Llm:Providers:Ollama` (Enabled, BaseUrl, TimeoutSeconds, MaxRetries, Temperature),
+`Llm:Extraction` (AutoAfterImport, MaxPerRun, MaxDescriptionCharacters). Docker: `OLLAMA_ENABLED` in `.env`.
 
 ## Background jobs, scheduler, locks
 
@@ -114,6 +129,7 @@ MaxRetries, DailyCallLimit, DraftTokenBudget, prices, MaxVacancyCharacters; ApiK
 | Re-score worker | `Api/Features/Scoring/RescoreWorker.cs`, `RescoreCoordinator.cs` | `RescoreCoordinator` | `Integration/RelevanceApiTests.cs` |
 | Import lock | `Core/Import/IImportLock.cs`, `Infra/Persistence/PostgresImportLock.cs` | `TryAcquireAsync` (advisory lock) | `Integration/ImportLockTests.cs` |
 | Suchprofil seed at start | `SearchProfileInitializer` in `Api/Features/SearchProfiles/SearchProfileEndpoints.cs` | logs the legacy `preferences` hint once | `Integration/SearchProfileApiTests.cs` |
+| Extraction worker | `Api/Features/Extraction/ExtractionWorker.cs` | one GPU job at a time, no import lock | `Integration/ExtractionApiTests.cs` |
 
 Config: `Import:Schedule` (Enabled, TimeOfDay, TimeZone), `Database:MigrateOnStartup`.
 
@@ -155,7 +171,7 @@ Paths are under `fe/app/` unless they start with `fe/`.
 | Migrations | `Infra/Persistence/Migrations/<timestamp>_<Name>.cs` (latest: `20261020155113_AddRequiredGerman`) |
 | Schema doc | `docs/schema.md` |
 | DI + connection | `Infra/DependencyInjection.cs`, `DatabaseOptions.cs`; `ConnectionStrings`, `Database:MigrateOnStartup` |
-| Test DB | `Tests/Integration/PostgresFixture.cs`, `IntegrationTestBase.cs`, `ApiFactory.cs`, `VacancySeed.cs`; env `JOBAUTOPILOT_TEST_POSTGRES` or Testcontainers |
+| Test DB | `Tests/Integration/PostgresFixture.cs`, `IntegrationTestBase.cs`, `ApiFactory.cs` (fakes: sources, offline Ollama), `VacancySeed.cs`; env `JOBAUTOPILOT_TEST_POSTGRES` or Testcontainers; `Tests/Fakes/FakeLlmClient.cs` |
 | Backup/restore | `scripts/backup-db.ps1`, `restore-db.ps1` |
 
 ## CI and tooling

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 const { lastImport } = useLastImport()
+const { summary: labels, refresh: refreshLabels } = useLabelSummary()
+onMounted(() => void refreshLabels())
 
 // Re-render the relative time every minute.
 const now = ref(new Date())
@@ -48,6 +50,9 @@ const newSinceLink = computed(() => (lastImport.value?.startedAt
           {{ lastImport.added }} neu seit letztem Import
         </NuxtLink>
       </p>
+      <p v-if="labels" class="header__labels" title="Meine Bewertungen „Passt“ / „Passt nicht“ (Ziel für die Auswertung)">
+        Bewertet: {{ labels.labeled }} / {{ labels.target }}
+      </p>
       <ImportButton />
     </div>
   </header>
@@ -91,6 +96,12 @@ const newSinceLink = computed(() => (lastImport.value?.startedAt
       color: var(--color-accent);
       text-decoration: underline;
     }
+  }
+
+  &__labels {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.9em;
   }
 
   &__last {

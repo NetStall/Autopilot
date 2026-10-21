@@ -78,6 +78,8 @@ public static class DependencyInjection
         services.AddOptions<Llm.OllamaOptions>().Bind(configuration.GetSection(Llm.OllamaOptions.SectionName));
         services.AddHttpClient<Llm.OllamaLlmClient>(client => client.Timeout = Timeout.InfiniteTimeSpan);
         services.AddTransient<Core.Llm.ILlmClient>(sp => sp.GetRequiredService<Llm.OllamaLlmClient>());
+        services.AddOptions<Llm.VacancyExtractionOptions>().Bind(configuration.GetSection(Llm.VacancyExtractionOptions.SectionName));
+        services.AddScoped<Llm.VacancyExtractionService>();
 
         // Which provider and model a task uses (Llm:Tasks:Letter = claude:<model>); letter code only sees the router.
         services.AddOptions<Llm.LlmOptions>().Bind(configuration.GetSection(Llm.LlmOptions.SectionName));

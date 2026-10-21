@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using JobAutopilot.Api.Common;
 using JobAutopilot.Api.Features.Applications;
 using JobAutopilot.Api.Features.Documents;
+using JobAutopilot.Api.Features.Extraction;
 using JobAutopilot.Api.Features.Health;
 using JobAutopilot.Api.Features.Llm;
 using JobAutopilot.Api.Features.Profile;
@@ -76,6 +77,10 @@ builder.Services.AddHostedService<ImportScheduler>();
 builder.Services.AddSingleton<RescoreCoordinator>();
 builder.Services.AddHostedService<RescoreWorker>();
 
+// Requirement extraction with the local model (step 07a): one GPU job at a time, in the background.
+builder.Services.AddSingleton<JobAutopilot.Api.Features.Extraction.ExtractionCoordinator>();
+builder.Services.AddHostedService<JobAutopilot.Api.Features.Extraction.ExtractionWorker>();
+
 builder.Services.AddProblemDetails();
 builder.Services.AddValidation();
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -124,5 +129,6 @@ app.MapSearchProfileEndpoints();
 app.MapDocumentEndpoints();
 app.MapStatisticsEndpoints();
 app.MapLlmEndpoints();
+app.MapExtractionEndpoints();
 
 await app.RunAsync();

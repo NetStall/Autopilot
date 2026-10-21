@@ -97,6 +97,14 @@ public sealed partial class ImportWorker(
 
             await FetchDetailsAsync(services, run, runs, stoppingToken);
             run.Succeed(result, timeProvider.GetUtcNow());
+
+            // New and changed descriptions get their requirement extraction in the background (step 07a) — only when
+            // the local model is set up; otherwise the rules stay in charge and nothing is queued.
+            if (services.GetRequiredService<IOptions<Infrastructure.Llm.VacancyExtractionOptions>>().Value.AutoAfterImport
+                && services.GetRequiredService<Infrastructure.Llm.VacancyExtractionService>().IsAvailable)
+            {
+                services.GetRequiredService<Extraction.ExtractionCoordinator>().RequestBackfill();
+            }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {

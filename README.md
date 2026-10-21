@@ -498,6 +498,23 @@ postings stay on the PC.
 | `Providers:Ollama:Enabled` | `false` | off = no call to Ollama, rules only |
 | `Providers:Ollama:BaseUrl` | `http://localhost:11434` | from Docker `http://host.docker.internal:11434` |
 | `Providers:Ollama:TimeoutSeconds` / `MaxRetries` | 180 / 1 | per attempt; 429/5xx/connection errors are retried |
+| `Extraction:AutoAfterImport` | `true` | analyse new/changed vacancies after each import (only when Ollama is on) |
+| `Extraction:MaxPerRun` | 500 | vacancies per background run, most relevant first |
+
+**Requirement extraction.** With Ollama on, every vacancy with a description gets its requirements read by the model
+in the background, one at a time and most relevant first. The model reads must-have and nice-to-have, German and
+English level, years, seniority, home office, employment type, required domains and a two-sentence summary. The
+detail page shows them under „Anforderungen" with the source („KI" or „Regeln"), and „Mit KI analysieren" analyses
+one vacancy right away. Statistik → „KI-Analyse" starts or cancels a full run and shows s/vacancy and tokens/s.
+
+- The result is cached per text, model and prompt version, so nothing is sent twice.
+- An invalid answer is retried once, then the rules stay in charge.
+- A required domain I don't have („Broadcast/MAM") is a must-have gap.
+- Decision: [ADR 0014](docs/decisions/0014-local-llm-extraction.md).
+
+**Gold labels.** On the detail page, „Passt" / „Passt nicht" (keys `p` / `n`; press again to remove) store my own
+judgement for the evaluation in step 07b. The header shows „Bewertet: N / 30". `./scripts/seed-gold-labels.ps1`
+sets the labels already given in chat.
 
 ### Create a vacancy by hand
 

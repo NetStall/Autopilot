@@ -13,4 +13,5 @@ public sealed record FitDto(
     IReadOnlyList<FitWarning> Warnings,
     LanguageLevel? RequiredGerman,
     int? RequiredYears,
-    int Penalty);
+    int Penalty,
+    Core.Fit.FitSource Source = Core.Fit.FitSource.Rules);

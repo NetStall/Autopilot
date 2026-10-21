@@ -1,3 +1,5 @@
+import type { VacancyExtraction } from './extraction'
+
 // Mirrors the backend DTOs in JobAutopilot.Api/Features.
 
 import type { AppliedInfo } from './application'
@@ -61,6 +63,10 @@ export interface Vacancy {
   homeOfficePercent: number | null
   /** The description was pasted by hand („Beschreibung einfügen"). */
   descriptionIsManual: boolean
+  /** The model's extraction for the current description (detail only, step 07a). */
+  extraction?: VacancyExtraction | null
+  /** My judgement „Passt" (true) / „Passt nicht" (false); null = not labelled (detail only). */
+  goldLabel?: boolean | null
 }
 
 export interface PagedResponse<T> {
@@ -175,6 +181,8 @@ export interface FitResponse {
   requiredGerman: string | null
   requiredYears: number | null
   penalty: number
+  /** Where the requirements come from: the model's extraction or the rules. */
+  source: 'Rules' | 'Ai'
 }
 
 /** GET/POST /api/vacancies/rescore */

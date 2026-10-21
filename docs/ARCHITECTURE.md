@@ -38,6 +38,13 @@ Dependency rule: `Api → Infrastructure → Core`; Core references nothing. The
 3. `RescoreWorker` (also at start-up when `Relevance:RescoreOnStartup`) runs `VacancyRescoreService.RescoreAllAsync` under the import lock.
 4. The next import uses the new searches.
 
+**Requirement extraction (optional, local model)**
+1. After an import (or „Mit KI analysieren" / „Alle analysieren") the `ExtractionCoordinator` queues vacancies.
+2. `ExtractionWorker` → `VacancyExtractionService`: cache lookup (hash + model + prompt), else one call to
+   `ILlmRouter` (task `Extraction`), validation, one retry; result cached in `VacancyExtractions`, copied to the vacancy.
+3. `VacancyEnricher` re-scores: `FitAnalyzer` takes requirements, German and years from the extraction (source „KI").
+4. Without Ollama nothing is queued and the rules decide (source „Regeln").
+
 **Applications and tracker import**
 1. `POST /api/vacancies/{id}/apply` or `/documents` creates an `Application` (status `Draft`).
 2. Documents: `ApplicationDocumentsService` → `ILetterGenerator` (`LetterGenerator` → `ILlmRouter` → Claude) + `CvBuilder`, checked by `FactGuard`;
@@ -53,7 +60,7 @@ Dependency rule: `Api → Infrastructure → Core`; Core references nothing. The
 | Bundesagentur für Arbeit Jobsuche | `Infrastructure/Arbeitsagentur/ArbeitsagenturClient` | search + details, typed `HttpClient` |
 | Himalayas | `Infrastructure/Himalayas/HimalayasClient` | remote jobs, HTML → text (`HtmlText`) |
 | Claude API | `Infrastructure/Claude/ClaudeLlmClient` behind `ILlmRouter` (`Llm:Tasks`) | letters only; key via user-secrets/env; prompt `Prompts/letter.v1.md` |
-| Ollama | — | planned, not implemented |
+| Ollama (local) | `Infrastructure/Llm/OllamaLlmClient` behind `ILlmRouter` (`Llm:Tasks:Extraction`) | requirement extraction; off by default; OpenAI-compatible API, `GET /api/llm/status` |
 
 All are behind Core interfaces and faked in tests (`tests/.../Fakes`, stub `HttpMessageHandler`s).
 
@@ -62,6 +69,8 @@ All are behind Core interfaces and faked in tests (`tests/.../Fakes`, stub `Http
 - `ImportWorker` — consumes `ImportJobChannel`, one import at a time; progress in `ImportRun` rows.
 - `ImportScheduler` — daily auto-import (`Import:Schedule`, `DailySchedule`, Europe/Berlin).
 - `RescoreWorker` — re-scores on request and at start-up.
+- `ExtractionWorker` — requirement extraction with the local model, one GPU job at a time; after imports and on
+  request (`ExtractionCoordinator`), no import lock.
 - `SearchProfileInitializer` — seeds the Suchprofil on first start (`SearchProfileDefaults`, legacy `preferences`).
 - `PostgresImportLock` — PostgreSQL advisory lock shared by import and re-score, works across processes.
 
@@ -85,5 +94,6 @@ Frontend CSP in `frontend/server/plugins/content-security-policy.ts`. Details: [
 - [0011](decisions/0011-requirement-importance-and-german.md) — requirement importance, required German.
 - [0012](decisions/0012-technology-catalog-and-reachability.md) — technology catalog, profile-gated keywords, reachability.
 - [0013](decisions/0013-llm-abstraction.md) — ILlmClient and task routing (`Llm:Tasks`).
+- [0014](decisions/0014-local-llm-extraction.md) — Ollama, requirement extraction, gold labels.
 
 Schema: [schema.md](schema.md). Roadmap: [ROADMAP.md](ROADMAP.md).

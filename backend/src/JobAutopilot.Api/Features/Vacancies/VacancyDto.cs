@@ -28,7 +28,12 @@ public sealed record VacancyDto(
     RequiredGerman RequiredGerman = RequiredGerman.Unknown,
     bool Unreachable = false,
     int? HomeOfficePercent = null,
-    bool DescriptionIsManual = false);
+    bool DescriptionIsManual = false,
+    ExtractionDto? Extraction = null,
+    bool? GoldLabel = null);
+
+/// <summary>The model's extraction for the current description (detail view only), step 07a.</summary>
+public sealed record ExtractionDto(Core.Extraction.RequirementExtraction Result, string Model, string PromptVersion, DateTimeOffset ExtractedAt);
 
 /// <summary>I already applied — to this vacancy, or to the same company with a similar title („Beworben").</summary>
 public sealed record AppliedDto(Guid ApplicationId, Core.Applications.ApplicationStatus Status, string StatusLabel, DateTimeOffset AppliedAt);

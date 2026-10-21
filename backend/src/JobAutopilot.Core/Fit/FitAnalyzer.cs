@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using JobAutopilot.Core.Extraction;
 using JobAutopilot.Core.Profile;
 using JobAutopilot.Core.Scoring;
 using JobAutopilot.Core.SearchProfiles;
@@ -45,7 +46,15 @@ public sealed record FitInput(
     EmployerType EmployerType,
     string? Location,
     RemoteLevel RemoteLevel,
-    int? HomeOfficePercent = null);
+    int? HomeOfficePercent = null,
+    RequirementExtraction? Extraction = null);
+
+/// <summary>Where the requirements of a fit check come from: the rules or a language model's extraction.</summary>
+public enum FitSource
+{
+    Rules,
+    Ai,
+}
 
 /// <summary>Result of <see cref="FitAnalyzer.Analyze"/>; <see cref="Penalty"/> is subtracted for the ranking.</summary>
 public sealed record FitResult(
@@ -54,7 +63,8 @@ public sealed record FitResult(
     LanguageLevel? RequiredGerman,
     int? RequiredYears,
     int Penalty,
-    bool Unreachable = false)
+    bool Unreachable = false,
+    FitSource Source = FitSource.Rules)
 {
     public static readonly FitResult Empty = new([], [], null, null, 0);
 }
@@ -69,7 +79,9 @@ public sealed record FitResult(
 /// and from markers in its line („von Vorteil", „(Pflicht)", „mindestens"); a missing must-have costs more than a
 /// missing nice-to-have. A job outside my places that is not fully remote is practically not reachable when it is on
 /// site only or states at most 60 % home office; with an unknown share it only costs a moderate penalty. German level and years of
-/// experience are compared with the profile and give warnings, never an exclusion. Pure and deterministic.
+/// experience are compared with the profile and give warnings, never an exclusion. With an extraction (step 07a) the
+/// requirements, German level and years come from the model instead (<see cref="ExtractionNormalizer"/>); a required
+/// domain I don't have is a must-have gap. Pure and deterministic.
 /// </summary>
 public sealed partial class FitAnalyzer(FitOptions options)
 {
@@ -93,7 +105,7 @@ public sealed partial class FitAnalyzer(FitOptions options)
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(settings);
-        var (title, description, employerType, location, remoteLevel, homeOfficePercent) = input;
+        var (title, description, employerType, location, remoteLevel, homeOfficePercent, extraction) = input;
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(title);
         var text = string.IsNullOrWhiteSpace(description) ? title : title + "\n" + description;
@@ -103,7 +115,7 @@ public sealed partial class FitAnalyzer(FitOptions options)
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var covered = new TermMatcher(profile.Skills.Where(s => s.Level == SkillLevel.Production).SelectMany(SkillTerms.Evidence));
 
-        foreach (var skill in profile.Skills.Where(s => !string.IsNullOrWhiteSpace(s.Name)))
+        foreach (var skill in profile.Skills.Where(s => extraction is null && !string.IsNullOrWhiteSpace(s.Name)))
         {
             var matcher = new TermMatcher(SkillTerms.Evidence(skill));
             var hits = matcher.FindAll(text).ToList();
@@ -145,27 +157,45 @@ public sealed partial class FitAnalyzer(FitOptions options)
                 continue;
             }
 
+            if (extraction is not null)
+            {
+                continue;
+            }
+
             var gap = GapFor(profile, rule.Terms.Append(rule.Name));
             var importance = ImportanceOf(hits, sentences, sections, covered);
             requirements.Add(new FitRequirement(
                 rule.Name, FitCoverage.Gap, importance <= RequirementImportance.NiceToHave, gap?.De ?? "nicht im Profil", importance));
         }
 
-        AddTechnologyGaps(profile, text, sentences, sections, covered, seen, requirements);
+        if (extraction is null)
+        {
+            AddTechnologyGaps(profile, text, sentences, sections, covered, seen, requirements);
+        }
+        else
+        {
+            AddExtracted(profile, extraction, requirements);
+        }
 
         var penalties = settings.Penalties;
         AddGapWarnings(requirements, penalties, warnings);
 
         var german = GermanRequirementDetector.Detect(title, description);
-        if (german.Level is { } level && MyGerman(profile) is var mine && level > mine)
+        var (germanLevel, germanPhrase) = extraction switch
+        {
+            { GermanNotRequired: true } => (null, null),
+            { GermanLevel: { } extracted } => ((LanguageLevel?)extracted, "laut KI"),
+            _ => (german.Level, german.Phrase),
+        };
+        if (germanLevel is { } level && MyGerman(profile) is var mine && level > mine)
         {
             var steps = (int)level - (int)mine;
             warnings.Add(new FitWarning(
-                $"Deutsch {level} gefordert („{german.Phrase}“), im Profil: {mine}",
+                $"Deutsch {level} gefordert („{germanPhrase}“), im Profil: {mine}",
                 steps * penalties.GermanPerLevel));
         }
 
-        var years = RequiredYears(title, sentences);
+        var years = (extraction is not null ? ExtractedYears(extraction) : null) ?? RequiredYears(title, sentences);
         var myYears = ProfileValidator.ExperienceMonths(profile, today) / 12.0;
         if (years is { } needed && needed.Years > myYears)
         {
@@ -178,7 +208,7 @@ public sealed partial class FitAnalyzer(FitOptions options)
         var unreachable = false;
         if (OutsideRegions(settings, location, remoteLevel) is { } place)
         {
-            var share = homeOfficePercent ?? HomeOfficeShare.Find(text);
+            var share = homeOfficePercent ?? extraction?.HomeOfficePercent ?? HomeOfficeShare.Find(text);
             unreachable = remoteLevel == RemoteLevel.OnSite || share <= options.ReachableFromHomeOfficePercent;
             warnings.Add(
                 unreachable ? new FitWarning(
@@ -204,8 +234,38 @@ public sealed partial class FitAnalyzer(FitOptions options)
             .ThenBy(r => r.Optional)
             .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        return new FitResult(ordered, warnings, german.Level, years?.Years, warnings.Sum(w => w.Penalty), unreachable);
+        return new FitResult(ordered, warnings, germanLevel, years?.Years, warnings.Sum(w => w.Penalty), unreachable,
+            extraction is null ? FitSource.Rules : FitSource.Ai);
     }
+
+    /// <summary>The extracted requirements, resolved to my skills and the catalog, with the coverage of my level.</summary>
+    private static void AddExtracted(CandidateProfile profile, RequirementExtraction extraction, List<FitRequirement> requirements)
+    {
+        foreach (var resolved in ExtractionNormalizer.Resolve(extraction, profile))
+        {
+            var names = resolved.Skill?.AllNames() ?? [resolved.Name];
+            var gap = GapFor(profile, names);
+            var (coverage, note) = resolved.Skill?.Level switch
+            {
+                SkillLevel.Production => (FitCoverage.Covered, "beruflich" + (resolved.Skill.Years is { } y ? $", {y.ToString(CultureInfo.InvariantCulture)} J." : string.Empty)),
+                SkillLevel.Project => (FitCoverage.Partial, gap?.De ?? "eigene Projekte"),
+                SkillLevel.Learning => (FitCoverage.Partial, gap?.De ?? "lerne ich gerade"),
+                SkillLevel.None => (FitCoverage.Gap, gap?.De ?? "keine Erfahrung"),
+                _ => (FitCoverage.Gap, gap?.De ?? (resolved.Domain ? "Fachgebiet nicht im Profil" : "nicht im Profil")),
+            };
+            requirements.Add(new FitRequirement(resolved.Name, coverage, resolved.Importance <= RequirementImportance.NiceToHave, note, resolved.Importance));
+        }
+    }
+
+    /// <summary>Years from the extraction: the minimum asked for, or Senior/Lead as seniority (strong from 5 years or Lead).</summary>
+    private static ExperienceRequirement? ExtractedYears(RequirementExtraction extraction) => extraction switch
+    {
+        { MinYears: { } years } => new ExperienceRequirement(years, $"laut KI mindestens {years.ToString(CultureInfo.InvariantCulture)} Jahre",
+            years >= 5 || extraction.Seniority == Seniority.Lead),
+        { Seniority: Seniority.Lead } => new ExperienceRequirement(5, "laut KI Lead-Rolle", Strong: true),
+        { Seniority: Seniority.Senior } => new ExperienceRequirement(5, "laut KI Senior-Rolle", Strong: false),
+        _ => null,
+    };
 
     /// <summary>
     /// Technologies of the dictionary the profile does not list at all: a gap wherever they are asked for — not when

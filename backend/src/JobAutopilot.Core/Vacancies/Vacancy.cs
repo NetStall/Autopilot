@@ -81,6 +81,15 @@ public class Vacancy
     /// <summary>The description was pasted by hand („Beschreibung einfügen"); fetching details never overwrites it.</summary>
     public bool DescriptionIsManual { get; set; }
 
+    /// <summary>
+    /// The model's extraction for the current description (<see cref="Extraction.StoredExtraction"/> as JSON, step 07a);
+    /// ignored as soon as the description changes (its hash no longer matches).
+    /// </summary>
+    public string? ExtractionJson { get; set; }
+
+    /// <summary><see cref="Extraction.ExtractionKey"/> of <see cref="ExtractionJson"/> — finds vacancies still to analyse.</summary>
+    public string? ExtractionKey { get; set; }
+
     /// <summary>Why the vacancy got its score, remote level and employer type (German, shown in the UI).</summary>
     public List<string> RelevanceReasons { get; set; } = [];
 

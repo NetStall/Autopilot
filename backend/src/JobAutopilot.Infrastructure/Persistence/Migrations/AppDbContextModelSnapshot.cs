@@ -275,6 +275,78 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.ToTable("ApplicationDraftRevisions", (string)null);
                 });
 
+            modelBuilder.Entity("JobAutopilot.Core.Extraction.GoldLabel", b =>
+                {
+                    b.Property<Guid>("VacancyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Fits")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("LabeledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("VacancyId");
+
+                    b.ToTable("GoldLabels");
+                });
+
+            modelBuilder.Entity("JobAutopilot.Core.Extraction.VacancyExtraction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DescriptionHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .IsFixedLength();
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("InputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("OutputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PromptVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ResultJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DescriptionHash", "Model", "PromptVersion")
+                        .IsUnique();
+
+                    b.ToTable("VacancyExtractions");
+                });
+
             modelBuilder.Entity("JobAutopilot.Core.Import.ImportRun", b =>
                 {
                     b.Property<Guid>("Id")
@@ -381,6 +453,13 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ExtractionJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ExtractionKey")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
 
                     b.Property<DateTimeOffset>("FetchedAt")
                         .HasColumnType("timestamp with time zone");
@@ -569,6 +648,15 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.HasOne("JobAutopilot.Core.Documents.ApplicationDraft", null)
                         .WithMany("Revisions")
                         .HasForeignKey("DraftId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobAutopilot.Core.Extraction.GoldLabel", b =>
+                {
+                    b.HasOne("JobAutopilot.Core.Vacancies.Vacancy", null)
+                        .WithOne()
+                        .HasForeignKey("JobAutopilot.Core.Extraction.GoldLabel", "VacancyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

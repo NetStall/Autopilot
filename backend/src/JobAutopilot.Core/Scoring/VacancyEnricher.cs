@@ -35,7 +35,10 @@ public sealed class VacancyEnricher(
 
         var employerReason = ApplyEmployer(vacancy, employerHint);
         var german = GermanRequirementDetector.Detect(vacancy.Title, vacancy.Description);
-        vacancy.RequiredGerman = german.Category;
+        var extraction = Extraction.StoredExtraction.ForDescription(vacancy.ExtractionJson, vacancy.Description);
+        vacancy.RequiredGerman = german.Category == RequiredGerman.Unknown && extraction is not null
+            ? FromExtraction(extraction.Result)
+            : german.Category;
 
         var relevance = scorers.Scorer.Score(vacancy.Title, vacancy.Description);
         vacancy.RelevanceScore = relevance.Score;
@@ -55,6 +58,11 @@ public sealed class VacancyEnricher(
         if (german.Reason is { } germanReason)
         {
             reasons.Add(germanReason);
+        }
+
+        if (extraction is not null)
+        {
+            reasons.Add($"Anforderungen: KI ({extraction.Model}, {extraction.PromptVersion})");
         }
 
         // The ranking: relevance adjusted by the fit warnings against the profile.
@@ -100,6 +108,16 @@ public sealed class VacancyEnricher(
             _ => null,
         };
     }
+
+    /// <summary>The German bucket from the model when the phrases found nothing.</summary>
+    private static RequiredGerman FromExtraction(Extraction.RequirementExtraction extraction) => extraction switch
+    {
+        { GermanNotRequired: true } => RequiredGerman.None,
+        { GermanLevel: Profile.LanguageLevel.C1 or Profile.LanguageLevel.C2 or Profile.LanguageLevel.Native } => RequiredGerman.C1Plus,
+        { GermanLevel: Profile.LanguageLevel.B2 } => RequiredGerman.B2,
+        { GermanLevel: not null } => RequiredGerman.B1OrLower,
+        _ => RequiredGerman.Unknown,
+    };
 
     private static string SourceName(VacancySource source) => source switch
     {
