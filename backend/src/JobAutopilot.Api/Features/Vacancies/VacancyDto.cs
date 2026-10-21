@@ -31,7 +31,9 @@ public sealed record VacancyDto(
     bool DescriptionIsManual = false,
     ExtractionDto? Extraction = null,
     bool? GoldLabel = null,
-    string? RemoteNote = null);
+    string? RemoteNote = null,
+    int? AiScore = null,
+    Core.Extraction.AiFitScore? AiFitScore = null);
 
 /// <summary>The model's extraction for the current description (detail view only), step 07a.</summary>
 public sealed record ExtractionDto(

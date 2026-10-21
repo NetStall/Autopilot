@@ -23,6 +23,23 @@ internal sealed class VacancyExtractionConfiguration : IEntityTypeConfiguration<
     }
 }
 
+internal sealed class VacancyFitScoreConfiguration : IEntityTypeConfiguration<VacancyFitScore>
+{
+    public void Configure(EntityTypeBuilder<VacancyFitScore> builder)
+    {
+        builder.HasKey(s => s.Id);
+        builder.Property(s => s.Id).ValueGeneratedNever();
+        builder.Property(s => s.DescriptionHash).HasMaxLength(64).IsFixedLength();
+        builder.Property(s => s.ProfileHash).HasMaxLength(16).IsFixedLength();
+        builder.Property(s => s.Model).HasMaxLength(VacancyExtraction.ModelMaxLength);
+        builder.Property(s => s.PromptVersion).HasMaxLength(VacancyExtraction.PromptVersionMaxLength);
+        builder.Property(s => s.Status).HasConversion<string>().HasMaxLength(16);
+        builder.Property(s => s.ResultJson).HasColumnType("jsonb");
+        builder.Property(s => s.Error).HasMaxLength(VacancyExtraction.ErrorMaxLength);
+        builder.HasIndex(s => new { s.DescriptionHash, s.ProfileHash, s.Model, s.PromptVersion }).IsUnique();
+    }
+}
+
 internal sealed class GoldLabelConfiguration : IEntityTypeConfiguration<GoldLabel>
 {
     public void Configure(EntityTypeBuilder<GoldLabel> builder)

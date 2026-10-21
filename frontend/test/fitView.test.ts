@@ -25,6 +25,7 @@ describe('„Passt zu mir?"', () => {
   it('shows both numbers when the rank differs from the relevance', () => {
     expect(scoreLine(94, 86)).toBe('Relevanz 94 · Rang 86 (nach Abzügen aus dem Profil-Abgleich)')
     expect(scoreLine(80, 80)).toBe('Relevanz 80')
+    expect(scoreLine(94, 79, 72)).toBe('Relevanz 94 · Rang 79 (nach Abzügen aus dem Profil-Abgleich) · KI 72 (nicht Teil des Rangs)')
     expect(scoreLine(null, null)).toBeNull()
   })
 })

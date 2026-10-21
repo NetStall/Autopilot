@@ -17,6 +17,9 @@ public sealed class LlmOptions
 
     public const string ExtractionTask = "Extraction";
 
+    /// <summary>„KI-Bewertung" 0–100 next to the rank (07b).</summary>
+    public const string FitScoreTask = "FitScore";
+
     public Dictionary<string, string> Tasks { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 }
 

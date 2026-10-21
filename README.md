@@ -525,6 +525,13 @@ one vacancy right away. Statistik → „KI-Analyse" starts or cancels a full ru
   from a stated number. Missing methods (DDD, CQRS, Event Sourcing …) cost like a plus and share a cap of 6.
 - Decision: [ADR 0014](docs/decisions/0014-local-llm-extraction.md).
 
+**KI-Bewertung.** With the task `Llm:Tasks:FitScore` (default `ollama:qwen3:8b`), the same background queue also asks
+the model for its own judgement of each vacancy: score 0–100, verdict („passt" / „eher nicht" / „passt nicht"),
+three reasons and the blockers. The model gets my profile (skills by level, gaps in my own phrasing, languages,
+places, remote wish — no name or contact data). The list shows „KI 72" next to the rank, „Warum?" the reasons. It
+does **not** change the rank. Step 07b compares it with the rules on my gold labels. Cached per text, profile, model
+and prompt.
+
 **Gold labels.** On the detail page, „Passt" / „Passt nicht" (keys `p` / `n`; press again to remove) store my own
 judgement for the evaluation in step 07b. The header shows „Bewertet: N / 30". `./scripts/seed-gold-labels.ps1`
 sets the labels already given in chat.

@@ -73,6 +73,12 @@ Cache of requirement extractions — one row per text, model and prompt version 
 | `Error` | validation errors of the last attempt |
 | `InputTokens` / `OutputTokens` / `DurationMs` / `Attempts` | cost and speed |
 
+## VacancyFitScores (step 07b)
+
+Cache of the „KI-Bewertung": one row per description hash, profile hash, model and prompt version (unique). The
+columns are `Status`, `ResultJson` (score, verdict, reasons, blockers), `Error`, tokens and duration. On the vacancy,
+`AiScore`, `AiScoreKey` and `AiScoreJson` hold the current one.
+
 ## GoldLabels (step 07a)
 
 My judgement per vacancy for the evaluation in step 07b: `VacancyId` (key, cascade delete), `Fits` (true = „Passt"),

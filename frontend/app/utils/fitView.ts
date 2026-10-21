@@ -31,11 +31,13 @@ export function fitSummary(fit: Pick<FitResponse, 'requirements' | 'penalty' | '
 }
 
 /** „Relevanz 94 · Rang 86" — both numbers for the „Warum?" panel. */
-export function scoreLine(relevanceScore: number | null, rankScore: number | null): string | null {
+export function scoreLine(relevanceScore: number | null, rankScore: number | null, aiScore?: number | null): string | null {
   if (relevanceScore == null) {
     return null
   }
-  return rankScore != null && rankScore !== relevanceScore
+  const line = rankScore != null && rankScore !== relevanceScore
     ? `Relevanz ${relevanceScore} · Rang ${rankScore} (nach Abzügen aus dem Profil-Abgleich)`
     : `Relevanz ${relevanceScore}`
+  // „KI-Bewertung" (07b) stands next to the rank; it does not change it.
+  return aiScore != null ? `${line} · KI ${aiScore} (nicht Teil des Rangs)` : line
 }

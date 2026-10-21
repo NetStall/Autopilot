@@ -60,8 +60,10 @@ public sealed partial class ExtractionWorker(
                     if (coordinator.TakeBackfill() is { } top)
                     {
                         await using var scope = scopes.CreateAsyncScope();
-                        var pending = await scope.ServiceProvider.GetRequiredService<VacancyExtractionService>()
-                            .PendingAsync(Math.Min(top, options.Value.MaxPerRun), token);
+                        var n = Math.Min(top, options.Value.MaxPerRun);
+                        var pending = (await scope.ServiceProvider.GetRequiredService<VacancyExtractionService>().PendingAsync(n, token))
+                            .Union(await scope.ServiceProvider.GetRequiredService<VacancyFitScoreService>().PendingAsync(n, token))
+                            .ToList();
                         foreach (var id in pending.Where(id => !backfill.Contains(id)))
                         {
                             backfill.Enqueue(id);
@@ -82,6 +84,14 @@ public sealed partial class ExtractionWorker(
                 await using (var scope = scopes.CreateAsyncScope())
                 {
                     var outcome = await scope.ServiceProvider.GetRequiredService<VacancyExtractionService>().ExtractAsync(next.Value, token);
+
+                    // „KI-Bewertung" in the same GPU queue, right after the extraction (cached, so usually only new ones).
+                    var fitScore = scope.ServiceProvider.GetRequiredService<VacancyFitScoreService>();
+                    if (fitScore.IsAvailable)
+                    {
+                        await fitScore.ScoreAsync(next.Value, token);
+                    }
+
                     coordinator.Completed(outcome);
                 }
             }

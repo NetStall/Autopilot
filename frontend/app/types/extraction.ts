@@ -16,6 +16,14 @@ export interface RequirementExtraction {
   softSkills?: string[] | null
 }
 
+/** „KI-Bewertung" (07b): the local model's judgement of the vacancy against my profile. */
+export interface AiFitScore {
+  score: number
+  verdict: 'passt' | 'eher nicht' | 'passt nicht'
+  reasons: string[]
+  blockers: string[]
+}
+
 /** A short name for a chip and the posting's own words it came from (tooltip). */
 export interface ExtractionChip {
   name: string

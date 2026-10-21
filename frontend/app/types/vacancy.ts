@@ -1,4 +1,4 @@
-import type { VacancyExtraction } from './extraction'
+import type { AiFitScore, VacancyExtraction } from './extraction'
 
 // Mirrors the backend DTOs in JobAutopilot.Api/Features.
 
@@ -69,6 +69,10 @@ export interface Vacancy {
   goldLabel?: boolean | null
   /** What the remote badge is based on, e.g. „Homeoffice: bis 40 % (Feld)" or „Homeoffice: teilweise (laut Text)". */
   remoteNote?: string | null
+  /** „KI-Bewertung" 0–100 of the local model (07b); shown next to the rank, not part of it. */
+  aiScore?: number | null
+  /** Verdict, reasons and blockers (detail only). */
+  aiFitScore?: AiFitScore | null
 }
 
 export interface PagedResponse<T> {

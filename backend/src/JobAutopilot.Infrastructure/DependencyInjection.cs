@@ -81,6 +81,7 @@ public static partial class DependencyInjection
         services.AddTransient<Core.Llm.ILlmClient>(sp => sp.GetRequiredService<Llm.OllamaLlmClient>());
         services.AddOptions<Llm.VacancyExtractionOptions>().Bind(configuration.GetSection(Llm.VacancyExtractionOptions.SectionName));
         services.AddScoped<Llm.VacancyExtractionService>();
+        services.AddScoped<Llm.VacancyFitScoreService>();
 
         // Which provider and model a task uses (Llm:Tasks:Letter = claude:<model>); letter code only sees the router.
         services.AddOptions<Llm.LlmOptions>().Bind(configuration.GetSection(Llm.LlmOptions.SectionName));

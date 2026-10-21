@@ -261,9 +261,10 @@ function openedOriginal() {
           Warum diese Bewertung?
         </h2>
         <p v-if="scoreLine(vacancy.relevanceScore, vacancy.rankScore)" class="detail__score-line">
-          {{ scoreLine(vacancy.relevanceScore, vacancy.rankScore) }}
+          {{ scoreLine(vacancy.relevanceScore, vacancy.rankScore, vacancy.aiScore) }}
         </p>
         <VacancyReasons :reasons="vacancy.relevanceReasons" />
+        <AiFitScorePanel v-if="vacancy.aiFitScore" :score="vacancy.aiFitScore" />
       </section>
 
       <dl class="detail__facts">

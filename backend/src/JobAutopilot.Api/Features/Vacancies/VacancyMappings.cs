@@ -42,7 +42,15 @@ public static class VacancyMappings
                 Core.Extraction.ExtractionNormalizer.Chips(extraction.Result, profile))
             : null,
         goldLabel,
-        vacancy.RemoteNote);
+        vacancy.RemoteNote,
+        CurrentAiScore(vacancy)?.Result.Score,
+        includeDescription ? CurrentAiScore(vacancy)?.Result : null);
+
+    /// <summary>The „KI-Bewertung" when it still belongs to the current description (the key starts with its hash).</summary>
+    private static Core.Extraction.StoredFitScore? CurrentAiScore(Vacancy vacancy) =>
+        vacancy.Description is { Length: > 0 } description && vacancy.AiScoreKey?.StartsWith(Core.Extraction.ExtractionKey.HashOf(description), StringComparison.Ordinal) == true
+            ? Core.Extraction.StoredFitScore.Parse(vacancy.AiScoreJson)
+            : null;
 
     public static Vacancy ToManualVacancy(this CreateVacancyRequest request, DateTimeOffset now) =>
         Vacancy.CreateManual(

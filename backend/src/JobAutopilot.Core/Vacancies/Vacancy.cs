@@ -96,6 +96,15 @@ public class Vacancy
     /// <summary><see cref="Extraction.ExtractionKey"/> of <see cref="ExtractionJson"/> — finds vacancies still to analyse.</summary>
     public string? ExtractionKey { get; set; }
 
+    /// <summary>„KI-Bewertung" 0–100 (step 07b): the local model's own judgement; shown next to the rank, not part of it.</summary>
+    public int? AiScore { get; set; }
+
+    /// <summary>Description hash + profile hash + model + prompt of <see cref="AiScoreJson"/>.</summary>
+    public string? AiScoreKey { get; set; }
+
+    /// <summary>The <see cref="Extraction.StoredFitScore"/> (verdict, reasons, blockers) as JSON.</summary>
+    public string? AiScoreJson { get; set; }
+
     /// <summary>Why the vacancy got its score, remote level and employer type (German, shown in the UI).</summary>
     public List<string> RelevanceReasons { get; set; } = [];
 

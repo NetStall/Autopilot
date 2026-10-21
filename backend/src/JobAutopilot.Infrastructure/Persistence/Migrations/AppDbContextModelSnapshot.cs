@@ -347,6 +347,65 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.ToTable("VacancyExtractions");
                 });
 
+            modelBuilder.Entity("JobAutopilot.Core.Extraction.VacancyFitScore", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DescriptionHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .IsFixedLength();
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("InputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("OutputTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProfileHash")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character(16)")
+                        .IsFixedLength();
+
+                    b.Property<string>("PromptVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ResultJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DescriptionHash", "ProfileHash", "Model", "PromptVersion")
+                        .IsUnique();
+
+                    b.ToTable("VacancyFitScores");
+                });
+
             modelBuilder.Entity("JobAutopilot.Core.Import.ImportRun", b =>
                 {
                     b.Property<Guid>("Id")
@@ -419,6 +478,16 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("AiScore")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AiScoreJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("AiScoreKey")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
 
                     b.Property<string>("Company")
                         .IsRequired()

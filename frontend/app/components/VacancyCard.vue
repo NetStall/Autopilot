@@ -50,6 +50,7 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
     <div class="card__main">
       <div class="card__heading">
         <ScoreBadge :vacancy="vacancy" />
+        <span v-if="vacancy.aiScore != null" class="badge card__ai" title="KI-Bewertung des lokalen Modells – ändert den Rang nicht">KI {{ vacancy.aiScore }}</span>
         <NuxtLink
           v-if="vacancy.applied && canEditDocuments(vacancy.applied.status)"
           :to="`/unterlagen/${vacancy.applied.applicationId}`"
@@ -103,7 +104,7 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
       </p>
       <div v-if="reasonsOpen" :id="reasonsId" class="card__reasons">
         <p v-if="scoreLine(vacancy.relevanceScore, vacancy.rankScore)" class="card__score-line">
-          {{ scoreLine(vacancy.relevanceScore, vacancy.rankScore) }}
+          {{ scoreLine(vacancy.relevanceScore, vacancy.rankScore, vacancy.aiScore) }}
         </p>
         <VacancyReasons :reasons="vacancy.relevanceReasons" />
       </div>

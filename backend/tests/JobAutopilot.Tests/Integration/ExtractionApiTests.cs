@@ -30,6 +30,7 @@ public class ExtractionApiTests(PostgresFixture postgres) : IntegrationTestBase(
     {
         ["Profile:Path"] = Path.Combine(AppContext.BaseDirectory, "Fixtures", "profiles", "regression-profile.json"),
         ["Llm:Tasks:Extraction"] = "ollama:qwen3:8b",
+        ["Llm:Tasks:FitScore"] = "",
         ["Llm:Extraction:AutoAfterImport"] = "false",
     };
 

@@ -21,6 +21,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<Core.Extraction.GoldLabel> GoldLabels => Set<Core.Extraction.GoldLabel>();
 
+    public DbSet<Core.Extraction.VacancyFitScore> VacancyFitScores => Set<Core.Extraction.VacancyFitScore>();
+
     public DbSet<Core.Documents.ApplicationDraftRevision> ApplicationDraftRevisions => Set<Core.Documents.ApplicationDraftRevision>();
 
     public DbSet<SearchProfiles.SearchProfileRecord> SearchProfiles => Set<SearchProfiles.SearchProfileRecord>();
