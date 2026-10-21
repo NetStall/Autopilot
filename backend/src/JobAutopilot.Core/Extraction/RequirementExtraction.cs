@@ -123,7 +123,11 @@ public static class ExtractionValidator
 {
     public const int MaxItems = 30;
 
-    public const int MaxItemLength = 80;
+    /// <summary>
+    /// Small models often copy a whole bullet point; the normaliser takes the known terms out of it, so only really long
+    /// entries are sent back (07a2).
+    /// </summary>
+    public const int MaxItemLength = 200;
 
     public const int MaxSummaryLength = 600;
 

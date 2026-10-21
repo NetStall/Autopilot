@@ -71,6 +71,21 @@ public class ExtractionQualityTests
     }
 
     [Fact]
+    public void A_copied_bullet_point_yields_its_known_terms_and_no_sentence_gap()
+    {
+        var extraction = Base() with
+        {
+            MustHave = ["Kenntnisse in .NET Backend-Entwicklung, einschließlich Technologien wie Kafka (oder Equivalente), AWS, Docker, ECS/Kubernetes und PostgreSQL",
+                        "ein Wachstumsgedanke zum kontinuierlichen Erforschen neuer AI-Technologien"],
+        };
+
+        var names = ExtractionNormalizer.Resolve(extraction, RealWorldFixtures.Profile).Select(r => r.Name).ToList();
+
+        names.Should().Contain([".NET", "Kafka", "AWS", "Docker", "Kubernetes", "PostgreSQL"]);
+        names.Should().NotContain(n => n.Length > 40, "a sentence is no requirement name");
+    }
+
+    [Fact]
     public void Missing_methods_cost_like_a_plus_and_share_a_small_cap_unless_marked_as_required()
     {
         var analyzer = new FitAnalyzer(new FitOptions());

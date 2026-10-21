@@ -47,7 +47,7 @@ public class ExtractionTests
     [InlineData("""{"minYears":45,"summary":"x"}""", "minYears must be between")]
     [InlineData("""{"homeOfficePercent":140,"summary":"x"}""", "homeOfficePercent must be between")]
     [InlineData("""{"mustHave":["C#"]}""", "summary must be")]
-    [InlineData("""{"mustHave":["Sie bringen mehrjährige Erfahrung in der Entwicklung verteilter Systeme mit Kafka mit"],"summary":"x"}""", "short name")]
+    [InlineData("""{"mustHave":["Sie bringen mehrjährige Erfahrung in der Entwicklung verteilter, hochverfügbarer Systeme mit Kafka, RabbitMQ und weiteren Message-Brokern in einer Cloud-Umgebung mit, idealerweise auch im Umfeld von Event Sourcing und CQRS"],"summary":"x"}""", "short name")]
     [InlineData("kein JSON", "not valid JSON")]
     public void Invalid_answers_give_errors_the_model_can_fix(string json, string error)
     {

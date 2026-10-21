@@ -71,7 +71,8 @@ public static partial class ExtractionNormalizer
                 found.AddRange(TechnologyCatalog.Matchers
                     .Where(t => t.Matcher.FindFirst(entry) is not null && !t.Technology.AllNames().Any(n => inProfile.Contains(SkillTerms.Key(n))))
                     .Select(t => (t.Technology.Name, (Skill?)null)));
-                if (found.Count == 0 && !SkillTerms.IsGeneric(entry) && !GenericPractice().IsMatch(entry))
+                // A short unknown name stays visible as a gap; a copied sentence without a known term says nothing checkable.
+                if (found.Count == 0 && IsShortName(entry) && !SkillTerms.IsGeneric(entry) && !GenericPractice().IsMatch(entry))
                 {
                     found.Add((entry.Trim(), null));
                 }
@@ -100,6 +101,9 @@ public static partial class ExtractionNormalizer
 
         return [.. result.Values];
     }
+
+    private static bool IsShortName(string entry) =>
+        entry.Trim().Length <= 40 && entry.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= 4;
 
     /// <summary>The profile skill that covers a concept: one listing it as a name or alias, else a known tool for it — the highest level wins.</summary>
     private static Skill? ConceptSkill(CandidateProfile profile, string[] names, string[] tools) =>
