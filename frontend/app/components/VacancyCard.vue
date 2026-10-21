@@ -66,7 +66,7 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
         >
           Beworben · {{ vacancy.applied.statusLabel }}
         </NuxtLink>
-        <span v-for="badge in statusBadges" :key="badge.variant" class="badge" :class="`badge--${badge.variant}`">
+        <span v-for="badge in statusBadges" :key="badge.variant" class="badge" :class="`badge--${badge.variant}`" :title="badge.title">
           {{ badge.label }}
         </span>
         <h2 :id="`vacancy-${vacancy.id}`" class="card__title">

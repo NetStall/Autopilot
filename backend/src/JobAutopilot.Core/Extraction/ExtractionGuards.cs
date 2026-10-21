@@ -12,7 +12,8 @@ namespace JobAutopilot.Core.Extraction;
 /// marker like „Voraussetzung", „zwingend", „(Pflicht)" in its line); otherwise it is nice to have;</item>
 /// <item>a domain stays only when a sentence that names it also asks for experience or knowledge — the company's
 /// industry („Software für die digitale Patientenversorgung") is not a requirement;</item>
-/// <item>minimum years stay only when the text states a number of years.</item>
+/// <item>minimum years stay only when the text states a number of years;</item>
+/// <item>a home-office share stays only when the text states one; „bis zu 3 Tage" read as 3 % becomes 60 % (07b).</item>
 /// </list>
 /// </summary>
 public static partial class ExtractionGuards
@@ -53,8 +54,29 @@ public static partial class ExtractionGuards
             NiceToHave = [.. extraction.NiceToHave.Where(niceToHave.Contains)],
             DomainRequirements = domains,
             MinYears = extraction.MinYears is not null && StatedYears().IsMatch(description) ? extraction.MinYears : null,
+            HomeOfficePercent = HomeOffice(extraction.HomeOfficePercent, description),
         };
     }
+
+    /// <summary>The model's share only when the text states one; a share of at most 5 next to „Tag(e)" is days (× 20).</summary>
+    private static int? HomeOffice(int? percent, string description)
+    {
+        if (percent is not { } value)
+        {
+            return null;
+        }
+
+        if (value <= 5 && HomeOfficeDays().Match(description) is { Success: true } days
+            && int.TryParse(days.Groups["n"].Value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var n) && n == value)
+        {
+            return Math.Min(n * 20, 100);
+        }
+
+        return HomeOfficeShare.Find(description) is { } stated ? stated : null;
+    }
+
+    [GeneratedRegex(@"(?<n>[1-5])\s+(?:Tage?n?|days?)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    private static partial Regex HomeOfficeDays();
 
     private static bool MarkedAsRequired(string item, string description, IReadOnlyList<(int Start, string Text)> sentences, RequirementSections sections)
     {

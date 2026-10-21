@@ -7,12 +7,16 @@ namespace JobAutopilot.Core.Scoring;
 /// Derives everything that is computed from a vacancy's text: duplicate key, remote level, employer type and
 /// relevance (score, level, reasons). Called by the import (new and refreshed vacancies), after fetching details, and when re-scoring.
 /// </summary>
+/// <param name="onRemoteConflict">Called when the source's home-office field and the text disagree (vacancy id, the
+/// source used) — the API logs it; Core has no logging.</param>
 public sealed class VacancyEnricher(
     IRelevanceScorerProvider scorers,
     RemoteClassifier remoteClassifier,
     EmployerClassifier employerClassifier,
-    VacancyFitService? fit = null)
+    VacancyFitService? fit = null,
+    Action<Guid, RemoteSource>? onRemoteConflict = null)
 {
+
     /// <param name="remoteHint">What the source says about home office, if anything.</param>
     /// <param name="employerHint">What the source says about the employer (Arbeitsagentur flags), if anything.</param>
     public void Apply(
@@ -24,17 +28,25 @@ public sealed class VacancyEnricher(
 
         vacancy.DuplicateKey = DuplicateKeys.For(vacancy.Company, vacancy.Title);
         // Himalayas lists remote jobs for a country („Remote (Deutschland)"): remote, not hybrid (07a2).
-        if (vacancy.Source == VacancySource.Himalayas && vacancy.Location?.StartsWith("Remote", StringComparison.OrdinalIgnoreCase) == true)
+        var remoteListing = vacancy.Source == VacancySource.Himalayas && vacancy.Location?.StartsWith("Remote", StringComparison.OrdinalIgnoreCase) == true;
+        if (remoteListing)
         {
             remoteHint = RemoteLevel.FullRemote;
         }
 
         vacancy.RaiseRemoteHint(remoteHint);
+        var extraction = Extraction.StoredExtraction.ForDescription(vacancy.ExtractionJson, vacancy.Description);
         var remote = remoteClassifier.Classify(vacancy.Title, vacancy.Description);
-        vacancy.RemoteLevel = vacancy.Source == VacancySource.Himalayas && vacancy.RemoteHint == RemoteLevel.FullRemote && remote.Level == RemoteLevel.Hybrid
-            // „work from home, the office or in a hybrid setup" is an offer, not a restriction; only „vor Ort" downgrades.
-            ? RemoteLevel.FullRemote
-            : CombineRemote(remote.Level, vacancy.RemoteHint);
+        var partialCue = remoteClassifier.FindPartial(vacancy.Title, vacancy.Description) ?? RemoteAssessor.OnSiteDays(vacancy.Description);
+        var assessment = RemoteAssessor.Assess(
+            remote, partialCue, HomeOfficeShare.Find(vacancy.Description), vacancy.RemoteHint, vacancy.HomeOfficePercent, extraction?.Result, remoteListing);
+        vacancy.RemoteLevel = assessment.Level;
+        vacancy.RemotePartial = assessment.Partial;
+        vacancy.RemoteNote = assessment.Label;
+        if (assessment.Conflict is not null)
+        {
+            onRemoteConflict?.Invoke(vacancy.Id, assessment.Source);
+        }
 
         // Himalayas lists the hiring company itself: direct unless agency signals say otherwise.
         if (employerHint == EmployerType.Unknown && vacancy.Source == VacancySource.Himalayas)
@@ -44,7 +56,6 @@ public sealed class VacancyEnricher(
 
         var employerReason = ApplyEmployer(vacancy, employerHint);
         var german = GermanRequirementDetector.Detect(vacancy.Title, vacancy.Description);
-        var extraction = Extraction.StoredExtraction.ForDescription(vacancy.ExtractionJson, vacancy.Description);
         vacancy.RequiredGerman = german.Category == RequiredGerman.Unknown && extraction is not null
             ? FromExtraction(extraction.Result)
             : german.Category;
@@ -54,7 +65,7 @@ public sealed class VacancyEnricher(
         vacancy.RelevanceLevel = relevance.Level;
 
         var reasons = relevance.Reasons.ToList();
-        if (RemoteReason(vacancy.RemoteLevel, remote) is { } remoteReason)
+        if (RemoteReason(assessment, remote, partialCue) is { } remoteReason)
         {
             reasons.Add(remoteReason);
         }
@@ -135,31 +146,21 @@ public sealed class VacancyEnricher(
     };
 
     /// <summary>
-    /// An explicit phrase decides (full remote or hybrid — so a wrong „100 %" field cannot beat „anteilig Homeoffice");
-    /// „kein Homeoffice" cannot undo a remote-search hit or the source's home-office flag (then hybrid); without any
-    /// phrase the source's data count.
+    /// The phrase that decided (as before), or the assessment's label; a partial cue and a conflict between field and
+    /// text are named, so „Warum?" shows what was used.
     /// </summary>
-    internal static RemoteLevel CombineRemote(RemoteLevel fromText, RemoteLevel hint) => fromText switch
+    private static string? RemoteReason(RemoteAssessment assessment, RemoteClassification found, string? partialCue)
     {
-        RemoteLevel.FullRemote or RemoteLevel.Hybrid => fromText,
-        RemoteLevel.OnSite => hint >= RemoteLevel.Hybrid ? RemoteLevel.Hybrid : RemoteLevel.OnSite,
-        _ => hint,
-    };
-
-    /// <summary>The phrase that decided, or — when the level comes from the source — that.</summary>
-    private static string? RemoteReason(RemoteLevel level, RemoteClassification found)
-    {
-        if (level == found.Level)
+        var reason = assessment switch
         {
-            return found.Reason;
-        }
-
-        return level switch
-        {
-            RemoteLevel.FullRemote when found.Level == RemoteLevel.Hybrid => $"Voll remote laut Quelle ({found.Reason} ist nur ein Angebot)",
-            RemoteLevel.FullRemote => "Voll remote laut Quelle",
-            RemoteLevel.Hybrid => "Homeoffice möglich (Remote-Suche bzw. Angabe der Quelle)",
-            _ => null,
+            { Level: RemoteLevel.Unknown } => null,
+            { Source: RemoteSource.Text, Partial: true } when partialCue is not null => $"{assessment.Label}: „{partialCue}“",
+            { Source: RemoteSource.Text } when assessment.Level == found.Level && found.Reason is not null => found.Reason,
+            { Source: RemoteSource.Flag, Level: RemoteLevel.FullRemote } when found.Level == RemoteLevel.Hybrid =>
+                $"Voll remote laut Quelle ({found.Reason} ist nur ein Angebot)",
+            { Source: RemoteSource.Flag, Level: RemoteLevel.FullRemote } => "Voll remote laut Quelle",
+            _ => assessment.Label,
         };
+        return reason is not null && assessment.Conflict is { } conflict ? $"{reason} – Widerspruch: {conflict}" : reason;
     }
 }

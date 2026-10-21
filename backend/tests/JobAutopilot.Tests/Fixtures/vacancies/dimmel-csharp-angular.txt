@@ -1,0 +1,51 @@
+title: SOFTWAREENTWICKLER C# / .NET / ANGULAR (W/M/D)
+company: Dimmel-Software GmbH
+location: 02625 Bautzen, Sachsen
+source: Arbeitsagentur
+remoteHint: Hybrid
+---
+Die **DIMMEL-Software GmbH** steht seit über 35 Jahren für innovative Softwarelösungen und ist auf maßgeschneiderte Lösungen für Kunden in verschiedenen Branchen spezialisiert. 
+
+**Unsere Mission:** Wir digitalisieren Arbeitsprozesse und entwickeln Lösungen, die den Arbeitsalltag unserer Kunden einfacher machen. Du liebst Programmieren, denkst mit und bringst gerne neue Ideen ein? C#, .NET Core und moderne Webtechnologien sind dein Ding? Dann gestalte mit uns smarte Software – im Team, mit kurzen Wegen und echtem Impact. 
+
+## Deine Aufgaben
+
+- Entwicklung und Pflege unserer Softwarelösungen auf Basis von C# / .NET / ASP.NET Core / EF Core / SQL
+- Arbeiten mit modernen Webtechnologien wie Angular, Typescript, HTML und SCSS
+- Schreiben von Unit-Tests (NUnit, Jasmine) und Mitwirkung bei End-to-End-Tests (Playwright)
+- Weiterentwicklung unserer Architektur im Monorepository (Nx)-Umfeld
+- Enge Zusammenarbeit mit Kolleg:innen aus Entwicklung, Projektleitung und Support 
+
+## Dein Profil
+
+- Gute Kenntnisse in C#, .NET Core, EF Core und SQL
+- Erfahrung mit Angular, Typescript, HTML, SCSS
+- Sicherer Umgang mit Unit Testing (z. B. NUnit, Jasmine) 
+- Erfahrung mit End-to-End-Tests (idealerweise Playwright) 
+- Grundkenntnisse im Arbeiten mit einem Monorepo (Nx von Vorteil)
+- Grundkenntnisse im Arbeiten mit dem Versionskontrollsystem Git
+- Analytisches und kritisches Denkvermögen, sowie selbstständige Problemlösungskompetenz
+- Lernbereitschaft und Offenheit für neue Technologien 
+- Gute Englischkenntnisse in Wort und Schrift (Lesen und Hören) 
+
+## Das bieten wir
+
+- Sicherer Arbeitsplatz mit unbefristetem Arbeitsvertrag in einem wachsenden Unternehmen
+- Intensive Einarbeitung und kontinuierliche Weiterbildungsmöglichkeiten
+- Flexible Arbeitszeiten und die Möglichkeit, teilweise im Homeoffice zu arbeiten
+- Flache Hierarchien und eine offene Unternehmenskultur
+- Ein freundliches Team mit hoher Fachkompetenz
+- Individuelle Weiterbildungsangebote 
+- Die Chance, technische Prozesse und Tools aktiv mitzugestalten (z. B. Git-Migration, Testing-Strategien) 
+- Betriebliche Altersvorsorge und zusätzliche Mitarbeiterbenefits (z.B. JobRad)
+
+## Bewirb Dich jetzt!
+
+Wir freuen uns über Deine Unterlagen mit Gehaltsvorstellung und Startdatum über unser Karriereportal. Klicke auf den Button „Jetzt bewerben“ und lade im Bewerbungsformular ganz unkompliziert Deine Unterlagen hoch.
+
+Fragen?
+Für erste Informationen steht Dir Marcel Tourbier gerne unter + 49 (0) 35 91 35 58 30 zur Verfügung. 
+
+**Dimmel-Software GmbH**
+Wilthener Straße 32
+02625 Bautzen

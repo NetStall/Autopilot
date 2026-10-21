@@ -15,6 +15,8 @@ stored as strings. Only what is not obvious from the entity classes is noted her
 | `RelevanceScore`, `RelevanceLevel`, `RelevanceReasons` (text[]) | from the relevance rules; recomputed by re-scoring; `null` = not scored yet (counts as „Vielleicht") |
 | `EmployerType` | from Arbeitsagentur flags / known agencies / phrases; Himalayas (lists the hiring company) = `Direct` unless agency signals are found; for manual vacancies the user's choice |
 | `Unreachable` | `true` = practically not reachable (outside my places and on site only or at most 60 % home office stated); recomputed on every scoring; hidden from the list while the Suchprofil says so (05d, 06a) |
+| `RemotePartial` | home office clearly partial („teilweise im Homeoffice", share < 100 %, on site) — outside my places this makes the job unreachable (07b) |
+| `RemoteNote` | German badge text with its source, e.g. „Homeoffice: bis 40 % (Feld)", „Homeoffice: teilweise (laut Text)" |
 | `HomeOfficePercent` | the home-office share the source states as a field (Arbeitsagentur `homeofficeprozent`, „Homeoffice (bis zu 40 %)"); wins over the text |
 | `ExtractionJson` | jsonb: the model's requirement extraction for the current description (07a); ignored when the description's hash differs |
 | `ExtractionKey` | description hash + model + prompt version of `ExtractionJson`; finds vacancies still to analyse |

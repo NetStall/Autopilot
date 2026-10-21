@@ -520,6 +520,15 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(32)")
                         .HasDefaultValue("Unknown");
 
+                    b.Property<string>("RemoteNote")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("RemotePartial")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("RequiredGerman")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

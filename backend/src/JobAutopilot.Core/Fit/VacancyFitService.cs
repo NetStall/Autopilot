@@ -21,7 +21,8 @@ public sealed class VacancyFitService(
             ? analyzer.Analyze(
                 profile,
                 new FitInput(vacancy.Title, vacancy.Description, vacancy.EmployerType, vacancy.Location, vacancy.RemoteLevel, vacancy.HomeOfficePercent,
-                    Extraction.StoredExtraction.ForDescription(vacancy.ExtractionJson, vacancy.Description)?.Result),
+                    Extraction.StoredExtraction.ForDescription(vacancy.ExtractionJson, vacancy.Description)?.Result,
+                    vacancy.RemotePartial),
                 DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime),
                 searchProfiles is null ? FitSettings.Neutral : FitSettings.From(searchProfiles.Current.Profile))
             : FitResult.Empty;

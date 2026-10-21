@@ -39,7 +39,8 @@ public static class VacancyMappings
         includeDescription && Core.Extraction.StoredExtraction.ForDescription(vacancy.ExtractionJson, vacancy.Description) is { } extraction
             ? new ExtractionDto(extraction.Result, extraction.Model, extraction.PromptVersion, extraction.ExtractedAt)
             : null,
-        goldLabel);
+        goldLabel,
+        vacancy.RemoteNote);
 
     public static Vacancy ToManualVacancy(this CreateVacancyRequest request, DateTimeOffset now) =>
         Vacancy.CreateManual(

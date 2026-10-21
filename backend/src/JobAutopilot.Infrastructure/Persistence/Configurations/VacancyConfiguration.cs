@@ -68,6 +68,8 @@ internal sealed class VacancyConfiguration : IEntityTypeConfiguration<Vacancy>
         builder.Property(v => v.DescriptionIsManual).HasDefaultValue(false);
         builder.Property(v => v.ExtractionJson).HasColumnType("jsonb");
         builder.Property(v => v.ExtractionKey).HasMaxLength(250);
+        builder.Property(v => v.RemotePartial).HasDefaultValue(false);
+        builder.Property(v => v.RemoteNote).HasMaxLength(200);
 
         builder.Property(v => v.RelevanceReasons)
             .HasColumnType("text[]")

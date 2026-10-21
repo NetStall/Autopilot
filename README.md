@@ -290,7 +290,10 @@ phrasing from `knownGaps`).
     stated share of at most 60 % home office (the Arbeitsagentur field „Homeoffice (bis zu 40 %)", else the text:
     „2 Tage Homeoffice") makes the job *practically not reachable* — a bigger penalty, hidden from the list while
     „Nicht erreichbare Stellen ausblenden" is on (list filter „Nicht erreichbare anzeigen", `includeUnreachable=true`).
-    An unknown share stays visible with a moderate penalty;
+    An unknown share stays visible with a moderate penalty. A bare „Homeoffice möglich" flag never outranks a text cue:
+    „teilweise im Homeoffice", „hybrides Arbeiten im Headquarter" or „2 Tage pro Woche vor Ort" make it partial
+    (unreachable outside my places). The badge says what was used („Homeoffice: bis 40 % (Feld)" / „teilweise (laut
+    Text)"), and „Warum?" names a conflict between field and text;
   - an employer type set to „niedriger einordnen";
   - a missed Remote-Präferenz.
 - **Default order:** the *rank* = relevance minus these penalties. The penalties are the Suchprofil's „Fit-Abzüge",

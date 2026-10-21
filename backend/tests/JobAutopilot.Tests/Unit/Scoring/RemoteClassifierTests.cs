@@ -62,7 +62,8 @@ public class RemoteClassifierTests
 
         vacancy.RemoteLevel.Should().Be(RemoteLevel.Hybrid);
         vacancy.RemoteHint.Should().Be(RemoteLevel.FullRemote, "the source's value is kept, the text decides");
-        vacancy.RelevanceReasons.Should().Contain("Hybrid: „anteilig Homeoffice“");
+        vacancy.RelevanceReasons.Should().Contain(r => r.StartsWith("Hybrid: „anteilig Homeoffice“ – Widerspruch: Quelle: voll remote", StringComparison.Ordinal),
+            "the conflict between the source and the text is shown (07b)");
     }
 
     [Fact]

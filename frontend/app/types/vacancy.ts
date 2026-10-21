@@ -67,6 +67,8 @@ export interface Vacancy {
   extraction?: VacancyExtraction | null
   /** My judgement „Passt" (true) / „Passt nicht" (false); null = not labelled (detail only). */
   goldLabel?: boolean | null
+  /** What the remote badge is based on, e.g. „Homeoffice: bis 40 % (Feld)" or „Homeoffice: teilweise (laut Text)". */
+  remoteNote?: string | null
 }
 
 export interface PagedResponse<T> {

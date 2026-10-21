@@ -30,7 +30,8 @@ public sealed record VacancyDto(
     int? HomeOfficePercent = null,
     bool DescriptionIsManual = false,
     ExtractionDto? Extraction = null,
-    bool? GoldLabel = null);
+    bool? GoldLabel = null,
+    string? RemoteNote = null);
 
 /// <summary>The model's extraction for the current description (detail view only), step 07a.</summary>
 public sealed record ExtractionDto(Core.Extraction.RequirementExtraction Result, string Model, string PromptVersion, DateTimeOffset ExtractedAt);

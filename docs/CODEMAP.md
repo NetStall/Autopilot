@@ -62,7 +62,7 @@ Config: `Fit` (CommonRequirements, OptionalMarkers, Penalties; heading/marker li
 
 | Feature | Files | Key symbols | Tests |
 |---|---|---|---|
-| Remote level | `Core/Scoring/RemoteClassifier.cs`, `Core/Vacancies/RemoteLevel.cs` | `RemoteClassifier.Classify` | `Unit/Scoring/RemoteClassifierTests.cs` |
+| Remote level | `Core/Scoring/RemoteClassifier.cs` (`PartialPhrases`), `Core/Scoring/RemoteAssessment.cs` (field vs flag vs text vs extraction), `Core/Vacancies/RemoteLevel.cs` | `RemoteClassifier.Classify`, `FindPartial`, `RemoteAssessor.Assess` | `Unit/Scoring/RemoteClassifierTests.cs`, `Unit/Scoring/RankingRegressionTests.cs` |
 | Employer type | `Core/Scoring/EmployerClassifier.cs`, `Core/Vacancies/EmployerType.cs` | `EmployerClassifier.Classify(…, sourceName)` | `Unit/Scoring/EmployerClassifierTests.cs`, `HimalayasEmployerTests.cs` |
 | Required German | `Core/Fit/GermanRequirementDetector.cs`, `Core/Vacancies/RequiredGerman.cs` | `GermanRequirementDetector.Detect` | `Unit/Fit/GermanRequirementTests.cs`, `Integration/GermanFilterApiTests.cs` |
 | German statistics | `Api/Features/Statistics/StatisticsEndpoints.cs` | — | `GET /api/statistics/german`; `Integration/GermanFilterApiTests.cs` |

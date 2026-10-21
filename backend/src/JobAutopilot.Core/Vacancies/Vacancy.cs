@@ -78,6 +78,12 @@ public class Vacancy
     /// <summary>The home-office share stated by the source as a field (Arbeitsagentur <c>homeofficeprozent</c>), if any.</summary>
     public int? HomeOfficePercent { get; set; }
 
+    /// <summary>Home office is clearly partial („teilweise im Homeoffice", a share below 100 %, on site) — 07b.</summary>
+    public bool RemotePartial { get; set; }
+
+    /// <summary>What the remote badge says and where it comes from, e.g. „Homeoffice: bis 40 % (Feld)" (German).</summary>
+    public string? RemoteNote { get; set; }
+
     /// <summary>The description was pasted by hand („Beschreibung einfügen"); fetching details never overwrites it.</summary>
     public bool DescriptionIsManual { get; set; }
 

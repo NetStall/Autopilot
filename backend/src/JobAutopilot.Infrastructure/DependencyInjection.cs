@@ -15,11 +15,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace JobAutopilot.Infrastructure;
 
-public static class DependencyInjection
+public static partial class DependencyInjection
 {
     public const string ConnectionStringName = "Default";
 
@@ -141,7 +142,17 @@ public static class DependencyInjection
             sp.GetRequiredService<ICandidateProfileSource>(),
             sp.GetRequiredService<TimeProvider>(),
             sp.GetService<ISearchProfileSource>()));
-        services.AddSingleton<VacancyEnricher>();
+        services.AddSingleton(sp =>
+        {
+            // Field and text disagree about home office (07b): logged with the vacancy id only.
+            var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger<VacancyEnricher>();
+            return new VacancyEnricher(
+                sp.GetRequiredService<IRelevanceScorerProvider>(),
+                sp.GetRequiredService<RemoteClassifier>(),
+                sp.GetRequiredService<EmployerClassifier>(),
+                sp.GetRequiredService<VacancyFitService>(),
+                (id, source) => RemoteConflictLog(logger, id, source));
+        });
 
         // The API replaces this with the file-based source (it knows the content root).
         services.TryAddSingleton<ICandidateProfileSource, NoCandidateProfileSource>();
@@ -169,4 +180,7 @@ public static class DependencyInjection
         services.AddTransient<IVacancySource>(sp => sp.GetRequiredService<ArbeitsagenturClient>());
         services.AddTransient<IVacancyDetailsSource>(sp => sp.GetRequiredService<ArbeitsagenturClient>());
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Vacancy {VacancyId}: home office field and text disagree, {Source} used")]
+    private static partial void RemoteConflictLog(ILogger logger, Guid vacancyId, RemoteSource source);
 }

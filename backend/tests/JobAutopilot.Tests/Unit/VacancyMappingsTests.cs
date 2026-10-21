@@ -32,7 +32,7 @@ public class VacancyMappingsTests
         // ExpiresAt, DuplicateKey and RemoteHint are internal (expiry clean-up, de-duplication) and not part of the DTO.
         dto.Should().BeEquivalentTo(vacancy, o => o.Excluding(v => v.ExpiresAt).Excluding(v => v.DuplicateKey).Excluding(v => v.RemoteHint)
             // Stored form of the extraction; the DTO carries the parsed one (`Extraction`).
-            .Excluding(v => v.ExtractionJson).Excluding(v => v.ExtractionKey));
+            .Excluding(v => v.ExtractionJson).Excluding(v => v.ExtractionKey).Excluding(v => v.RemotePartial));
     }
 
     [Fact]

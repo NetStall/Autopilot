@@ -48,7 +48,8 @@ public sealed record FitInput(
     string? Location,
     RemoteLevel RemoteLevel,
     int? HomeOfficePercent = null,
-    RequirementExtraction? Extraction = null);
+    RequirementExtraction? Extraction = null,
+    bool RemotePartial = false);
 
 /// <summary>Where the requirements of a fit check come from: the rules or a language model's extraction.</summary>
 public enum FitSource
@@ -106,7 +107,7 @@ public sealed partial class FitAnalyzer(FitOptions options)
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(settings);
-        var (title, description, employerType, location, remoteLevel, homeOfficePercent, extraction) = input;
+        var (title, description, employerType, location, remoteLevel, homeOfficePercent, extraction, remotePartial) = input;
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(title);
         var text = string.IsNullOrWhiteSpace(description) ? title : title + "\n" + description;
@@ -211,11 +212,14 @@ public sealed partial class FitAnalyzer(FitOptions options)
         if (OutsideRegions(settings, location, remoteLevel) is { } place)
         {
             var share = homeOfficePercent ?? extraction?.HomeOfficePercent ?? HomeOfficeShare.Find(text);
-            unreachable = remoteLevel == RemoteLevel.OnSite || share <= options.ReachableFromHomeOfficePercent;
+            // Clearly partial („teilweise im Homeoffice", „hybrides Arbeiten im Headquarter") without a share counts like a
+            // small share; only a bare „Homeoffice möglich" stays visible with the moderate penalty (07b).
+            unreachable = remoteLevel == RemoteLevel.OnSite || share <= options.ReachableFromHomeOfficePercent || (share is null && remotePartial);
+            var how = share is { } percent ? $"Homeoffice bis {percent.ToString(CultureInfo.InvariantCulture)} %"
+                : remoteLevel == RemoteLevel.OnSite ? "nur vor Ort"
+                : "Homeoffice nur teilweise";
             warnings.Add(
-                unreachable ? new FitWarning(
-                    $"Praktisch nicht erreichbar: {place}, {(share is { } percent ? $"Homeoffice bis {percent.ToString(CultureInfo.InvariantCulture)} %" : "nur vor Ort")}",
-                    penalties.Unreachable)
+                unreachable ? new FitWarning($"Praktisch nicht erreichbar: {place}, {how}", penalties.Unreachable)
                 : share is null ? new FitWarning($"Außerhalb meiner Regionen ({place}), Homeoffice-Anteil unbekannt", penalties.OutsideRegionUnknownShare)
                 : new FitWarning($"Außerhalb meiner Regionen ({place}) und nicht voll remote", penalties.OutsideRegion));
         }

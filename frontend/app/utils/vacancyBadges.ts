@@ -6,6 +6,8 @@ export type BadgeVariant = 'new' | 'remote' | 'hybrid' | 'starred' | 'dismissed'
 export interface Badge {
   label: string
   variant: BadgeVariant
+  /** Tooltip, e.g. where the remote level comes from („Homeoffice: teilweise (laut Text)"). */
+  title?: string
 }
 
 const remoteBadges: Partial<Record<RemoteLevel, Badge>> = {
@@ -15,7 +17,7 @@ const remoteBadges: Partial<Record<RemoteLevel, Badge>> = {
 
 /** Badges shown for a vacancy, in display order: „Neu", „Gemerkt"/„Ausgeblendet", „Remote"/„Hybrid", employer type. */
 export function vacancyBadges(
-  vacancy: Pick<Vacancy, 'isSeen' | 'remoteLevel' | 'employerType'> & Partial<Pick<Vacancy, 'interest'>>,
+  vacancy: Pick<Vacancy, 'isSeen' | 'remoteLevel' | 'employerType'> & Partial<Pick<Vacancy, 'interest' | 'remoteNote'>>,
 ): Badge[] {
   const badges: Badge[] = []
   if (!vacancy.isSeen) {
@@ -29,7 +31,8 @@ export function vacancyBadges(
   }
   const remote = remoteBadges[vacancy.remoteLevel]
   if (remote) {
-    badges.push({ ...remote })
+    const partial = vacancy.remoteLevel === 'Hybrid' && vacancy.remoteNote?.includes('teilweise')
+    badges.push({ ...remote, ...(partial ? { label: 'Hybrid (teilweise)' } : {}), ...(vacancy.remoteNote ? { title: vacancy.remoteNote } : {}) })
   }
   badges.push({
     label: employerTypeLabel(vacancy.employerType),

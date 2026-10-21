@@ -1,0 +1,33 @@
+title: .NET Backend Entwickler (m/w/d)
+company: monari GmbH
+location: 48599 Gronau (Westfalen)
+source: Arbeitsagentur
+remoteHint: Hybrid
+---
+monari ist ein zukunftsorientiertes und international agierendes Fashion-Label mit 16 Stores, 600 Partnerflächen, weiteren 2500 Fachhandelspartnern in 43 Ländern sowie einem wachsenden Onlineshop. Unsere rund 300 Mitarbeiter und Mitarbeiterinnen sind einer der wesentlichen Erfolgsfaktoren. Mit flachen Hierarchien, kurzen Entscheidungswegen sowie vielen Freiräumen und einem stark ausgeprägten Teamgeist entwickeln wir uns stetig weiter und sind damit sehr erfolgreich.
+
+**DEIN AUFGABENGEBIET**
+
+- Verantwortung für die Konzeptionierung, Weiterentwicklung und Pflege bestehender Systeme, z.B. für unseren hybriden Showroom oder unsere Händler App
+- Implementierung von performanten Web-APIs auf Basis von C#
+- Durchführung von Code Reviews und Optimierung bestehender Codes
+- Anpassungen und Verantwortung für die Pflege von Datenbanken
+
+**DAS BRINGST DU MIT**
+
+- Ausbildung im Entwicklungsbereich mit entsprechender Berufserfahrung oder ein abgeschlossenes Informatik-Studium
+- fundierte Erfahrungen mit C#, .NET Core, sowie SQL
+- idealerweise Kenntnisse im Umgang mit Frameworks wie SignalR und Erfahrungen im Umgang mit Git
+- Erfahrung mit agilen Entwicklungsmethoden (SCRUM, Kanban)
+- Begeisterung für Innovationen und neue Technologien
+
+### DAS ERWARTET DICH
+
+- eine wertschätzende Arbeitsatmosphäre in einem gesunden Familienunternehmen mit einem sicheren Arbeitsplatz
+- eine spannende und abwechslungsreiche Tätigkeit in einem aufgeschlossenen und motivierten Team
+- viel Raum für die fachliche und persönliche Weiterentwicklung
+- hybrides Arbeiten im Headquarter und Mobile Office sowie flexible Arbeitszeiten
+- eine leistungsgerechte Vergütung
+- Weihnachts- und Urlaubsgeld sowie 30 Tage Urlaub im Jahr
+- täglich warme Speisen, frische Salatbar sowie diverse kostenlose Getränke
+- weitere attraktive Benefits wie Jobrad, Corporate Benefits, Mitarbeiter App, Dienstagsfrühstück, After Work, Events und vieles mehr

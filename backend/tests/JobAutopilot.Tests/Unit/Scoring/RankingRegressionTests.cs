@@ -110,6 +110,45 @@ public class RankingRegressionTests
         rules.RemoteLevel.Should().Be(RemoteLevel.FullRemote);
     }
 
+    [Theory]
+    [InlineData("dimmel-csharp-angular", "teilweise im Homeoffice")]
+    [InlineData("monari-dotnet-backend", "hybrides Arbeiten im")]
+    public void A_bare_home_office_flag_does_not_outrank_a_partial_text_cue(string fixture, string cue)
+    {
+        var vacancy = RealWorldFixtures.Scored(fixture);
+
+        vacancy.Unreachable.Should().BeTrue("outside my places and only partly home office; reasons: {0}", string.Join(" | ", vacancy.RelevanceReasons));
+        vacancy.RemoteNote.Should().Be("Homeoffice: teilweise (laut Text)");
+        vacancy.RelevanceReasons.Should().Contain(r => r.Contains(cue, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_field_share_and_an_unknown_share_keep_their_rules()
+    {
+        var schmidt = RealWorldFixtures.Scored("schmidt-blazor-devexpress");
+        var ifm = RealWorldFixtures.Scored("ifm-prover-csharp");
+
+        schmidt.RemoteNote.Should().Be("Homeoffice: bis 40 % (Feld)");
+        schmidt.Unreachable.Should().BeTrue();
+        ifm.Unreachable.Should().BeFalse("„anteilig Homeoffice“ names no share: visible with −20");
+        ifm.RelevanceReasons.Should().Contain(r => r.Contains("Homeoffice-Anteil unbekannt (−20)", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_flag_with_100_percent_remote_in_the_text_is_full_remote()
+    {
+        var vacancy = new Vacancy
+        {
+            Id = Guid.NewGuid(), Source = VacancySource.Arbeitsagentur, ExternalId = "x", Title = "Softwareentwickler C#", Company = "Firma",
+            Location = "24103 Kiel", Url = "https://example.org", Description = "Du arbeitest 100 % remote aus ganz Deutschland.",
+        };
+
+        RealWorldFixtures.Enricher().Apply(vacancy, RemoteLevel.Hybrid);
+
+        vacancy.RemoteLevel.Should().Be(RemoteLevel.FullRemote);
+        vacancy.Unreachable.Should().BeFalse();
+    }
+
     [Fact]
     public void Medifox_requirements_are_classified_by_section()
     {

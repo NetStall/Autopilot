@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { reasonKind, remoteLevelLabel, scoreBadge, sourcesLine, vacancyBadges } from '../app/utils/vacancyBadges'
 
+describe('remote badge source (07b)', () => {
+  it('says „teilweise" and shows where the level comes from', () => {
+    const partial = vacancyBadges({ isSeen: true, remoteLevel: 'Hybrid', employerType: 'Unknown', remoteNote: 'Homeoffice: teilweise (laut Text)' })
+    expect(partial[0]).toMatchObject({ label: 'Hybrid (teilweise)', title: 'Homeoffice: teilweise (laut Text)' })
+    const field = vacancyBadges({ isSeen: true, remoteLevel: 'Hybrid', employerType: 'Unknown', remoteNote: 'Homeoffice: bis 40 % (Feld)' })
+    expect(field[0]).toMatchObject({ label: 'Hybrid', title: 'Homeoffice: bis 40 % (Feld)' })
+  })
+})
+
 describe('vacancyBadges', () => {
   it('shows Neu, Remote and the employer type in this order', () => {
     expect(vacancyBadges({ isSeen: false, remoteLevel: 'FullRemote', employerType: 'Direct' })).toEqual([

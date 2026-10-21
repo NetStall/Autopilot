@@ -311,7 +311,7 @@ function openedOriginal() {
           {{ vacancy.externalId }}
         </dd>
         <dt>Remote</dt>
-        <dd>{{ remoteLevelLabel(vacancy.remoteLevel) }}</dd>
+        <dd>{{ vacancy.remoteNote ?? remoteLevelLabel(vacancy.remoteLevel) }}</dd>
         <dt>Deutsch erforderlich</dt>
         <dd>{{ requiredGermanLabel(vacancy.requiredGerman ?? 'Unknown') }}</dd>
         <dt>Relevanz</dt>
