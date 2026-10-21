@@ -32,7 +32,10 @@ export function vacancyBadges(
   const remote = remoteBadges[vacancy.remoteLevel]
   if (remote) {
     const partial = vacancy.remoteLevel === 'Hybrid' && vacancy.remoteNote?.includes('teilweise')
-    badges.push({ ...remote, ...(partial ? { label: 'Hybrid (teilweise)' } : {}), ...(vacancy.remoteNote ? { title: vacancy.remoteNote } : {}) })
+    // Outside my places without a stated share (07c): visible, but home office only by arrangement.
+    const byArrangement = vacancy.remoteNote?.startsWith('Remote nur nach Absprache')
+    const label = byArrangement ? 'Remote nur nach Absprache' : partial ? 'Hybrid (teilweise)' : null
+    badges.push({ ...remote, ...(label ? { label } : {}), ...(vacancy.remoteNote ? { title: vacancy.remoteNote } : {}) })
   }
   badges.push({
     label: employerTypeLabel(vacancy.employerType),

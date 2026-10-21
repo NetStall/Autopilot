@@ -145,6 +145,7 @@ public static class SearchProfileRules
                      (p.MustHaveGap, "Lücke Muss"), (p.RequiredGap, "Lücke"), (p.LikelyRequiredGap, "Lücke Tech-Stack"),
                      (p.NiceToHaveGap, "Lücke Plus"), (p.MustHaveGapMax, "Muss-Lücken gesamt"), (p.RequiredGapMax, "Lücken gesamt"),
                      (p.OutsideRegion, "Außerhalb der Region"), (p.OutsideRegionUnknownShare, "Außerhalb, Homeoffice unbekannt"),
+                     (p.RemoteByArrangement, "Remote nur nach Absprache"),
                      (p.Unreachable, "Nicht erreichbar"),
                      (p.EmployerType, "Arbeitgebertyp"), (p.RemotePreference, "Remote-Wunsch"),
                  })
@@ -310,6 +311,7 @@ public static class SearchProfileRules
         Value(parts, "Abzug Lücken gesamt", before.Penalties.RequiredGapMax, after.Penalties.RequiredGapMax);
         Value(parts, "Abzug Region", before.Penalties.OutsideRegion, after.Penalties.OutsideRegion);
         Value(parts, "Abzug außerhalb, Homeoffice unbekannt", before.Penalties.OutsideRegionUnknownShare, after.Penalties.OutsideRegionUnknownShare);
+        Value(parts, "Abzug Remote nur nach Absprache", before.Penalties.RemoteByArrangement, after.Penalties.RemoteByArrangement);
         Value(parts, "Abzug nicht erreichbar", before.Penalties.Unreachable, after.Penalties.Unreachable);
         Value(parts, "Abzug Arbeitgebertyp", before.Penalties.EmployerType, after.Penalties.EmployerType);
         Value(parts, "Abzug Remote-Wunsch", before.Penalties.RemotePreference, after.Penalties.RemotePreference);

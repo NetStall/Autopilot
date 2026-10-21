@@ -137,6 +137,9 @@ public sealed class FitPenalties
     /// <summary>… with an unknown home-office share („anteilig Homeoffice"): visible, a moderate penalty.</summary>
     public int OutsideRegionUnknownShare { get; set; } = 20;
 
+    /// <summary>… hybrid without a stated share („teilweise im Homeoffice", a bare flag): visible, „Remote nur nach Absprache" (07c).</summary>
+    public int RemoteByArrangement { get; set; } = 25;
+
     /// <summary>Employer types listed in the profile's <c>preferences.avoidEmployerTypes</c> (e.g. Zeitarbeit).</summary>
     public int AvoidedEmployerType { get; set; } = 10;
 }

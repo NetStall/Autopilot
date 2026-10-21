@@ -89,6 +89,7 @@ public static class SearchProfileSeed
                 OutsideRegion = penalties.OutsideRegion,
                 Unreachable = penalties.Unreachable,
                 OutsideRegionUnknownShare = penalties.OutsideRegionUnknownShare,
+                RemoteByArrangement = penalties.RemoteByArrangement,
                 EmployerType = penalties.AvoidedEmployerType,
                 RemotePreference = defaults.RemotePreferencePenalty,
             },

@@ -66,7 +66,8 @@ public sealed record FitResult(
     int? RequiredYears,
     int Penalty,
     bool Unreachable = false,
-    FitSource Source = FitSource.Rules)
+    FitSource Source = FitSource.Rules,
+    bool RemoteByArrangement = false)
 {
     public static readonly FitResult Empty = new([], [], null, null, 0);
 }
@@ -91,6 +92,8 @@ public sealed partial class FitAnalyzer(FitOptions options)
         [.. options.CommonRequirements.Select(r => (r, new TermMatcher(r.Terms.Append(r.Name))))];
 
     private readonly TermMatcher _optionalMarkers = new(options.OptionalMarkers);
+
+    private static readonly TermMatcher OfficePresence = new(RemoteOptions.OfficePresencePhrases);
 
     private readonly TermMatcher _mustHaveMarkers = new(options.EffectiveMustHaveMarkers);
 
@@ -209,17 +212,22 @@ public sealed partial class FitAnalyzer(FitOptions options)
         }
 
         var unreachable = false;
+        var byArrangement = false;
         if (OutsideRegions(settings, location, remoteLevel) is { } place)
         {
             var share = homeOfficePercent ?? extraction?.HomeOfficePercent ?? HomeOfficeShare.Find(text);
-            // Clearly partial („teilweise im Homeoffice", „hybrides Arbeiten im Headquarter") without a share counts like a
-            // small share; only a bare „Homeoffice möglich" stays visible with the moderate penalty (07b).
-            unreachable = remoteLevel == RemoteLevel.OnSite || share <= options.ReachableFromHomeOfficePercent || (share is null && remotePartial);
+            // Hidden only with a stated share ≤ 60 %, on site only, or a cue that binds the job to the office („hybrides
+            // Arbeiten im Headquarter", „2 Tage vor Ort"). Hybrid without a share („teilweise im Homeoffice", a bare
+            // home-office flag) stays visible: „Remote nur nach Absprache" (07c — my labels mean „I would apply").
+            var officeBound = OfficePresence.FindFirst(text) ?? RemoteAssessor.OnSiteDays(text);
+            unreachable = remoteLevel == RemoteLevel.OnSite || share <= options.ReachableFromHomeOfficePercent || (share is null && officeBound is not null);
+            byArrangement = !unreachable && share is null && (remoteLevel == RemoteLevel.Hybrid || remotePartial);
             var how = share is { } percent ? $"Homeoffice bis {percent.ToString(CultureInfo.InvariantCulture)} %"
                 : remoteLevel == RemoteLevel.OnSite ? "nur vor Ort"
-                : "Homeoffice nur teilweise";
+                : $"Präsenz im Büro („{officeBound}“)";
             warnings.Add(
                 unreachable ? new FitWarning($"Praktisch nicht erreichbar: {place}, {how}", penalties.Unreachable)
+                : byArrangement ? new FitWarning($"Außerhalb meiner Regionen ({place}), Remote nur nach Absprache (kein Homeoffice-Anteil genannt)", penalties.RemoteByArrangement)
                 : share is null ? new FitWarning($"Außerhalb meiner Regionen ({place}), Homeoffice-Anteil unbekannt", penalties.OutsideRegionUnknownShare)
                 : new FitWarning($"Außerhalb meiner Regionen ({place}) und nicht voll remote", penalties.OutsideRegion));
         }
@@ -241,7 +249,7 @@ public sealed partial class FitAnalyzer(FitOptions options)
             .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
         return new FitResult(ordered, warnings, germanLevel, years?.Years, warnings.Sum(w => w.Penalty), unreachable,
-            extraction is null ? FitSource.Rules : FitSource.Ai);
+            extraction is null ? FitSource.Rules : FitSource.Ai, byArrangement);
     }
 
     /// <summary>

@@ -35,6 +35,17 @@ public sealed class RemoteOptions
     ];
 
     public IReadOnlyList<string> EffectivePartialPhrases => PartialPhrases.Count > 0 ? PartialPhrases : DefaultPartialPhrases;
+
+    /// <summary>
+    /// The partial cues that bind the job to the office („hybrides Arbeiten im Headquarter", „Präsenz im Büro"): outside
+    /// my places such a job is not reachable. Other partial cues („teilweise im Homeoffice") only mean „Remote nur nach
+    /// Absprache" (07c).
+    /// </summary>
+    public static readonly string[] OfficePresencePhrases =
+    [
+        "hybrides Arbeiten im", "im Headquarter", "Präsenz im Büro", "regelmäßig vor Ort", "regelmäßig im Büro",
+        "days in the office", "office presence",
+    ];
 }
 
 /// <summary>A remote level with the phrase that decided it (for the reasons).</summary>

@@ -148,6 +148,9 @@ public sealed class SearchPenalties
     /// <summary>Outside my places with an unknown home-office share.</summary>
     public int OutsideRegionUnknownShare { get; set; } = 20;
 
+    /// <summary>Outside my places, hybrid without a stated share: visible with the badge „Remote nur nach Absprache" (07c).</summary>
+    public int RemoteByArrangement { get; set; } = 25;
+
     /// <summary>For agencies / temporary work with policy <see cref="EmployerTypePolicy.RankLower"/>.</summary>
     public int EmployerType { get; set; } = 10;
 

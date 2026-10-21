@@ -181,7 +181,7 @@ public class FitAnalyzerTests
     [Theory]
     [InlineData("24103 Kiel", RemoteLevel.Hybrid, "80 % Homeoffice", 15, false)]
     [InlineData("24103 Kiel", RemoteLevel.Hybrid, "Homeoffice bis zu 40 %", 35, true)]
-    [InlineData("24103 Kiel", RemoteLevel.Hybrid, "Text", 20, false)]
+    [InlineData("24103 Kiel", RemoteLevel.Hybrid, "Text", 25, false)]
     [InlineData("24103 Kiel", RemoteLevel.Unknown, "Text", 20, false)]
     [InlineData("24103 Kiel", RemoteLevel.OnSite, "Text", 35, true)]
     [InlineData("94469 Deggendorf", RemoteLevel.Hybrid, "Text", 0, false)]

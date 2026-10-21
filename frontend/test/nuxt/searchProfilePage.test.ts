@@ -34,7 +34,7 @@ function profile(): SearchProfile {
     topN: 20,
     germanFilter: [],
     hideUnreachable: true,
-    penalties: { germanPerLevel: 8, experience: 8, experienceStrong: 10, mustHaveGap: 15, requiredGap: 6, likelyRequiredGap: 10, niceToHaveGap: 4, mustHaveGapMax: 30, requiredGapMax: 18, outsideRegion: 15, unreachable: 35, outsideRegionUnknownShare: 20, employerType: 10, remotePreference: 10 },
+    penalties: { germanPerLevel: 8, experience: 8, experienceStrong: 10, mustHaveGap: 15, requiredGap: 6, likelyRequiredGap: 10, niceToHaveGap: 4, mustHaveGapMax: 30, requiredGapMax: 18, outsideRegion: 15, unreachable: 35, outsideRegionUnknownShare: 20, remoteByArrangement: 25, employerType: 10, remotePreference: 10 },
     salaryMin: null,
     salaryMax: null,
     earliestStart: null,

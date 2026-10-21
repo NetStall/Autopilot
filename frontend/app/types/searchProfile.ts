@@ -41,6 +41,8 @@ export interface SearchPenalties {
   outsideRegion: number
   unreachable: number
   outsideRegionUnknownShare: number
+  /** Outside my places, hybrid without a stated share: „Remote nur nach Absprache" (07c). */
+  remoteByArrangement: number
   employerType: number
   remotePreference: number
 }

@@ -17,6 +17,9 @@ public sealed class VacancyEnricher(
     Action<Guid, RemoteSource>? onRemoteConflict = null)
 {
 
+    /// <summary>The badge for a hybrid job outside my places without a stated share (07c); the remote note starts with it.</summary>
+    public const string ByArrangement = "Remote nur nach Absprache";
+
     /// <param name="remoteHint">What the source says about home office, if anything.</param>
     /// <param name="employerHint">What the source says about the employer (Arbeitsagentur flags), if anything.</param>
     public void Apply(
@@ -92,6 +95,10 @@ public sealed class VacancyEnricher(
         var fitResult = fit?.Analyze(vacancy) ?? FitResult.Empty;
         vacancy.RankScore = Math.Clamp(relevance.Score - fitResult.Penalty, 0, 100);
         vacancy.Unreachable = fitResult.Unreachable;
+        if (fitResult.RemoteByArrangement)
+        {
+            vacancy.RemoteNote = assessment.Label is { Length: > 0 } label ? $"{ByArrangement} – {label}" : ByArrangement;
+        }
         vacancy.RuleRankScore = extraction is null || fit is null
             ? vacancy.RankScore
             : Math.Clamp(relevance.Score - fit.AnalyzeRules(vacancy, rulesAssessment.Level, rulesAssessment.Partial).Penalty, 0, 100);

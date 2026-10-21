@@ -499,6 +499,9 @@ onBeforeUnmount(() => {
             <label for="pen-unknown-share">außerhalb der Region, Homeoffice-Anteil unbekannt
               <input id="pen-unknown-share" v-model.number="form.penalties.outsideRegionUnknownShare" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
             </label>
+            <label for="pen-by-arrangement">außerhalb der Region, hybrid ohne Anteil („Remote nur nach Absprache“)
+              <input id="pen-by-arrangement" v-model.number="form.penalties.remoteByArrangement" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
+            </label>
             <label for="pen-unreachable">praktisch nicht erreichbar (nur vor Ort oder höchstens 60 % Homeoffice)
               <input id="pen-unreachable" v-model.number="form.penalties.unreachable" class="input sp__number" type="number" min="0" :max="MAX_PENALTY">
             </label>

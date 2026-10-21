@@ -15,9 +15,9 @@ public class RankingRegressionTests
         { "aracom-dotnet-angular-vue", 80, 95 },
         // Senior C#/.NET, but AWS is a must-have gap, German B2 („sicher auf Deutsch"), strong seniority signal (05c).
         { "medifox-senior-aws", 33, 41 },
-        // C# but C1 German, and hybrid outside my region with an unknown share („anteilig Homeoffice"): visible with a
-        // moderate penalty (−20), not hidden as unreachable (06a).
-        { "ifm-prover-csharp", 22, 38 },
+        // C# but C1 German, and hybrid outside my region with an unknown share („anteilig Homeoffice"): visible with
+        // „Remote nur nach Absprache" (−25, 07c), not hidden as unreachable (06a).
+        { "ifm-prover-csharp", 15, 38 },
         // C#/.NET in the title, but DevExpress (Pflicht), Blazor, SignalR, gRPC, XPO in the stack, and the source's
         // field says 40 % home office in Schmallenberg: not reachable (05d).
         { "schmidt-blazor-devexpress", 0, 35 },
@@ -132,16 +132,33 @@ public class RankingRegressionTests
         rules.RemoteLevel.Should().Be(RemoteLevel.FullRemote);
     }
 
-    [Theory]
-    [InlineData("dimmel-csharp-angular", "teilweise im Homeoffice")]
-    [InlineData("monari-dotnet-backend", "hybrides Arbeiten im")]
-    public void A_bare_home_office_flag_does_not_outrank_a_partial_text_cue(string fixture, string cue)
+    [Fact]
+    public void A_partial_text_cue_without_a_share_is_remote_by_arrangement_not_hidden()
     {
-        var vacancy = RealWorldFixtures.Scored(fixture);
+        // 07c: my labels mean „I would apply" — Dimmel („teilweise im Homeoffice", Bautzen) stays visible with a penalty.
+        var vacancy = RealWorldFixtures.Scored("dimmel-csharp-angular");
 
-        vacancy.Unreachable.Should().BeTrue("outside my places and only partly home office; reasons: {0}", string.Join(" | ", vacancy.RelevanceReasons));
-        vacancy.RemoteNote.Should().Be("Homeoffice: teilweise (laut Text)");
-        vacancy.RelevanceReasons.Should().Contain(r => r.Contains(cue, StringComparison.Ordinal));
+        vacancy.Unreachable.Should().BeFalse("no share is stated; reasons: {0}", string.Join(" | ", vacancy.RelevanceReasons));
+        vacancy.RemoteNote.Should().Be("Remote nur nach Absprache – Homeoffice: teilweise (laut Text)");
+        vacancy.RelevanceReasons.Should().Contain(r => r.Contains("Remote nur nach Absprache", StringComparison.Ordinal) && r.EndsWith("(−25)", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_cue_that_binds_the_job_to_the_office_still_hides_it()
+    {
+        var vacancy = RealWorldFixtures.Scored("monari-dotnet-backend");
+
+        vacancy.Unreachable.Should().BeTrue("„hybrides Arbeiten im Headquarter“; reasons: {0}", string.Join(" | ", vacancy.RelevanceReasons));
+        vacancy.RelevanceReasons.Should().Contain(r => r.Contains("Präsenz im Büro („hybrides Arbeiten im“)", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Mca_with_only_a_home_office_flag_is_visible_by_arrangement()
+    {
+        var (vacancy, _) = RealWorldFixtures.ScoredWithExtraction("mca-group-dotnet", "v3");
+
+        vacancy.Unreachable.Should().BeFalse();
+        vacancy.RemoteNote.Should().StartWith("Remote nur nach Absprache");
     }
 
     [Fact]
@@ -152,8 +169,8 @@ public class RankingRegressionTests
 
         schmidt.RemoteNote.Should().Be("Homeoffice: bis 40 % (Feld)");
         schmidt.Unreachable.Should().BeTrue();
-        ifm.Unreachable.Should().BeFalse("„anteilig Homeoffice“ names no share: visible with −20");
-        ifm.RelevanceReasons.Should().Contain(r => r.Contains("Homeoffice-Anteil unbekannt (−20)", StringComparison.Ordinal));
+        ifm.Unreachable.Should().BeFalse("„anteilig Homeoffice“ names no share: visible with −25");
+        ifm.RelevanceReasons.Should().Contain(r => r.Contains("Remote nur nach Absprache (kein Homeoffice-Anteil genannt) (−25)", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -8,6 +8,12 @@ describe('remote badge source (07b)', () => {
     const field = vacancyBadges({ isSeen: true, remoteLevel: 'Hybrid', employerType: 'Unknown', remoteNote: 'Homeoffice: bis 40 % (Feld)' })
     expect(field[0]).toMatchObject({ label: 'Hybrid', title: 'Homeoffice: bis 40 % (Feld)' })
   })
+
+  it('says „Remote nur nach Absprache" outside my places without a stated share (07c)', () => {
+    const note = 'Remote nur nach Absprache – Homeoffice: teilweise (laut Text)'
+    const badges = vacancyBadges({ isSeen: true, remoteLevel: 'Hybrid', employerType: 'Unknown', remoteNote: note })
+    expect(badges[0]).toMatchObject({ label: 'Remote nur nach Absprache', title: note })
+  })
 })
 
 describe('vacancyBadges', () => {
