@@ -449,7 +449,6 @@ to the console only):
 
 | `Claude` setting | Default | |
 |---|---|---|
-| `Model` | `claude-sonnet-5-5` | see [ADR 0010](docs/decisions/0010-application-documents.md) |
 | `MaxTokens` | 8000 | per call, thinking included |
 | `Effort` | `medium` | `low` … `max`; empty = model default |
 | `Temperature` | empty | only sent when set — current models reject non-default values |
@@ -457,6 +456,48 @@ to the console only):
 | `DailyCallLimit` | 30 | generations + rephrasings per day (German time) → 429 |
 | `DraftTokenBudget` | 120000 | tokens per draft → 429 |
 | `InputPricePerMTok` / `OutputPricePerMTok` | 2 / 10 | USD, only for the cost shown per draft |
+
+The model is set only in `Llm:Tasks` (`"Letter": "claude:claude-sonnet-5-5"`), see
+[ADR 0013](docs/decisions/0013-llm-abstraction.md).
+
+### Local model (Ollama)
+
+Optional. Without Ollama everything works as before: the AI features fall back to the rules. Personal data and
+postings stay on the PC.
+
+1. Install Ollama for Windows natively from [ollama.com/download](https://ollama.com/download). It runs in the
+   background and listens on `http://localhost:11434`.
+2. Give the model room for long German postings, then restart Ollama from the tray:
+
+   ```powershell
+   setx OLLAMA_CONTEXT_LENGTH 16384
+   ```
+
+3. Pull the models. The default `qwen3:8b` (q4_K_M, 5.2 GB) leaves room for a 16K context in 12 GB VRAM. The
+   optional `qwen3:14b` (q4_K_M, 9.3 GB) is for comparison and is tight with a long context.
+
+   ```powershell
+   ollama pull qwen3:8b
+   ollama pull qwen3:14b
+   ```
+
+4. Switch it on.
+   - Dev mode: `dotnet user-secrets set "Llm:Providers:Ollama:Enabled" "true" --project backend/src/JobAutopilot.Api`,
+     or set it in `appsettings.Development.json`.
+   - Docker: `OLLAMA_ENABLED=true` in `.env`. The API reaches the host as `http://host.docker.internal:11434`.
+5. Check it.
+   - `Invoke-RestMethod http://localhost:5080/api/llm/status` shows whether Ollama is reachable, the pulled models
+     and which tasks are ready.
+   - `ollama ps` shows the loaded model and `100% GPU` when it runs on the graphics card.
+   - `nvidia-smi` shows the VRAM in use.
+
+| `Llm:…` | Default | Meaning |
+|---|---|---|
+| `Tasks:Letter` | `claude:claude-sonnet-5-5` | provider:model for the cover letter |
+| `Tasks:Extraction` | `ollama:qwen3:8b` | provider:model for the requirement extraction; `ollama:qwen3:14b` to compare |
+| `Providers:Ollama:Enabled` | `false` | off = no call to Ollama, rules only |
+| `Providers:Ollama:BaseUrl` | `http://localhost:11434` | from Docker `http://host.docker.internal:11434` |
+| `Providers:Ollama:TimeoutSeconds` / `MaxRetries` | 180 / 1 | per attempt; 429/5xx/connection errors are retried |
 
 ### Create a vacancy by hand
 

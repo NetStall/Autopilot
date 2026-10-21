@@ -3,6 +3,7 @@ using JobAutopilot.Api.Common;
 using JobAutopilot.Api.Features.Applications;
 using JobAutopilot.Api.Features.Documents;
 using JobAutopilot.Api.Features.Health;
+using JobAutopilot.Api.Features.Llm;
 using JobAutopilot.Api.Features.Profile;
 using JobAutopilot.Api.Features.Scoring;
 using JobAutopilot.Api.Features.SearchProfiles;
@@ -122,5 +123,6 @@ app.MapApplicationEndpoints(trackerImportPath);
 app.MapSearchProfileEndpoints();
 app.MapDocumentEndpoints();
 app.MapStatisticsEndpoints();
+app.MapLlmEndpoints();
 
 await app.RunAsync();

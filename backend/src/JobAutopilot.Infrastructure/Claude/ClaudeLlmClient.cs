@@ -45,6 +45,8 @@ public sealed partial class ClaudeLlmClient : ILlmClient, IDisposable
 
     public string Provider => ProviderName;
 
+    public bool IsEnabled => _client is not null;
+
     public void Dispose() => _client?.Dispose();
 
     public async Task<LlmResponse> CompleteJsonAsync(LlmRequest request, string model, CancellationToken cancellationToken)

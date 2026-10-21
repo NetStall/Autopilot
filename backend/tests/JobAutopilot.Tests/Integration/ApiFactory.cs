@@ -44,6 +44,9 @@ public sealed class ApiFactory(
             services.AddSingleton<IVacancySource>(new FakeVacancySource());
             services.RemoveAll<IVacancyDetailsSource>();
             services.AddSingleton<IVacancyDetailsSource>(DetailsSource);
+
+            // Never a real local model: Ollama's HTTP client behaves as if nothing listens on the port.
+            services.AddHttpClient<Infrastructure.Llm.OllamaLlmClient>().ConfigurePrimaryHttpMessageHandler(() => new OfflineHandler());
             configureServices?.Invoke(services);
         });
     }

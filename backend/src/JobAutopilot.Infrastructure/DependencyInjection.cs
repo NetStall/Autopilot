@@ -74,6 +74,11 @@ public static class DependencyInjection
         services.AddHttpClient<ClaudeLlmClient>(client => client.Timeout = Timeout.InfiniteTimeSpan);
         services.AddTransient<Core.Llm.ILlmClient>(sp => sp.GetRequiredService<ClaudeLlmClient>());
 
+        // Local model (step 07a), off unless Llm:Providers:Ollama:Enabled; retries and per-attempt timeout in the client.
+        services.AddOptions<Llm.OllamaOptions>().Bind(configuration.GetSection(Llm.OllamaOptions.SectionName));
+        services.AddHttpClient<Llm.OllamaLlmClient>(client => client.Timeout = Timeout.InfiniteTimeSpan);
+        services.AddTransient<Core.Llm.ILlmClient>(sp => sp.GetRequiredService<Llm.OllamaLlmClient>());
+
         // Which provider and model a task uses (Llm:Tasks:Letter = claude:<model>); letter code only sees the router.
         services.AddOptions<Llm.LlmOptions>().Bind(configuration.GetSection(Llm.LlmOptions.SectionName));
         services.AddTransient<Core.Llm.ILlmRouter, Llm.LlmRouter>();

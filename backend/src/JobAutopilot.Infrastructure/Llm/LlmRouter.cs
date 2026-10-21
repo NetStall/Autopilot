@@ -27,7 +27,8 @@ public sealed class LlmRouter(IEnumerable<ILlmClient> clients, IOptions<LlmOptio
 
     public string ModelFor(string task) => Resolve(task)?.Model ?? string.Empty;
 
-    public bool IsConfigured(string task) => Resolve(task) is { } target && _clients.ContainsKey(target.Provider);
+    public bool IsConfigured(string task) =>
+        Resolve(task) is { } target && _clients.TryGetValue(target.Provider, out var client) && client.IsEnabled;
 
     public Task<LlmResponse> CompleteJsonAsync(LlmRequest request, CancellationToken cancellationToken)
     {

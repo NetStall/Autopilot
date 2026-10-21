@@ -50,6 +50,11 @@ services:
       Documents__OutputPath: /app/applications
       # Claude API key from .env (never committed); empty = letters can be edited but not generated.
       Claude__ApiKey: "${CLAUDE_API_KEY:-}"
+      # Local model on the host (step 07a), off unless OLLAMA_ENABLED=true in .env.
+      Llm__Providers__Ollama__Enabled: "${OLLAMA_ENABLED:-false}"
+      Llm__Providers__Ollama__BaseUrl: "http://host.docker.internal:11434"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./data:/app/data:ro
       - ./data/applications:/app/applications

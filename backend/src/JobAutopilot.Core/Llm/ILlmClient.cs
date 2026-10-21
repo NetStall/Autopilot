@@ -29,6 +29,9 @@ public interface ILlmClient
     /// <summary>The provider name used in <c>Llm:Tasks</c>, e.g. <c>claude</c>.</summary>
     string Provider { get; }
 
+    /// <summary>Usable at all: Claude with an API key, Ollama switched on. Off = callers fall back to the rules.</summary>
+    bool IsEnabled { get; }
+
     Task<LlmResponse> CompleteJsonAsync(LlmRequest request, string model, CancellationToken cancellationToken);
 }
 

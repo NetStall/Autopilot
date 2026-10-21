@@ -36,4 +36,21 @@ public class HealthEndpointTests(PostgresFixture postgres) : IntegrationTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task Llm_status_shows_tasks_and_an_unreachable_ollama_without_any_key()
+    {
+        var response = await Client.GetAsync("/api/llm/status", CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync(CancellationToken);
+        using var json = JsonDocument.Parse(body);
+        var ollama = json.RootElement.GetProperty("ollama");
+        ollama.GetProperty("enabled").GetBoolean().Should().BeFalse("off by default");
+        ollama.GetProperty("reachable").GetBoolean().Should().BeFalse();
+        json.RootElement.GetProperty("tasks").EnumerateArray().Select(t => t.GetProperty("task").GetString())
+            .Should().Contain(["Extraction", "Letter"]);
+        json.RootElement.GetProperty("tasks").EnumerateArray().Should().OnlyContain(t => !t.GetProperty("ready").GetBoolean());
+        body.Should().NotContainEquivalentOf("apikey");
+    }
 }
