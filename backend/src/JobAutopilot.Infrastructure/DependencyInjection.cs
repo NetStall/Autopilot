@@ -153,7 +153,8 @@ public static partial class DependencyInjection
                 sp.GetRequiredService<RemoteClassifier>(),
                 sp.GetRequiredService<EmployerClassifier>(),
                 sp.GetRequiredService<VacancyFitService>(),
-                (id, source) => RemoteConflictLog(logger, id, source));
+                (id, source) => RemoteConflictLog(logger, id, source),
+                sp.GetService<ISearchProfileSource>());
         });
 
         // The API replaces this with the file-based source (it knows the content root).

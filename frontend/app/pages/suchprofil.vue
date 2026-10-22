@@ -460,6 +460,28 @@ onBeforeUnmount(() => {
           <input v-model="form.hideUnreachable" type="checkbox" data-test="hide-unreachable">
           Nicht erreichbare Stellen ausblenden (außerhalb meiner Orte und nur vor Ort oder höchstens 60 % Homeoffice)
         </label>
+        <fieldset v-if="form.hardFilters" data-test="hard-filters">
+          <legend>Harte Filter (vor jeder KI-Analyse)</legend>
+          <p class="sp__help">
+            Gefilterte Stellen sind standardmäßig ausgeblendet („Gefilterte anzeigen“ in der Liste). Stellen mit Bewerbung
+            oder meiner Bewertung „Passt“ werden nie gefiltert. Leere Listen = Standard.
+          </p>
+          <label class="sp__check">
+            <input v-model="form.hardFilters.germanC1" type="checkbox">
+            Deutsch C1 ausdrücklich gefordert (C1, verhandlungssicher, Muttersprache) ausblenden
+          </label>
+          <label class="sp__check">
+            <input v-model="form.hardFilters.roleType" type="checkbox">
+            Rollen ausblenden (Werkstudent, Praktikum, Ausbildung, Teamleitung …)
+          </label>
+          <TagInput id="role-terms" v-model="form.hardFilters.roleTerms" label="Rollen-Begriffe im Titel" hint="Leer = Standardliste." />
+          <label class="sp__check">
+            <input v-model="form.hardFilters.stack" type="checkbox">
+            Stellen ohne meinen Stack ausblenden
+          </label>
+          <TagInput id="core-skills" v-model="form.hardFilters.coreSkills" label="Kern-Skills (mindestens einer muss vorkommen)" hint="Leer = C#, .NET, ASP.NET, TypeScript, JavaScript, Vue, Nuxt." />
+          <TagInput id="mismatch-terms" v-model="form.hardFilters.mismatchTitleTerms" label="Anderer Stack im Titel (ohne Kern-Skill)" hint="Leer = Embedded, C++, Firmware, SAP, ABAP, Java, PHP, SPS." />
+        </fieldset>
         <fieldset>
           <legend>Fit-Abzüge (0–{{ MAX_PENALTY }} Punkte)</legend>
           <p class="sp__help">

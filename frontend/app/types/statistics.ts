@@ -75,3 +75,13 @@ export interface HowToApply {
   source: ApplySource
   externalUrl: string | null
 }
+
+/** GET /api/statistics/filters — „Harte Filter" (08b). */
+export interface FilterStatistics {
+  vacancies: number
+  filtered: number
+  reasons: { reason: string, label: string, count: number }[]
+  exempt: number
+  secondsPerVacancy: number
+  savedSeconds: number
+}

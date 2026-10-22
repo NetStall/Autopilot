@@ -72,6 +72,12 @@ public class Vacancy
     /// </summary>
     public int? RuleRankScore { get; set; }
 
+    /// <summary>Layer 1 (08b): why the vacancy is hidden by default (<see cref="Filters.HardFilters"/>); <c>null</c> = shown.</summary>
+    public Filters.HardFilterReason? FilterReason { get; set; }
+
+    /// <summary>„Deutsch C1 („verhandlungssicher“)", „Rolle: „Werkstudent“".</summary>
+    public string? FilterNote { get; set; }
+
     /// <summary>The German the posting asks for (filter „Deutsch erforderlich"); set on every (re-)scoring.</summary>
     public RequiredGerman RequiredGerman { get; set; }
 

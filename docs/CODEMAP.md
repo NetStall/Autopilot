@@ -36,7 +36,8 @@ Config: `Import:Details` (Enabled, MaxPerRun, DelayBetweenRequestsMs, SaveEvery)
 | Feature | Files | Key symbols | API | Tests |
 |---|---|---|---|---|
 | Relevance score | `Core/Scoring/RelevanceScorer.cs`, `RelevanceOptions.cs`, `RelevanceScorerProvider.cs`, `TermMatcher.cs` | `RelevanceScorer.Score`, `ProfileRelevanceScorerProvider`, `TermMatcher.FindFirstMatch` | — | `Unit/Scoring/RelevanceScorerTests.cs`, `TermMatcherTests.cs`, `Integration/RelevanceApiTests.cs` |
-| Enrich one vacancy | `Core/Scoring/VacancyEnricher.cs` | `VacancyEnricher.Apply` (relevance, remote, employer, German, rank, unreachable) | — | via the tests above |
+| Enrich one vacancy | `Core/Scoring/VacancyEnricher.cs` | `VacancyEnricher.Apply` (relevance, remote, employer, German, rank, unreachable, hard filters) | — | via the tests above |
+| Hard filters (layer 1, 08b) | `Core/Filters/HardFilters.cs` (`HardFilterSettings` in the Suchprofil, `Vacancy.FilterReason`/`FilterNote`), `Infra/Persistence/VacancyQueryExtensions.cs` (`WithoutFiltered`: application / „Passt" exempt), `fe/app/components/FilterPanel.vue` | `HardFilters.Check` | `GET /api/vacancies?includeFiltered=true`, `GET /api/statistics/filters` | `Unit/Filters/HardFiltersTests.cs`, `Integration/HardFilterApiTests.cs` |
 | Keywords gated by profile | `Core/Scoring/RelevanceScorerProvider.cs` | `ProfileRelevanceScorerProvider.ForProfile` | — | `Unit/Scoring/ProfileGatedKeywordsTests.cs` |
 | Re-score all | `Core/Scoring/VacancyRescoreService.cs`, `Api/Features/Scoring/RescoreCoordinator.cs`, `RescoreWorker.cs` | `RescoreAllAsync`, `RescoreCoordinator.Request` | `POST /api/vacancies/rescore`, `GET /api/vacancies/rescore` | `Integration/RelevanceApiTests.cs` |
 | Ranking regression | `Tests/Unit/Scoring/RankingRegressionTests.cs`, `RealWorldFixtures.cs`, `Tests/Fixtures/vacancies/*.txt`, `Tests/Fixtures/profiles/regression-profile.json` | rank ranges per posting | — | itself |

@@ -83,6 +83,10 @@ public sealed class VacancyListQuery : IValidatableObject
     [FromQuery(Name = "includeUnreachable")]
     public bool? IncludeUnreachable { get; init; }
 
+    /// <summary>„Gefilterte anzeigen" (08b): also the vacancies a hard filter hides.</summary>
+    [FromQuery(Name = "includeFiltered")]
+    public bool? IncludeFiltered { get; init; }
+
     /// <summary>Only vacancies that entered the system at or after this moment, e.g. the start of the last import.</summary>
     [FromQuery(Name = "fetchedSince")]
     public DateTimeOffset? FetchedSince { get; init; }

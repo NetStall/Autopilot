@@ -25,6 +25,11 @@ public sealed record ChannelStatisticsDto(
     int Top, int Vacancies, IReadOnlyList<ChannelCountDto> Channels, int EmailReady, double EmailReadyPercent,
     IReadOnlyList<EmailReadyDto> TopEmailReady, ChannelComparisonDto Comparison);
 
+public sealed record FilterCountDto(Core.Filters.HardFilterReason Reason, string Label, int Count);
+
+/// <summary>„Harte Filter" (08b): how many vacancies each filter hides and how much model time that saves per full run.</summary>
+public sealed record FilterStatisticsDto(int Vacancies, int Filtered, IReadOnlyList<FilterCountDto> Reasons, int Exempt, double SecondsPerVacancy, int SavedSeconds);
+
 public static class ChannelStatisticsEndpoints
 {
     private static readonly ApplyChannel[] Order = [ApplyChannel.Email, ApplyChannel.Portal, ApplyChannel.Form, ApplyChannel.External, ApplyChannel.Unknown];
@@ -32,7 +37,28 @@ public static class ChannelStatisticsEndpoints
     public static IEndpointRouteBuilder MapChannelStatisticsEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapGet("/api/statistics/channels", Channels).WithTags("Statistics").WithName("ChannelStatistics");
+        app.MapGet("/api/statistics/filters", FilterCounts).WithTags("Statistics").WithName("FilterStatistics");
         return app;
+    }
+
+    /// <summary>Current, not dismissed vacancies; exempt = filtered but kept (application or my „Passt").</summary>
+    private static async Task<Ok<FilterStatisticsDto>> FilterCounts(
+        AppDbContext db, ISearchProfileSource searchProfiles, Extraction.ExtractionCoordinator coordinator, TimeProvider timeProvider, CancellationToken cancellationToken)
+    {
+        var filter = new VacancyFilter(NotExpiredAt: timeProvider.GetUtcNow(), HiddenEmployerTypes: searchProfiles.Current.Profile.HiddenEmployerTypes());
+        var all = VacancyEndpoints.Filtered(db, filter);
+        var total = await all.CountAsync(cancellationToken);
+        var visible = await all.WithoutFiltered(db).CountAsync(cancellationToken);
+        var reasons = await all.Where(v => v.FilterReason != null).GroupBy(v => v.FilterReason!.Value)
+            .Select(g => new { g.Key, Count = g.Count() }).ToListAsync(cancellationToken);
+        var filtered = reasons.Sum(r => r.Count);
+        var exempt = filtered - (total - visible);
+        // The measured speed of the last run, else the 07b measurement for qwen3:8b with thinking off.
+        var seconds = coordinator.Status(true, string.Empty).LastSecondsPerVacancy ?? 4.3;
+        return TypedResults.Ok(new FilterStatisticsDto(
+            total, total - visible,
+            [.. reasons.OrderByDescending(r => r.Count).Select(r => new FilterCountDto(r.Key, Core.Filters.HardFilters.Label(r.Key), r.Count))],
+            exempt, seconds, (int)Math.Round((total - visible) * seconds)));
     }
 
     private static async Task<Results<Ok<ChannelStatisticsDto>, ValidationProblem>> Channels(
@@ -46,7 +72,7 @@ public static class ChannelStatisticsEndpoints
         // The list as I see it: not dismissed, not expired, hidden types and unreachable ones out, by rank.
         var profile = searchProfiles.Current.Profile;
         var filter = new VacancyFilter(
-            NotExpiredAt: timeProvider.GetUtcNow(), HiddenEmployerTypes: profile.HiddenEmployerTypes(), HideUnreachable: profile.HideUnreachable);
+            NotExpiredAt: timeProvider.GetUtcNow(), HiddenEmployerTypes: profile.HiddenEmployerTypes(), HideFiltered: true);
         var sorted = VacancyEndpoints.Filtered(db, filter).ApplySort(VacancySort.Relevance);
         var vacancies = await (top > 0 ? sorted.Take(top) : sorted)
             .Select(v => new { v.Id, v.Title, v.Company, v.RankScore, v.Description, v.Url, v.ExtractionJson })

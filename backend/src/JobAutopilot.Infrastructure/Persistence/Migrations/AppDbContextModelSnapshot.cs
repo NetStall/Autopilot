@@ -533,6 +533,14 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("FetchedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("FilterNote")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("FilterReason")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.Property<int?>("HomeOfficePercent")
                         .HasColumnType("integer");
 
@@ -634,6 +642,8 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.HasIndex("DuplicateKey");
 
                     b.HasIndex("FetchedAt");
+
+                    b.HasIndex("FilterReason");
 
                     b.HasIndex("Interest");
 

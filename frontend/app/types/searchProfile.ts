@@ -47,6 +47,15 @@ export interface SearchPenalties {
   remotePreference: number
 }
 
+export interface HardFilterSettings {
+  germanC1: boolean
+  roleType: boolean
+  roleTerms: string[]
+  stack: boolean
+  coreSkills: string[]
+  mismatchTitleTerms: string[]
+}
+
 export interface SearchProfile {
   searchTerms: SearchTerm[]
   places: SearchPlace[]
@@ -67,6 +76,8 @@ export interface SearchProfile {
   germanFilter: RequiredGerman[]
   /** „Nicht erreichbare Stellen ausblenden": outside my places, not fully remote, at most 60 % home office. */
   hideUnreachable: boolean
+  /** „Harte Filter" (08b): applied before any model call; missing in old exports → defaults on the server. */
+  hardFilters?: HardFilterSettings
   penalties: SearchPenalties
   salaryMin: number | null
   salaryMax: number | null

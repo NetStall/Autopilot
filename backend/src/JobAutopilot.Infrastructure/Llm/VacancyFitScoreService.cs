@@ -78,6 +78,7 @@ public sealed partial class VacancyFitScoreService(
         var candidates = await db.Vacancies.AsNoTracking()
             .Where(v => v.Description != null && v.Description != string.Empty)
             .Where(v => v.Interest != Core.Vacancies.VacancyInterest.Dismissed && !v.Unreachable && !hidden.Contains(v.EmployerType))
+            .WithoutFiltered(db)
             .OrderByDescending(v => v.RankScore ?? v.RelevanceScore ?? 0)
             .ThenByDescending(v => v.FetchedAt)
             .Take(Math.Clamp(top, 1, options.Value.MaxPerRun))

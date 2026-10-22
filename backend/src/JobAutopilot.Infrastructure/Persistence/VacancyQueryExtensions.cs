@@ -119,6 +119,15 @@ public static class VacancyQueryExtensions
             && (o.FetchedAt < v.FetchedAt
                 || (o.FetchedAt == v.FetchedAt && string.Compare(o.ExternalId, v.ExternalId) < 0))));
 
+    /// <summary>
+    /// Leaves out vacancies a hard filter caught (08b) — except those with an application or my explicit „Passt": they
+    /// are never filtered.
+    /// </summary>
+    public static IQueryable<Vacancy> WithoutFiltered(this IQueryable<Vacancy> query, AppDbContext db) =>
+        query.Where(v => v.FilterReason == null
+            || db.Applications.Any(a => a.VacancyId == v.Id)
+            || db.GoldLabels.Any(l => l.VacancyId == v.Id && l.Fits));
+
     /// <summary>Stable ordering for paging; ties are broken by import time and id.</summary>
     public static IOrderedQueryable<Vacancy> ApplySort(this IQueryable<Vacancy> query, VacancySort sort) => sort switch
     {

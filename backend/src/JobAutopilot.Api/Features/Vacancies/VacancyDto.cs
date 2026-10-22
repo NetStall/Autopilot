@@ -36,7 +36,9 @@ public sealed record VacancyDto(
     int? RuleRankScore = null,
     bool GoldLabelAutomatic = false,
     Core.Extraction.AiFitScore? AiFitScore = null,
-    Core.Applications.HowToApply? HowToApply = null);
+    Core.Applications.HowToApply? HowToApply = null,
+    Core.Filters.HardFilterReason? FilterReason = null,
+    string? FilterNote = null);
 
 /// <summary>The model's extraction for the current description (detail view only), step 07a.</summary>
 public sealed record ExtractionDto(

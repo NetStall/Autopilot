@@ -14,7 +14,8 @@ public sealed class VacancyEnricher(
     RemoteClassifier remoteClassifier,
     EmployerClassifier employerClassifier,
     VacancyFitService? fit = null,
-    Action<Guid, RemoteSource>? onRemoteConflict = null)
+    Action<Guid, RemoteSource>? onRemoteConflict = null,
+    SearchProfiles.ISearchProfileSource? searchProfiles = null)
 {
 
     /// <summary>The badge for a hybrid job outside my places without a stated share (07c); the remote note starts with it.</summary>
@@ -111,6 +112,12 @@ public sealed class VacancyEnricher(
         {
             reasons.Add($"Rang {vacancy.RankScore} = Relevanz {relevance.Score} − {fitResult.Penalty}");
         }
+
+        // Layer 1 (08b): hard filters after scoring (they use the German level and reachability).
+        var profile = searchProfiles?.Current.Profile;
+        var filtered = profile is null ? null : Filters.HardFilters.Check(vacancy, profile.HardFilters, profile.HideUnreachable);
+        vacancy.FilterReason = filtered?.Reason;
+        vacancy.FilterNote = filtered?.Note;
 
         vacancy.RelevanceReasons = reasons;
     }

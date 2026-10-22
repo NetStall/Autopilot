@@ -335,7 +335,8 @@ export function filtersToApiParams(filters: VacancyFilters, pageSize: number, de
     params.includeDismissed = true
   }
   if (filters.showUnreachable) {
-    params.includeUnreachable = true
+    // „Gefilterte anzeigen" (08b): reachability is one of the hard filters now.
+    params.includeFiltered = true
   }
   if (filters.since) {
     params.fetchedSince = filters.since

@@ -213,6 +213,9 @@ public sealed class SearchProfile
     /// <summary>„Nicht erreichbare Stellen ausblenden": the list leaves out vacancies the fit check marks as not reachable.</summary>
     public bool HideUnreachable { get; set; } = true;
 
+    /// <summary>„Harte Filter" (08b): applied after import, before any model call.</summary>
+    public Filters.HardFilterSettings HardFilters { get; set; } = new();
+
     public SearchPenalties Penalties { get; set; } = new();
 
     public int? SalaryMin { get; set; }

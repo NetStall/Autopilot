@@ -380,7 +380,7 @@ const canReset = computed(() => hasActiveFilters(props.filters) || q.value.trim(
       </label>
       <label class="filters__choice">
         <input type="checkbox" name="unreachable" :checked="filters.showUnreachable" @change="onFlagChange('showUnreachable', $event)">
-        Nicht erreichbare anzeigen
+        Gefilterte anzeigen <span class="filters__hint">(Rolle, Stack, Deutsch C1, nicht erreichbar)</span>
       </label>
     </fieldset>
 

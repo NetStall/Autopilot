@@ -77,6 +77,9 @@ export interface Vacancy {
   aiScore?: number | null
   /** The rank without any AI input (sort „Nur Regeln“); equals rankScore without an extraction. */
   ruleRankScore?: number | null
+  /** Layer 1 (08b): why a hard filter hides it; shown with „Gefilterte anzeigen". */
+  filterReason?: 'Unreachable' | 'GermanC1' | 'RoleType' | 'Stack' | null
+  filterNote?: string | null
   /** How to apply (detail only, 08a). */
   howToApply?: HowToApply | null
   /** Verdict, reasons and blockers (detail only). */
@@ -124,6 +127,8 @@ export interface VacancyListParams {
   interest?: VacancyInterest[]
   includeDismissed?: boolean
   includeUnreachable?: boolean
+  /** „Gefilterte anzeigen" (08b). */
+  includeFiltered?: boolean
   /** ISO timestamp: only vacancies that entered the system at or after it. */
   fetchedSince?: string
   page?: number

@@ -113,6 +113,16 @@ public static class SearchProfileRules
 
         errors.AddRange(Duplicates(profile.TitleExclusions.Select(t => t.Trim()).ToList(), "Titel-Ausschlüsse"));
 
+        // „Harte Filter" (08b): short, non-empty terms.
+        var filters = profile.HardFilters ?? new Filters.HardFilterSettings();
+        foreach (var (list, name) in new[] { (filters.RoleTerms, "Filter Rolle"), (filters.CoreSkills, "Kern-Skills"), (filters.MismatchTitleTerms, "Anderer Stack im Titel") })
+        {
+            if ((list ?? []).Any(t => string.IsNullOrWhiteSpace(t) || t.Trim().Length > 60) || (list?.Count ?? 0) > 60)
+            {
+                errors.Add($"{name}: höchstens 60 Einträge mit je 1–60 Zeichen.");
+            }
+        }
+
         if (!Enum.IsDefined(profile.Agency) || !Enum.IsDefined(profile.Temporary) || !Enum.IsDefined(profile.RemotePreference))
         {
             errors.Add("Unbekannter Wert bei Arbeitgebertypen oder Remote-Präferenz.");
@@ -289,6 +299,12 @@ public static class SearchProfileRules
         ListDiff(parts, "Nice-to-have", before.NiceToHave.Select(Key), after.NiceToHave.Select(Key));
         ListDiff(parts, "Ausschluss", before.Exclude.Select(Key), after.Exclude.Select(Key));
         ListDiff(parts, "Titel-Ausschlüsse", before.TitleExclusions, after.TitleExclusions);
+        Value(parts, "Filter Deutsch C1", before.HardFilters.GermanC1, after.HardFilters.GermanC1);
+        Value(parts, "Filter Rolle", before.HardFilters.RoleType, after.HardFilters.RoleType);
+        Value(parts, "Filter Stack", before.HardFilters.Stack, after.HardFilters.Stack);
+        ListDiff(parts, "Filter Rolle (Begriffe)", before.HardFilters.RoleTerms, after.HardFilters.RoleTerms);
+        ListDiff(parts, "Kern-Skills", before.HardFilters.CoreSkills, after.HardFilters.CoreSkills);
+        ListDiff(parts, "Anderer Stack im Titel", before.HardFilters.MismatchTitleTerms, after.HardFilters.MismatchTitleTerms);
         Value(parts, "Remote deutschlandweit", before.RemoteGermany, after.RemoteGermany);
         Value(parts, "Remote-Präferenz", before.RemotePreference, after.RemotePreference);
         Value(parts, "Agentur", before.Agency, after.Agency);

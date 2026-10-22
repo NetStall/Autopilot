@@ -51,6 +51,9 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
       <div class="card__heading">
         <ScoreBadge :vacancy="vacancy" />
         <span v-if="vacancy.aiScore != null" class="badge card__ai" title="KI-Bewertung des lokalen Modells – ändert den Rang nicht">KI {{ vacancy.aiScore }}</span>
+        <span v-if="vacancy.filterReason" class="badge card__filtered" :title="vacancy.filterNote ?? undefined">
+          gefiltert: {{ vacancy.filterNote ?? vacancy.filterReason }}
+        </span>
         <span
           v-if="vacancy.goldLabel != null"
           class="badge card__label"
@@ -174,6 +177,10 @@ const dateTitle = computed(() => formatDate(props.vacancy.publishedAt ?? props.v
 
   &--seen {
     border-left-color: var(--color-border);
+  }
+
+  &__filtered {
+    color: var(--color-warning-text);
   }
 
   &__label--fits {

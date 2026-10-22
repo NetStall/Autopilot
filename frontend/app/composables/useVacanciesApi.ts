@@ -20,7 +20,7 @@ import type {
 } from '~/types/searchProfile'
 import type { Application, ApplicationStatus, TrackerImportReport } from '~/types/application'
 import type { ApplicationDocuments, CvOptions, DocumentKind, DocumentPreview, Letter } from '~/types/documents'
-import type { ChannelStatistics, GermanStatistics } from '~/types/statistics'
+import type { ChannelStatistics, FilterStatistics, GermanStatistics } from '~/types/statistics'
 import type { ExtractionStatus, FailedExtraction, GoldLabelSummary, PendingExtractions } from '~/types/extraction'
 
 /** All calls to the backend API. Base URL from runtime config (NUXT_PUBLIC_API_BASE). */
@@ -152,6 +152,10 @@ export function useVacanciesApi() {
     },
 
     /** Required German of the relevant vacancies, overall and by remote level / source. */
+    filterStatistics() {
+      return api<FilterStatistics>('/api/statistics/filters')
+    },
+
     /** „Bewerbungswege" for the current Top N (0 = all visible). */
     channelStatistics(top: number) {
       return api<ChannelStatistics>('/api/statistics/channels', { query: { top } })

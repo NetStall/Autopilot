@@ -51,7 +51,9 @@ public static class VacancyMappings
         includeDescription
             ? Core.Applications.HowToApplyDetector.Resolve(vacancy.Description, vacancy.Url,
                 Core.Extraction.StoredExtraction.ForDescription(vacancy.ExtractionJson, vacancy.Description)?.Result.Application)
-            : null);
+            : null,
+        vacancy.FilterReason,
+        vacancy.FilterNote);
 
     /// <summary>The „KI-Bewertung" when it still belongs to the current description (the key starts with its hash).</summary>
     private static Core.Extraction.StoredFitScore? CurrentAiScore(Vacancy vacancy) =>

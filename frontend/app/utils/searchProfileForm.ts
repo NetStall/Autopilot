@@ -1,5 +1,6 @@
 import type {
   EmployerTypePolicy,
+  HardFilterSettings,
   RemotePreference,
   SearchProfile,
   SearchTermScope,
@@ -45,13 +46,25 @@ export function toggleListValue<T extends string>(list: readonly T[], value: T, 
   return order.filter(v => selected.has(v))
 }
 
+/** The server's defaults for „Harte Filter" (08b) when a profile has none yet. */
+export const DEFAULT_HARD_FILTERS: HardFilterSettings = {
+  germanC1: true,
+  roleType: true,
+  roleTerms: [],
+  stack: true,
+  coreSkills: [],
+  mismatchTitleTerms: [],
+}
+
 export function cloneProfile(profile: SearchProfile): SearchProfile {
-  return JSON.parse(JSON.stringify(profile)) as SearchProfile
+  const copy = JSON.parse(JSON.stringify(profile)) as SearchProfile
+  copy.hardFilters ??= { ...DEFAULT_HARD_FILTERS }
+  return copy
 }
 
 /** Unsaved changes compared with the loaded version. */
 export function isDirty(current: SearchProfile, saved: SearchProfile | null | undefined): boolean {
-  return saved != null && JSON.stringify(current) !== JSON.stringify(saved)
+  return saved != null && JSON.stringify(cloneProfile(current)) !== JSON.stringify(cloneProfile(saved))
 }
 
 /** „C#, .NET; Vue" or one per line → trimmed, without empties and case-insensitive duplicates (also of `existing`). */

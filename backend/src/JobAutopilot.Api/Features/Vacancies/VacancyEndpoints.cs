@@ -45,7 +45,8 @@ public static partial class VacancyEndpoints
         {
             NotExpiredAt = timeProvider.GetUtcNow(),
             HiddenEmployerTypes = searchProfiles.Current.Profile.HiddenEmployerTypes(),
-            HideUnreachable = searchProfiles.Current.Profile.HideUnreachable && request.IncludeUnreachable != true,
+            // Hard filters (08b) include reachability; „Gefilterte anzeigen" (includeFiltered, also the older includeUnreachable) shows them.
+            HideFiltered = request.IncludeFiltered != true && request.IncludeUnreachable != true,
         };
         var page = request.PageOrDefault;
         var pageSize = request.PageSizeOrDefault;
@@ -73,7 +74,8 @@ public static partial class VacancyEndpoints
     internal static IQueryable<Core.Vacancies.Vacancy> Filtered(AppDbContext db, Core.Vacancies.VacancyFilter filter)
     {
         var pool = filter.Sources is { Count: > 0 } sources ? db.Vacancies.Where(v => sources.Contains(v.Source)) : db.Vacancies;
-        return db.Vacancies.AsNoTracking().ApplyFilter(filter).CollapseDuplicates(pool);
+        var query = db.Vacancies.AsNoTracking().ApplyFilter(filter);
+        return (filter.HideFiltered ? query.WithoutFiltered(db) : query).CollapseDuplicates(pool);
     }
 
     private static async Task<VacancyFacetsDto> FacetsAsync(AppDbContext db, Core.Vacancies.VacancyFilter filter, CancellationToken ct)

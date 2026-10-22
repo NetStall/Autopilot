@@ -212,8 +212,8 @@ describe('interest and since filters', () => {
 
     expect(filters.showUnreachable).toBe(true)
     expect(filtersToQuery(filters)).toEqual({ unreachable: 'show' })
-    expect(filtersToApiParams(filters, 20).includeUnreachable).toBe(true)
-    expect(filtersToApiParams(defaults(), 20)).not.toHaveProperty('includeUnreachable')
+    expect(filtersToApiParams(filters, 20).includeFiltered).toBe(true)
+    expect(filtersToApiParams(defaults(), 20)).not.toHaveProperty('includeFiltered')
     expect(hasActiveFilters(filters)).toBe(true)
   })
 

@@ -28,7 +28,8 @@ public sealed record VacancyFilter(
     int? MinScore = null,
     IReadOnlyCollection<EmployerType>? HiddenEmployerTypes = null,
     IReadOnlyCollection<RequiredGerman>? RequiredGerman = null,
-    bool HideUnreachable = false);
+    bool HideUnreachable = false,
+    bool HideFiltered = false);
 
 public enum VacancySort
 {

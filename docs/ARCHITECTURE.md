@@ -47,6 +47,12 @@ Dependency rule: `Api → Infrastructure → Core`; Core references nothing. The
    `RuleRankScore` — the same rank without the extraction — for the sort „Nur Regeln" and the evaluation (07c).
 5. Stored extractions pass `ExtractionGuards` again on read, so a fixed guard applies without a new model call.
 
+**Hard filters (layer 1, 08b)**
+1. `VacancyEnricher` runs `HardFilters.Check` after scoring: role type, stack, explicit German C1, reachability (the
+   Suchprofil's „Nicht erreichbare ausblenden") → `Vacancy.FilterReason`.
+2. The list, the channel statistics and the extraction / KI-Bewertung queues use `WithoutFiltered`: a vacancy with an
+   application or my „Passt" label is never left out.
+
 **Ranking evaluation (07c)**
 1. Labels = my explicit gold labels + automatic ones (`LabelSet`: applied → Passt, Ausblenden → Passt nicht).
 2. `GET /api/evaluation/ranking` orders the labelled vacancies per variant (rules, combined, KI, rank + w × KI) and
