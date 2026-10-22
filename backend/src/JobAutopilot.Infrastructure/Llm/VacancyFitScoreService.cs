@@ -25,10 +25,11 @@ public sealed partial class VacancyFitScoreService(
     Core.SearchProfiles.ISearchProfileSource searchProfiles,
     IOptions<VacancyExtractionOptions> options,
     TimeProvider timeProvider,
-    ILogger<VacancyFitScoreService> logger)
+    ILogger<VacancyFitScoreService> logger,
+    Core.Fit.VacancyFitService? fit = null)
 {
-    /// <summary>v2 (07c): fixed checks of location and employer type before the score; v1 stays in the cache.</summary>
-    public const string PromptVersion = "fitscore.v2";
+    /// <summary>v3 (08c): the rules' match result as input, the model adds only what they cannot see; v1/v2 stay in the cache.</summary>
+    public const string PromptVersion = "fitscore.v3";
 
     private static readonly Lazy<(string System, string Score, string Retry)> Prompt = new(Load);
 
@@ -169,6 +170,7 @@ public sealed partial class VacancyFitScoreService(
             .Replace("{company}", LetterPrompt.Neutralize(vacancy.Company))
             .Replace("{location}", LetterPrompt.Neutralize(vacancy.Location ?? "–"))
             .Replace("{remote}", RemoteText(vacancy.RemoteLevel))
+            .Replace("{match}", LetterPrompt.Neutralize(FitScoreMatch.Describe(Match(vacancy), vacancy.EmployerType)))
             .Replace("{homeOffice}", vacancy.HomeOfficePercent is { } percent ? $"bis {percent.ToString(System.Globalization.CultureInfo.InvariantCulture)} %" : "nicht angegeben")
             .Replace("{description}", LetterPrompt.Neutralize(description.Length > max ? description[..max] + " […]" : description))
             .ToString();
@@ -199,7 +201,8 @@ public sealed partial class VacancyFitScoreService(
                 if (result is not null)
                 {
                     entry.Status = ExtractionStatus.Succeeded;
-                    entry.ResultJson = StoredFitScore.SerializeResult(AiFitScoreGuards.Apply(result, vacancy.RemoteLevel == Core.Vacancies.RemoteLevel.FullRemote));
+                    var checkedScore = FitScoreMatch.Check(result, Match(vacancy));
+                    entry.ResultJson = StoredFitScore.SerializeResult(AiFitScoreGuards.Apply(checkedScore, vacancy.RemoteLevel == Core.Vacancies.RemoteLevel.FullRemote));
                     entry.DurationMs = watch.ElapsedMilliseconds;
                     return entry;
                 }
@@ -231,6 +234,9 @@ public sealed partial class VacancyFitScoreService(
         Core.Vacancies.RemoteLevel.OnSite => "nur vor Ort",
         _ => "nicht angegeben",
     };
+
+    /// <summary>The rules' fit check of this vacancy (with its extraction), the input of fitscore.v3.</summary>
+    private Core.Fit.FitResult Match(Core.Vacancies.Vacancy vacancy) => fit?.Analyze(vacancy) ?? Core.Fit.FitResult.Empty;
 
     private static Dictionary<string, JsonElement> ParseSchema(string json)
     {

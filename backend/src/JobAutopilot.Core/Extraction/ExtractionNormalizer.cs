@@ -9,7 +9,8 @@ namespace JobAutopilot.Core.Extraction;
 /// One extracted requirement after normalisation: my skill, a catalog technology or the model's own name.
 /// <see cref="Method"/>: a named method (DDD, CQRS, Event Sourcing, TDD …) — its gaps share a small cap.
 /// </summary>
-public sealed record ResolvedRequirement(string Name, Skill? Skill, RequirementImportance Importance, bool Domain, bool Method = false);
+/// <see cref="Related"/>: the requirement is another product than my <see cref="Skill"/> („SQL Server" via my „SQL") — partial.
+public sealed record ResolvedRequirement(string Name, Skill? Skill, RequirementImportance Importance, bool Domain, bool Method = false, bool Related = false);
 
 /// <summary>One chip in the UI: a short name („SQL Server", „Docker") and the posting's own words it came from (tooltip).</summary>
 public sealed record ExtractionChip(string Name, string SourceText);
@@ -155,6 +156,21 @@ public static partial class ExtractionNormalizer
                     found.Add((entry.Trim(), null));
                 }
 
+                // 08c: „SQL Server" found only through my „SQL" (the hit lies inside the product's name) is the product,
+                // related to my skill — partial, not covered.
+                var related = new Dictionary<string, Skill>(StringComparer.OrdinalIgnoreCase);
+                foreach (var (technology, matcher) in TechnologyCatalog.Matchers.Where(t => found.Any(f => f.Skill is null && f.Name == t.Technology.Name)))
+                {
+                    var spans = matcher.FindAll(entry).Select(h => (Start: h.Index, End: h.Index + h.Term.Length)).ToList();
+                    var inside = found.Where(f => f.Skill is { } skill && skills.First(s => s.Skill == skill).Matcher.FindAll(entry)
+                        .All(h => spans.Any(sp => h.Index >= sp.Start && h.Index + h.Term.Length <= sp.End))).ToList();
+                    if (inside.Count > 0)
+                    {
+                        related[technology.Name] = inside[0].Skill!;
+                        found.RemoveAll(f => inside.Contains(f));
+                    }
+                }
+
                 // „Angular oder Vue.js": with one of them covered, the others cost nothing.
                 var coveredHere = found.Any(f => f.Skill?.Level == SkillLevel.Production);
                 foreach (var (name, skill) in found)
@@ -162,7 +178,9 @@ public static partial class ExtractionNormalizer
                     var own = coveredHere && skill?.Level != SkillLevel.Production && found.Count > 1 ? RequirementImportance.Alternative : importance;
                     if (!result.TryGetValue(name, out var existing) || own > existing.Importance)
                     {
-                        result[name] = new ResolvedRequirement(name, skill, own, domain || existing?.Domain == true, skill is null && IsMethod(name));
+                        result[name] = related.TryGetValue(name, out var via)
+                            ? new ResolvedRequirement(name, via, own, domain || existing?.Domain == true, Related: true)
+                            : new ResolvedRequirement(name, skill, own, domain || existing?.Domain == true, skill is null && IsMethod(name));
                     }
                 }
             }

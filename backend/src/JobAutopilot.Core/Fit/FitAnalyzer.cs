@@ -275,6 +275,8 @@ public sealed partial class FitAnalyzer(FitOptions options)
             var gap = GapFor(profile, names);
             var (coverage, note) = resolved.Skill?.Level switch
             {
+                // „SQL Server" via my SQL / MySQL: related, not the same product (08c).
+                SkillLevel.Production or SkillLevel.Project when resolved.Related => (FitCoverage.Partial, $"verwandt: {resolved.Skill!.Name}"),
                 SkillLevel.Production => (FitCoverage.Covered, "beruflich" + (resolved.Skill.Years is { } y ? $", {y.ToString(CultureInfo.InvariantCulture)} J." : string.Empty)),
                 SkillLevel.Project => (FitCoverage.Partial, gap?.De ?? "eigene Projekte"),
                 SkillLevel.Learning => (FitCoverage.Partial, gap?.De ?? "lerne ich gerade"),
@@ -327,8 +329,13 @@ public sealed partial class FitAnalyzer(FitOptions options)
 
             seen.UnionWith(technology.AllNames());
             var importance = ImportanceOf(hits, sentences, sections, covered);
+            // „SQL Server" where my SQL / MySQL matched inside the name: related experience, partial (08c).
+            var via = profile.Skills.Where(s => s.Level is SkillLevel.Production or SkillLevel.Project)
+                .FirstOrDefault(s => new TermMatcher(SkillTerms.Evidence(s)).FindAll(text)
+                    .Any(sh => hits.Any(h => sh.Index >= h.Index && sh.Index + sh.Term.Length <= h.Index + h.Term.Length)));
             requirements.Add(new FitRequirement(
-                technology.Name, FitCoverage.Gap, importance <= RequirementImportance.NiceToHave, "nicht im Profil", importance));
+                technology.Name, via is null ? FitCoverage.Gap : FitCoverage.Partial, importance <= RequirementImportance.NiceToHave,
+                via is null ? "nicht im Profil" : $"verwandt: {via.Name}", importance));
         }
     }
 

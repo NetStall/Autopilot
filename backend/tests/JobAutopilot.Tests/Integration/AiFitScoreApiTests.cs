@@ -54,7 +54,7 @@ public class AiFitScoreApiTests(PostgresFixture postgres) : IntegrationTestBase(
 
         _model.Requests.Select(r => r.Task).Should().Equal("Extraction", "FitScore");
         var fitRequest = _model.Requests[1];
-        fitRequest.User.Should().Contain("<profile>").And.Contain("Skills beruflich:").And.Contain("<vacancy>");
+        fitRequest.User.Should().Contain("<profile>").And.Contain("Skills beruflich:").And.Contain("<vacancy>").And.Contain("<match>").And.Contain("erfüllt:");
         fitRequest.User.Should().NotContain("@", "no e-mail address goes to the model");
 
         var list = await Client.GetFromJsonAsync<JsonElement>("/api/vacancies?minScore=0", CancellationToken);

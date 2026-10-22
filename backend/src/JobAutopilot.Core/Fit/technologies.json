@@ -106,6 +106,7 @@
   { "name": "Neo4j", "terms": ["Neo4j"], "category": "database" },
   { "name": "InfluxDB", "terms": ["InfluxDB", "TimescaleDB"], "category": "database" },
   { "name": "Oracle", "terms": ["Oracle", "PL/SQL"], "category": "database" },
+  { "name": "SQL Server", "terms": ["SQL Server", "MSSQL", "MS SQL", "MS-SQL", "Microsoft SQL Server", "T-SQL"], "category": "database" },
   { "name": "DB2", "terms": ["DB2"], "category": "database", "matchCase": true },
   { "name": "SQLite", "terms": ["SQLite"], "category": "database" },
   { "name": "Snowflake", "terms": ["Snowflake"], "category": "data" },
