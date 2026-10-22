@@ -110,7 +110,7 @@ public static class DocumentEndpoints
     private static Task<IResult> MarkSent(Guid id, MarkSentRequest request, ApplicationDocumentsService service, CancellationToken ct) =>
         Run(async () => TypedResults.Ok(DocumentsDto.From(await service.MarkSentAsync(id, request.Channel, request.At, ct))));
 
-    private static async Task<IResult> Run(Func<Task<IResult>> action)
+    internal static async Task<IResult> Run(Func<Task<IResult>> action)
     {
         try
         {

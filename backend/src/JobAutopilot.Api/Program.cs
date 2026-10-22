@@ -3,6 +3,7 @@ using JobAutopilot.Api.Common;
 using JobAutopilot.Api.Features.Applications;
 using JobAutopilot.Api.Features.Documents;
 using JobAutopilot.Api.Features.DailyRun;
+using JobAutopilot.Api.Features.Packages;
 using JobAutopilot.Api.Features.Evaluation;
 using JobAutopilot.Api.Features.Extraction;
 using JobAutopilot.Api.Features.Health;
@@ -140,5 +141,7 @@ app.MapLlmEndpoints();
 app.MapExtractionEndpoints();
 app.MapEvaluationEndpoints();
 app.MapDailyRunEndpoints();
+app.MapPackageEndpoints();
+app.MapFollowUpEndpoints();
 
 await app.RunAsync();

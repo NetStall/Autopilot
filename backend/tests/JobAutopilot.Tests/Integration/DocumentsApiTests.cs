@@ -33,10 +33,14 @@ public abstract class DocumentsTestBase(PostgresFixture postgres) : IntegrationT
         ["Documents:OutputPath"] = OutputDir,
     };
 
+    protected FakePackageTextGenerator Packages { get; } = new();
+
     protected override void ConfigureServices(IServiceCollection services)
     {
         services.RemoveAll<ILetterGenerator>();
         services.AddSingleton<ILetterGenerator>(Generator);
+        services.RemoveAll<IPackageTextGenerator>();
+        services.AddSingleton<IPackageTextGenerator>(Packages);
     }
 
     public void Dispose()

@@ -39,6 +39,8 @@ internal sealed class ApplicationDraftConfiguration : IEntityTypeConfiguration<A
     public void Configure(EntityTypeBuilder<ApplicationDraft> builder)
     {
         builder.ToTable("ApplicationDrafts");
+        builder.Property(d => d.Package).HasColumnType("jsonb")
+            .HasConversion(JsonColumn.Converter<PackageTexts?>(), JsonColumn.Comparer<PackageTexts?>());
         builder.HasKey(d => d.Id);
         builder.Property(d => d.Id).ValueGeneratedNever();
 

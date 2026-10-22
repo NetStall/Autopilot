@@ -93,7 +93,8 @@ public sealed partial class ApplicationDocumentsService(
     IOptions<ClaudeOptions> claudeOptions,
     IOptions<FitOptions> fitOptions,
     TimeProvider timeProvider,
-    ILogger<ApplicationDocumentsService> logger)
+    ILogger<ApplicationDocumentsService> logger,
+    IPackageTextGenerator? packages = null)
 {
     private readonly ClaudeOptions _claude = claudeOptions.Value;
 
@@ -176,6 +177,34 @@ public sealed partial class ApplicationDocumentsService(
                 LogCall(logger, "generate", draft.ApplicationId, draft.Id, generation.Usage.InputTokens, generation.Usage.OutputTokens);
             }
         }, cancellationToken);
+
+    /// <summary>
+    /// „Bewerbungspaket" (08c): the e-mail body, a short motivation and „Über mich" in one call, from the same facts as
+    /// the letter; the fact guard checks them (technologies, numbers, languages, du/Sie). The letter stays as it is.
+    /// </summary>
+    public Task<DraftView> CreatePackageAsync(Guid applicationId, int expectedVersion, CancellationToken cancellationToken) =>
+        ChangeAsync(applicationId, expectedVersion, requireCall: true, async (context, draft, now) =>
+        {
+            if (packages is null)
+            {
+                throw new DocumentException(DocumentProblem.GenerationFailed, "Kein Generator für Bewerbungspakete eingerichtet.", LetterGenerationError.NotConfigured);
+            }
+
+            var generation = await CallAsync(() => packages.GenerateAsync(context.Input, draft.Letter, cancellationToken), cancellationToken);
+            var texts = new LetterDraft(draft.Letter.Subject, draft.Letter.Salutation, [generation.EmailBody, generation.Motivation, generation.AboutMe],
+                draft.Letter.Closing, draft.Letter.Language, draft.Letter.Formality, draft.Letter.FactsUsed, draft.Letter.GapsMentioned);
+            var warnings = FactGuard.Check(texts, context.Input, context.Profile, KnownTechnologies()).Where(w => PackageCodes.Contains(w.Code)).ToList();
+            draft.Record(DraftRevisionKind.Package, draft.Letter, draft.CvOptions, now, generation.Usage, generation.Model, generation.PromptVersion, note: "Bewerbungspaket");
+            draft.Package = new PackageTexts(generation.EmailBody, generation.Motivation, generation.AboutMe, warnings, now);
+            LogCall(logger, "package", draft.ApplicationId, draft.Id, generation.Usage.InputTokens, generation.Usage.OutputTokens);
+        }, cancellationToken);
+
+    /// <summary>The fact-guard checks that make sense for short texts (no length, gap or website hints).</summary>
+    private static readonly HashSet<string> PackageCodes =
+    [
+        DraftWarning.InventedTechnology, DraftWarning.LearningAsExperience, DraftWarning.InventedNumber, DraftWarning.LanguageAboveProfile,
+        DraftWarning.MixedFormality, DraftWarning.LanguageMismatch,
+    ];
 
     /// <summary>„Absatz neu formulieren": one call, only that paragraph changes.</summary>
     public Task<DraftView> RephraseAsync(Guid applicationId, int expectedVersion, int paragraph, string? hint, CancellationToken cancellationToken) =>
@@ -432,13 +461,29 @@ public sealed partial class ApplicationDocumentsService(
         }
     }
 
+    /// <summary>Calls left today under <c>Claude:DailyCallLimit</c> (08c: before „Top K vorbereiten").</summary>
+    public async Task<int> RemainingCallsAsync(CancellationToken cancellationToken) =>
+        Math.Max(0, _claude.DailyCallLimit - await CallsTodayAsync(cancellationToken));
+
+    /// <summary>Average tokens of the last calls of this kind, or the first real run's numbers (06c) without history.</summary>
+    public async Task<(int Input, int Output)> AverageTokensAsync(DraftRevisionKind kind, CancellationToken cancellationToken)
+    {
+        var last = await db.ApplicationDraftRevisions.AsNoTracking().Where(r => r.Kind == kind && r.InputTokens > 0)
+            .OrderByDescending(r => r.CreatedAt).Take(20).Select(r => new { r.InputTokens, r.OutputTokens }).ToListAsync(cancellationToken);
+        return last.Count > 0
+            ? ((int)last.Average(r => r.InputTokens), (int)last.Average(r => r.OutputTokens))
+            : kind == DraftRevisionKind.Package ? (7000, 500) : (6700, 1150);
+    }
+
+    public decimal EstimateCostUsd(int inputTokens, int outputTokens) => _claude.EstimateCostUsd(inputTokens, outputTokens);
+
     /// <summary>Model calls since midnight in Germany (generations and rephrasings are revisions).</summary>
     private Task<int> CallsTodayAsync(CancellationToken cancellationToken)
     {
         var now = TimeZoneInfo.ConvertTime(timeProvider.GetUtcNow(), TimeZones.Berlin);
         var midnight = new DateTimeOffset(now.Date, now.Offset).ToUniversalTime();
         return db.ApplicationDraftRevisions.CountAsync(
-            r => (r.Kind == DraftRevisionKind.Generated || r.Kind == DraftRevisionKind.Rephrased) && r.CreatedAt >= midnight,
+            r => (r.Kind == DraftRevisionKind.Generated || r.Kind == DraftRevisionKind.Rephrased || r.Kind == DraftRevisionKind.Package) && r.CreatedAt >= midnight,
             cancellationToken);
     }
 

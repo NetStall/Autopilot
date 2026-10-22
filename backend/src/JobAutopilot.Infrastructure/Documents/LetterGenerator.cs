@@ -71,7 +71,7 @@ public sealed class LetterGenerator(ILlmRouter llm, IOptions<ClaudeOptions> opti
         }
     }
 
-    private static LetterGenerationError ToLetterError(LlmError error) => error switch
+    internal static LetterGenerationError ToLetterError(LlmError error) => error switch
     {
         LlmError.NotConfigured => LetterGenerationError.NotConfigured,
         LlmError.RateLimited => LetterGenerationError.RateLimited,

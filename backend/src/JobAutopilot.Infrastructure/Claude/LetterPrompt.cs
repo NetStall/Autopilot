@@ -125,6 +125,53 @@ public sealed partial class LetterPrompt
         return message.ToString();
     }
 
+    /// <summary>
+    /// The package texts (08c) from the same task, facts and posting as the letter, with the finished letter for the
+    /// tone: an e-mail body, a short motivation for forms and „Über mich".
+    /// </summary>
+    public string PackageMessage(LetterInput input, LetterDraft letter, int maxVacancyCharacters)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(letter);
+        var message = new StringBuilder();
+        AppendTask(message, input);
+        AppendFacts(message, input);
+        AppendVacancy(message, input, maxVacancyCharacters);
+        message.AppendLine("<letter>");
+        foreach (var paragraph in letter.Paragraphs)
+        {
+            message.AppendLine(Neutralize(paragraph));
+        }
+
+        message.AppendLine("</letter>");
+        message.AppendLine().AppendLine(PackageInstruction);
+        return message.ToString();
+    }
+
+    private const string PackageInstruction = """
+        Write three short texts for this application, in the language and form of address given in <task>, with the
+        same tone as <letter>. All rules about facts above apply: only facts from <profile_facts>, no invented numbers.
+        - emailBody: the body of the e-mail that carries the letter and CV as attachments — 3 to 5 sentences, no
+          salutation and no closing (they are added), mention the position, say that letter and CV are attached.
+        - motivation: a short motivation for an online form, at most 1,000 characters, plain text.
+        - aboutMe: „Über mich" for an online form, at most 500 characters, plain text.
+        Return only the JSON object.
+        """;
+
+    /// <summary>JSON schema of the package texts.</summary>
+    public static IReadOnlyDictionary<string, JsonElement> PackageSchema { get; } = Schema("""
+        {
+          "type": "object",
+          "properties": {
+            "emailBody": { "type": "string" },
+            "motivation": { "type": "string" },
+            "aboutMe": { "type": "string" }
+          },
+          "required": ["emailBody", "motivation", "aboutMe"],
+          "additionalProperties": false
+        }
+        """);
+
     /// <summary>Replaces angle brackets (and control characters) so untrusted text cannot form block tags.</summary>
     public static string Neutralize(string text)
     {

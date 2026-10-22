@@ -88,6 +88,7 @@ public static partial class DependencyInjection
         services.AddOptions<Llm.LlmOptions>().Bind(configuration.GetSection(Llm.LlmOptions.SectionName));
         services.AddTransient<Core.Llm.ILlmRouter, Llm.LlmRouter>();
         services.AddTransient<ILetterGenerator, LetterGenerator>();
+        services.AddTransient<IPackageTextGenerator, PackageTextGenerator>();
 
         services.AddSingleton<IDocumentRenderer, QuestPdfDocumentRenderer>();
         services.AddOptions<DocumentOptions>().Bind(configuration.GetSection(DocumentOptions.SectionName));

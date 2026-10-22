@@ -72,6 +72,26 @@ const draftApplicationId = computed(() => {
   return applied && (applied.status === 'Draft' || applied.status === 'Approved') ? applied.applicationId : null
 })
 const creatingDocuments = ref(false)
+const creatingPackage = ref(false)
+
+/** „Bewerbungspaket erstellen" (08c): documents + channel texts, then „Heute bereit". */
+async function createPackage() {
+  if (!vacancy.value) {
+    return
+  }
+  creatingPackage.value = true
+  actionError.value = null
+  try {
+    const pkg = await api.createPackage(vacancy.value.id)
+    await navigateTo({ path: '/heute-bereit', query: { open: pkg.applicationId } })
+  }
+  catch (e: unknown) {
+    actionError.value = `Bewerbungspaket nicht erstellt: ${describeApiError(e)}`
+  }
+  finally {
+    creatingPackage.value = false
+  }
+}
 
 /** „Unterlagen erstellen": one Claude call for the letter, the CV is built without AI; then the review screen. */
 async function createDocuments() {
@@ -204,6 +224,17 @@ function openedOriginal() {
           @click="createDocuments"
         >
           {{ creatingDocuments ? 'Unterlagen werden erstellt (bis zu 1 Minute) …' : 'Unterlagen erstellen' }}
+        </button>
+        <button
+          v-if="!vacancy.applied || draftApplicationId"
+          type="button"
+          class="button button--secondary"
+          :disabled="creatingPackage"
+          :aria-busy="creatingPackage"
+          title="Anschreiben, Lebenslauf und die Texte für E-Mail oder Portal – bis zu 3 Claude-Aufrufe; gesendet wird nichts"
+          @click="createPackage"
+        >
+          {{ creatingPackage ? 'Paket wird erstellt …' : 'Bewerbungspaket erstellen' }}
         </button>
         <NuxtLink v-else-if="draftApplicationId" :to="`/unterlagen/${draftApplicationId}`" class="button">
           Unterlagen öffnen · {{ vacancy.applied.statusLabel }}

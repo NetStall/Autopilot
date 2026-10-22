@@ -193,6 +193,9 @@ namespace JobAutopilot.Infrastructure.Persistence.Migrations
                     b.Property<int>("OutputTokens")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Package")
+                        .HasColumnType("jsonb");
+
                     b.Property<string>("PromptVersion")
                         .IsRequired()
                         .HasMaxLength(50)

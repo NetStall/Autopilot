@@ -29,6 +29,9 @@ const newSinceLink = computed(() => (lastImport.value?.startedAt
         <NuxtLink to="/" class="header__link" exact-active-class="header__link--active">
           Stellen
         </NuxtLink>
+        <NuxtLink to="/heute-bereit" class="header__link" active-class="header__link--active">
+          Heute bereit
+        </NuxtLink>
         <NuxtLink to="/bewerbungen" class="header__link" active-class="header__link--active">
           Bewerbungen
         </NuxtLink>

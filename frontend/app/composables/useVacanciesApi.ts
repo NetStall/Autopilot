@@ -21,6 +21,7 @@ import type {
 import type { Application, ApplicationStatus, TrackerImportReport } from '~/types/application'
 import type { ApplicationDocuments, CvOptions, DocumentKind, DocumentPreview, Letter } from '~/types/documents'
 import type { ChannelStatistics, Coverage, DailyRunStatus, FilterStatistics, GermanStatistics } from '~/types/statistics'
+import type { ApplicationPackage, FollowUp, PackageEstimate, PackageResult, ReadyPackage } from '~/types/package'
 import type { ExtractionStatus, FailedExtraction, GoldLabelSummary, PendingExtractions } from '~/types/extraction'
 
 /** All calls to the backend API. Base URL from runtime config (NUXT_PUBLIC_API_BASE). */
@@ -152,6 +153,39 @@ export function useVacanciesApi() {
     },
 
     /** Required German of the relevant vacancies, overall and by remote level / source. */
+    /** „Bewerbungspaket erstellen" (08c): letter + CV + channel texts (up to 3 Claude calls). */
+    createPackage(vacancyId: string) {
+      return api<ApplicationPackage>(`/api/vacancies/${encodeURIComponent(vacancyId)}/package`, { method: 'POST' })
+    },
+
+    getPackage(applicationId: string) {
+      return api<ApplicationPackage>(`/api/applications/${encodeURIComponent(applicationId)}/package`)
+    },
+
+    readyPackages() {
+      return api<ReadyPackage[]>('/api/packages')
+    },
+
+    packageEstimate(k: number) {
+      return api<PackageEstimate>('/api/packages/estimate', { query: { k } })
+    },
+
+    prepareTopPackages(k: number) {
+      return api<PackageResult[]>('/api/packages/top', { method: 'POST', query: { k } })
+    },
+
+    packageZipUrl(applicationId: string) {
+      return `${config.public.apiBase}/api/applications/${encodeURIComponent(applicationId)}/package.zip`
+    },
+
+    followUps() {
+      return api<FollowUp[]>('/api/follow-ups')
+    },
+
+    followUpDone(applicationId: string) {
+      return api<void>(`/api/applications/${encodeURIComponent(applicationId)}/follow-up-done`, { method: 'POST' })
+    },
+
     dailyRun() {
       return api<DailyRunStatus>('/api/daily-run')
     },

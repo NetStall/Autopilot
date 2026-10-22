@@ -13,6 +13,9 @@ public enum DraftRevisionKind
 
     /// <summary>An older revision restored.</summary>
     Restored,
+
+    /// <summary>The package texts (e-mail body, motivation, Über mich) generated (08c) — one model call, letter unchanged.</summary>
+    Package,
 }
 
 /// <summary>
@@ -63,6 +66,9 @@ public class ApplicationDraft
     public string? CvFile { get; set; }
 
     public List<ApplicationDraftRevision> Revisions { get; set; } = [];
+
+    /// <summary>„Bewerbungspaket" (08c): the channel texts; <c>null</c> until the package was created.</summary>
+    public PackageTexts? Package { get; set; }
 
     public TokenUsage Usage => new(InputTokens, OutputTokens);
 
