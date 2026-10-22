@@ -2,40 +2,93 @@
 
 [![CI](https://github.com/NetStall/Autopilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NetStall/Autopilot/actions/workflows/ci.yml)
 
-<sub>The badge only renders for viewers with access while the repository is private.</sub>
+A personal tool for a structured job search in Germany. It imports vacancies from the Bundesagentur für Arbeit and
+Himalayas, filters and ranks them against my profile with rules and a local model (Ollama), and prepares complete
+application packages — cover letter and CV with the Claude API, plus the e-mail or form texts — only from facts in
+my profile. **The tool never sends anything:** I review and approve every application, send it myself and only record
+that it was sent; follow-ups and statistics close the loop.
 
-A personal tool for a structured job search in Germany: it fetches vacancies, ranks direct employers above
-recruitment agencies, drafts tailored cover letters with the Claude API, builds a matching CV, and tracks every
-application. The tool never sends anything: I review and approve each application's documents, submit them myself,
-and only record that they were sent.
+| Vacancy list | Detail with „Passt zu mir?" | „Heute bereit" |
+|---|---|---|
+| ![List](docs/img/demo-list.png) | ![Detail](docs/img/demo-detail.png) | ![Heute bereit](docs/img/demo-heute-bereit.png) |
 
-## Quick start
+<sub>Screenshots from a separate demo stack with fictional companies and the invented example profile
+(`docs/profile.example.json`) — no real data.</sub>
 
-Prerequisite for both: [Docker Desktop](https://www.docker.com/products/docker-desktop/) running.
+## How it works
+
+A layered pipeline: cheap rules first, the local model only for what the rules let through, Claude only for the few
+vacancies I prepare, and a human at the end. Diagram and data flows: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md);
+where is what in the code: [docs/CODEMAP.md](docs/CODEMAP.md).
+
+1. **Import** (Arbeitsagentur, Himalayas, or pasted by hand) with details, de-duplication and a title pre-filter.
+2. **Hard filters**: role type, stack, explicit German C1, reachability — hidden with the reason, never a vacancy
+   with an application or my „Passt".
+3. **Rules**: relevance, fit check against the profile (must vs. plus, alternatives, German level, years, region,
+   employer type) → rank.
+4. **Local model** (`qwen3:8b`): requirement extraction and a „KI-Bewertung" next to the rank for the Top 100.
+5. **Application channel**: e-mail address, portal-only, form, contact person — only shown, never contacted.
+6. **Bewerbungspaket** with Claude, checked by a fact guard; review, approval, sending by me; follow-ups after 7 days.
+
+## Quick start (Windows)
+
+Prerequisites: [Docker Desktop](https://www.docker.com/products/docker-desktop/) running; optional
+[Ollama](https://ollama.com) for the local model; optional Claude API key for letters.
 
 ```powershell
-docker compose up -d     # "use" mode: db + api + frontend in Docker → http://localhost:3000
-./dev.ps1                # "dev" mode: db in Docker, API (dotnet watch) + frontend (nuxt dev) in one window
+Copy-Item .env.example .env            # set POSTGRES_PASSWORD; optional CLAUDE_API_KEY=… and OLLAMA_ENABLED=true
+Copy-Item docs/profile.example.json data/profile.json   # then replace everything with your own data (git-ignored)
+ollama pull qwen3:8b                   # optional: local requirement extraction and KI-Bewertung
+docker compose up -d                   # → http://localhost:3000 (API http://localhost:5080)
 ```
 
-Dev mode additionally needs the .NET 10 SDK and Node 24; Ctrl+C stops API and frontend. Details below.
+Dev mode (`./dev.ps1`: db in Docker, API with `dotnet watch`, Nuxt dev server) needs the .NET 10 SDK and Node 24.
+Without a Claude key everything works except generating letters; without Ollama the rules decide alone.
 
-**Status:** step 06 of the [roadmap](docs/ROADMAP.md) — application documents: a cover letter drafted by Claude from
-profile facts only (with a fact guard), a CV variant without AI, a review screen with live preview, approval and PDFs
-in the look of my current documents (see *Unterlagen* below). Before that: profile, fit check and applications (05),
-editable Suchprofil and score filters (05b), and from step 04 vacancies from the Bundesagentur für Arbeit (region around
-Deggendorf + home-office jobs in all of Germany, with full descriptions) and from the
-[Himalayas](https://himalayas.app) remote jobs API, **scored against the profile** (C#/.NET/Vue: relevant; Java,
-PHP, SAP, embedded …: not), with a remote level (voll remote / hybrid), detected recruitment agencies and merged
-duplicates. Background import with progress and a daily run at 07:00, fast triage (seen / Merken / Ausblenden,
-keyboard shortcuts), filters in the URL; one-command start in Docker or dev mode; security review in
-[docs/SECURITY.md](docs/SECURITY.md). Earlier steps: foundation (01), import (02), list UI (03).
-Agent rules: [AGENTS.md](AGENTS.md). Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); where is what:
-[docs/CODEMAP.md](docs/CODEMAP.md).
+## My daily routine
 
-![Vacancy list with filters, "Neu" markers and employer type badges (demo data)](docs/img/vacancy-list.png)
+```powershell
+./scripts/daily-run.ps1                # import → filters → scoring → local KI → channels → summary (≈ 5 min)
+```
 
-<sub>Demo data with fictional companies. Dark mode: [screenshot](docs/img/vacancy-list-dark.png).</sub>
+Then in the UI: **Heute bereit** → „Top 5 vorbereiten" (cost shown first) → open a package → „Unterlagen prüfen" →
+Freigeben → send it myself (copy the e-mail text / mailto, attachments as ZIP, or the portal checklist and copy blocks)
+→ „Als gesendet markieren". Follow-ups that are due appear on the same page with a ready e-mail / LinkedIn text.
+
+## Security & privacy
+
+- **Human approval:** nothing is ever sent by the tool — no SMTP, no „send all", no schedule.
+- **No invented facts:** letters and package texts use only profile facts; a fact guard flags technologies, numbers
+  and language levels that are not in the profile.
+- **No scraping:** only public job APIs; detected addresses are shown, never contacted; no requests to company sites.
+- **Secrets and personal data stay local:** API keys via user-secrets / `.env`, `data/` (profile, PDFs) git-ignored and
+  mounted read-only into the API container, logs contain ids only; all ports bound to 127.0.0.1.
+- **Untrusted input:** posting text is data — it is delimited and neutralised in every prompt, model answers are
+  validated against the text (e.g. an e-mail address the model names must occur in the posting).
+  Threat model and review: [docs/SECURITY.md](docs/SECURITY.md).
+
+## Evaluation
+
+Ranking quality on my gold labels (`./scripts/eval-ranking.ps1`, latest run 2026-10-22, 14 explicit labels — a trend,
+not a benchmark; reports in [docs/evaluation/](docs/evaluation/)):
+
+| Variant | P@10 | P@20 | NDCG@20 |
+|---|---|---|---|
+| Nur Regeln | 0.70 | 0.57 | 0.99 |
+| **Kombiniert (rules + extraction, default)** | **0.80** | 0.57 | **1.00** |
+| Nur KI-Bewertung (fitscore.v3) | 0.80 | 0.57 | 0.96 |
+| With 3 automatic labels: Kombiniert | 0.90 | 0.59 | 1.00 |
+
+With 8 „Passt" among 14 labels, 0.80 is the best possible P@10.
+
+## Ideas for later
+
+Embeddings with pgvector („Ähnliche Stellen", semantic search) · more sources · sending e-mail via SMTP — only after
+authentication and with the same per-application approval.
+
+---
+
+The sections below describe each feature in detail.
 
 ## Stack
 
@@ -59,7 +112,8 @@ xUnit v3 + FluentAssertions + Testcontainers · Vitest · Docker Compose · GitH
                                                   PostgreSQL 17 (Docker)
 ```
 
-Dependencies point inwards: `Api → Infrastructure → Core`.
+Dependencies point inwards: `Api → Infrastructure → Core`. The layered pipeline as a diagram:
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#the-pipeline-layers-15).
 Endpoints are **minimal APIs grouped per feature** (`Features/Vacancies/VacancyEndpoints.cs`) — less ceremony than
 controllers, with typed results that produce an accurate OpenAPI document.
 More background: [ADR 0001](docs/decisions/0001-foundation.md) (foundation),

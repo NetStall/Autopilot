@@ -16,6 +16,40 @@ explicit approval in the UI. Where a feature lives in the code: [CODEMAP.md](COD
 Dependency rule: `Api → Infrastructure → Core`; Core references nothing. The frontend talks only to the API
 (`NUXT_PUBLIC_API_BASE`).
 
+## The pipeline (layers 1–5)
+
+Cheap and deterministic first; the local model only sees vacancies the rules let through; Claude only the few I
+prepare; nothing leaves the tool without my approval and my own sending.
+
+```mermaid
+flowchart LR
+    subgraph Sources
+        AA[Arbeitsagentur API]
+        HM[Himalayas API]
+        MAN[Stelle manuell]
+    end
+    AA & HM & MAN --> IMP[Import + details<br/>dedupe, title pre-filter]
+    IMP --> L1{Layer 1<br/>hard filters<br/>role · stack · German C1 · reachability}
+    L1 -- filtered, hidden<br/>never with application / Passt --> HID[(Gefiltert)]
+    L1 --> L2[Layer 2<br/>rules: relevance, fit,<br/>remote, employer type → rank]
+    L2 --> L3[Layer 3<br/>local Qwen: requirement extraction<br/>+ KI-Bewertung for the Top N]
+    L3 --> L2
+    L2 --> L4[Layer 4<br/>application channel<br/>e-mail · portal · form · extern]
+    L4 --> L5[Layer 5<br/>Bewerbungspaket with Claude<br/>letter · CV · e-mail / form texts<br/>+ fact guard]
+    L5 --> REV[Review + Freigeben<br/>in the UI]
+    REV --> ME[I send it myself<br/>and mark it as sent]
+    ME --> FU[Follow-ups after 7 days]
+    DR([Tageslauf<br/>daily-run.ps1]) -.runs.-> IMP & L1 & L2 & L3 & L4
+```
+
+| Layer | Where | Cost |
+|---|---|---|
+| 1 Hard filters | `Core/Filters/HardFilters.cs` | rules, free |
+| 2 Rules | `Core/Scoring`, `Core/Fit` | rules, free |
+| 3 Local model | `Infra/Llm` (`VacancyExtractionService`, `VacancyFitScoreService`), Ollama `qwen3:8b` | ~4 s + 2 s per vacancy on the GPU |
+| 4 Channel | `Core/Applications/HowToApply.cs` (+ the extraction's `application`) | rules, free |
+| 5 Package | `Infra/Documents` (`LetterGenerator`, `PackageTextGenerator`), Claude | ~0.04 $ per package, `Claude:DailyCallLimit` |
+
 ## Data flows
 
 **Import → details → scoring/fit → list**
@@ -52,6 +86,16 @@ Dependency rule: `Api → Infrastructure → Core`; Core references nothing. The
    Suchprofil's „Nicht erreichbare ausblenden") → `Vacancy.FilterReason`.
 2. The list, the channel statistics and the extraction / KI-Bewertung queues use `WithoutFiltered`: a vacancy with an
    application or my „Passt" label is never left out.
+
+**Bewerbungspaket → Heute bereit → follow-up (08c)**
+1. `POST /api/vacancies/{id}/package` (or `POST /api/packages/top?k=5` after `GET /api/packages/estimate`): the
+   documents service creates the draft (letter.v2 + CV) if needed, then `CreatePackageAsync` asks
+   `IPackageTextGenerator` (Claude) for the e-mail body, motivation and „Über mich" and runs the fact guard on them.
+2. `GET /api/applications/{id}/package` adds the channel (`HowToApplyDetector.Resolve`), attachment names and the
+   portal checklist; `package.zip` serves the approved PDFs. Nothing is sent: I copy, attach and send myself, then
+   `POST …/mark-sent`.
+3. `GET /api/follow-ups` lists open applications 7 days after the last action with template texts
+   (`FollowUps.Draft`); `POST …/follow-up-done` makes the follow-up the new last action.
 
 **Tageslauf (08b)**
 `DailyRunWorker` queues an import and waits for it, requests a re-score (hard filters + rules) and waits, probes the

@@ -177,7 +177,7 @@ onMounted(async () => {
             <strong>{{ item.position }}</strong> · {{ item.company }}
             <span class="badge">{{ CHANNEL_LABELS[item.channel] }}</span>
             <span v-if="item.approved" class="badge ready__approved">Freigegeben</span>
-            <span v-if="item.warnings" class="badge ready__warn">{{ item.warnings }} Hinweise</span>
+            <span v-if="item.warnings" class="badge ready__warn">{{ item.warnings }} {{ item.warnings === 1 ? 'Hinweis' : 'Hinweise' }}</span>
             <span class="ready__date">vorbereitet {{ formatRelativeDate(item.generatedAt) }}</span>
           </div>
           <div class="ready__actions">
