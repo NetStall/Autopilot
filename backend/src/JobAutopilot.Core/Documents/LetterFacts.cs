@@ -163,7 +163,8 @@ public static partial class LetterFactsBuilder
                 facts.Add(new("pref.salary", LetterFactKind.Preference, $"{(de ? "Gehaltsvorstellung" : "Salary expectation")}: {salary}"));
             }
 
-            if (AsksForStart().IsMatch(postingText) && searchProfile.EarliestStart is { } start)
+            // Always when set (08c): otherwise the letter says „ab sofort" while I can only start later.
+            if (searchProfile.EarliestStart is { Length: > 0 } start)
             {
                 facts.Add(new("pref.start", LetterFactKind.Preference,
                     $"{(de ? "Frühester Eintritt" : "Earliest start")}: {Formats.Date(start, tone.Language)}"));

@@ -37,9 +37,12 @@ public class LetterFactsAndCheatSheetTests
     }
 
     [Fact]
-    public void Salary_and_start_only_when_the_posting_asks_for_them()
+    public void Salary_only_when_the_posting_asks_for_it_the_start_date_always()
     {
-        DocumentTestData.Input(searchProfile: Search).Facts.Should().NotContain(f => f.Kind == LetterFactKind.Preference);
+        // 08c: without the date the letter said „ab sofort" although I can only start later.
+        var facts = DocumentTestData.Input(searchProfile: Search).Facts;
+        facts.Should().NotContain(f => f.Id == "pref.salary");
+        facts.Single(f => f.Id == "pref.start").Text.Should().Be("Frühester Eintritt: 01.11.2026");
 
         var asked = DocumentTestData.Input(description: DocumentTestData.Description + " Bitte nennen Sie Ihre Gehaltsvorstellung und den frühestmöglichen Eintrittstermin.", searchProfile: Search);
         asked.Facts.Single(f => f.Id == "pref.salary").Text.Should().Be("Gehaltsvorstellung: 50.000–60.000 € brutto/Jahr");
