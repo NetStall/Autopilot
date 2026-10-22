@@ -109,12 +109,16 @@ public sealed partial class DailyRunWorker(
 
         // 2. + 3. Hard filters and rule scoring happen in one re-score of all vacancies.
         var scoringWatch = Stopwatch.StartNew();
-        var requestedAt = timeProvider.GetUtcNow();
-        rescore.Request();
-        await WaitAsync(() => rescore.Status is { State: RescoreState.Idle } s && s.LastFinishedAt >= requestedAt, ct);
-        var newFiltered = await NewFilteredAsync(startedAt, ct);
-        await Stage(DailyRunStage.Filters, () => Task.FromResult((StageOutcome.Done,
-            newFiltered.Count == 0 ? "Keine neue Stelle gefiltert." : "Neu gefiltert: " + string.Join(", ", newFiltered.Select(f => $"{HardFilters.Label(f.Key)} {f.Value}")))));
+        var newFiltered = new Dictionary<HardFilterReason, int>();
+        await Stage(DailyRunStage.Filters, async () =>
+        {
+            var requestedAt = timeProvider.GetUtcNow();
+            rescore.Request();
+            await WaitAsync(() => rescore.Status is { State: RescoreState.Idle } s && s.LastFinishedAt >= requestedAt, ct);
+            newFiltered = await NewFilteredAsync(startedAt, ct);
+            return (StageOutcome.Done,
+                newFiltered.Count == 0 ? "Keine neue Stelle gefiltert." : "Neu gefiltert: " + string.Join(", ", newFiltered.Select(f => $"{HardFilters.Label(f.Key)} {f.Value}")));
+        });
         await Stage(DailyRunStage.Scoring, () => Task.FromResult(rescore.Status.LastError is { } error
             ? (StageOutcome.Failed, error)
             : (StageOutcome.Done, $"{rescore.Status.LastScored ?? 0} Stellen bewertet in {scoringWatch.Elapsed.TotalSeconds:0.#} s")));
