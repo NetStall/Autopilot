@@ -37,6 +37,8 @@ public static partial class ExtractionNormalizer
     private static readonly string[] CiSkills = ["GitHub Actions", "GitLab CI", "Jenkins", "TeamCity", "Azure DevOps"];
     private static readonly string[] AiNames = ["KI", "AI", "LLM", "LLMs", "KI-Tools", "AI tools", "KI-Coding-Tools", "AI coding", "Generative AI"];
     private static readonly string[] AiSkills = ["Claude Code", "GitHub Copilot", "Copilot", "Cursor", "ChatGPT", "Claude API", "OpenAI API"];
+    private static readonly string[] AgileNames = ["Agile", "agil", "Scrum", "Kanban", "agile Entwicklung", "agile Methoden"];
+    private static readonly string[] AgileSkills = ["Scrum", "Kanban", "Jira"];
 
     /// <summary>Names the prompt offers the model so it writes „C#" rather than „C-Sharp-Kenntnisse".</summary>
     public static IReadOnlyList<string> KnownNames(CandidateProfile profile)
@@ -103,6 +105,7 @@ public static partial class ExtractionNormalizer
         var testing = ConceptSkill(profile, TestingNames, TestingSkills);
         var ci = ConceptSkill(profile, CiNames, CiSkills);
         var ai = ConceptSkill(profile, AiNames, AiSkills);
+        var agile = ConceptSkill(profile, AgileNames, AgileSkills);
         var result = new Dictionary<string, ResolvedRequirement>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var (entries, importance, domain) in new[]
@@ -130,6 +133,17 @@ public static partial class ExtractionNormalizer
                 if (found.Count == 0 && !domain && AiConcept().IsMatch(entry) && ai is not null)
                 {
                     found.Add((ai.Name, ai));
+                }
+
+                // „agile Entwicklung" → my Scrum / agile skill (08b, TGW).
+                if (found.Count == 0 && !domain && AgileConcept().IsMatch(entry) && agile is not null)
+                {
+                    found.Add((agile.Name, agile));
+                }
+
+                if (found.Count == 0 && Education().IsMatch(entry))
+                {
+                    continue;
                 }
 
                 found.AddRange(TechnologyCatalog.Matchers
@@ -167,7 +181,8 @@ public static partial class ExtractionNormalizer
     }
 
     /// <summary>„Deutsch (C1)", „sehr gute Englischkenntnisse", „German B2" — scored by the language level, never as a skill gap.</summary>
-    public static bool IsLanguage(string entry) => Language().IsMatch(entry);
+    public static bool IsLanguage(string entry) =>
+        entry.Split([" oder ", ",", " or "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).All(part => Language().IsMatch(part));
 
     private static bool IsShortName(string entry) =>
         entry.Trim().Length <= 40 && entry.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length <= 4;
@@ -195,8 +210,15 @@ public static partial class ExtractionNormalizer
     [GeneratedRegex(@"(?:praktik|kultur|bewusstsein|denken|mindset|verständnis|best practices|moderne softwareentwicklung|sauberer code|teamfähig|kommunikation|engineering culture|teamarbeit|neue technologien|kontinuierlich|webanwendungen|softwareprojekte|innovative lösungen)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex GenericPractice();
 
-    [GeneratedRegex(@"^\W*(?:(?:sehr\s+)?gute\s+|fließende\s+|verhandlungssichere\s+)?(?:deutsch(?!land)|englisch|german|english)\w*(?:\s*(?:\(?[ABC][12]\)?|in\s+wort\s+und\s+schrift|sprachkenntnisse|kenntnisse|language|skills|fließend|verhandlungssicher))*\W*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    [GeneratedRegex(@"^\W*(?:(?:sehr\s+)?gute[snr]?\s+|fließende[snr]?\s+|verhandlungssichere[snr]?\s+|sichere[snr]?\s+)?(?:deutsch(?!land)|englisch|german|english)\w*(?:\s*(?:\(?[ABC][12]\)?|in\s+wort\s+und\s+schrift|sprachkenntnisse|kenntnisse|language|skills|fließend|verhandlungssicher))*\W*$|^\W*\(?[ABC][12]\)?\W*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex Language();
+
+    [GeneratedRegex(@"\b(?:agil\w*|scrum|kanban)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    private static partial Regex AgileConcept();
+
+    /// <summary>„IT-Ausbildung", „abgeschlossenes Studium", „Bachelor" — a degree is no technology gap (08b, TGW).</summary>
+    [GeneratedRegex(@"(?:ausbildung|studium|abschluss|hochschul|bachelor|master|diplom|degree|qualifikation)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    private static partial Regex Education();
 
     [GeneratedRegex(@"(?:teamgeist|teamfähig|teamplayer|team player|selbstständig|selbständig|eigenverantwort|eigeninitiative|zuverlässig|kommunikations|kommunikativ|analytisch|strukturiert|lernbereit|engagement|motivation|motiviert|flexibilität|belastbar|kundenorientiert|verantwortungsbewusst|hands-on-mentalität|neugier|freude an|spaß an|communication skills|self-motivated|proactive|ownership)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex SoftSkill();

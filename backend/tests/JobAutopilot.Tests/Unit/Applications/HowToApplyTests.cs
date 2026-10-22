@@ -79,6 +79,17 @@ public class HowToApplyTests
         HowToApplyDetector.Contact(text).Should().Be((name, salutation));
     }
 
+    [Theory]
+    [InlineData("Wir freuen uns auf dich. Unser Kundenportal ist modern.", ApplyChannel.Unknown)]
+    [InlineData("Dann schick uns deine Unterlagen über den Button.", ApplyChannel.Portal)]
+    public void A_portal_from_the_model_needs_a_cue_in_the_text(string text, ApplyChannel expected)
+    {
+        // 08b spot check: 24 of 26 „Portal" answers of qwen3:8b had no cue in the posting.
+        var ai = new Core.Extraction.ApplicationExtraction(ApplyChannel.Portal, null, null, null, false, false, []);
+
+        HowToApplyDetector.Resolve(text, "https://www.arbeitsagentur.de/jobsuche/jobdetail/1", ai).Channel.Should().Be(expected);
+    }
+
     [Fact]
     public void An_external_link_from_the_source_is_the_fallback_channel()
     {

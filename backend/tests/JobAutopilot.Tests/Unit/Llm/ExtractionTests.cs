@@ -101,7 +101,7 @@ public class ExtractionTests
         rules.Source.Should().Be(FitSource.Rules);
         rules.RequiredGerman.Should().Be(LanguageLevel.C1, "„sehr gute Deutschkenntnisse\" = C1 by the rules");
         ai.Source.Should().Be(FitSource.Ai);
-        ai.RequiredGerman.Should().Be(LanguageLevel.B2, "the model's reading wins");
+        ai.RequiredGerman.Should().Be(LanguageLevel.C1, "a phrase in the text decides over the model (08b)");
         ai.Requirements.Should().Contain(r => r.Name == "Broadcast" && r.Coverage == FitCoverage.Gap && r.Importance == RequirementImportance.MustHave);
         ai.Warnings.Should().Contain(w => w.Text.StartsWith("Muss-Anforderung, nicht im Profil", StringComparison.Ordinal));
         ai.Warnings.Should().NotContain(w => w.Text.Contains("Jahre erwartet", StringComparison.Ordinal), "3 years asked, 3.5 in the profile");

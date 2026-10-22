@@ -83,8 +83,11 @@ public static partial class HowToApplyDetector
             return rules with { ContactName = rules.ContactName ?? ai?.ContactName, Salutation = rules.Salutation ?? ai?.Salutation };
         }
 
+        // 08b: in 24 of 26 spot-checked cases the model said „Portal" without any cue in the text — only with one now.
+        var cue = description is not null && (PortalPhrase().IsMatch(description) || FormPhrase().IsMatch(description) || ApplyButton().IsMatch(description));
         var channel = ai.Email is not null && !rules.PortalOnly && !ai.PortalOnly ? ApplyChannel.Email
             : ai.Channel is ApplyChannel.Unknown ? rules.Channel
+            : ai.Channel is ApplyChannel.Portal or ApplyChannel.Form && !cue && !ai.PortalOnly ? rules.Channel
             : ai.Channel == ApplyChannel.Email && ai.Email is null ? rules.Channel
             : ai.Channel;
         return new HowToApply(
@@ -247,6 +250,9 @@ public static partial class HowToApplyDetector
 
     [GeneratedRegex(@"\b(?:Karriereportal|Bewerberportal|Jobportal|Bewerbungsportal|Online-?Bewerbung\w*|Bewerbermanagement\w*|Karriereseite|online\s+bewerben|Jetzt\s+bewerben|apply\s+now|career\s+(?:portal|page))\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex PortalPhrase();
+
+    [GeneratedRegex(@"\büber\s+den\s+(?:Bewerbungs-?)?Button\b|\bBewerben-Button\b|#apply\w*|\bapply\s+(?:now|button|here)\b|\bBewerbungslink\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
+    private static partial Regex ApplyButton();
 
     [GeneratedRegex(@"\bGehaltsvorstellung\w*|\bGehaltswunsch|\bsalary\s+expectation", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex SalaryAsked();

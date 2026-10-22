@@ -186,8 +186,11 @@ public sealed partial class FitAnalyzer(FitOptions options)
         AddGapWarnings(requirements, penalties, options.MethodsGapMax, warnings);
 
         var german = GermanRequirementDetector.Detect(title, description);
+        // A phrase in the text decides; the model only when the rules find none (08b: qwen3:8b read „Gute Deutsch- und
+        // sehr gute Englischkenntnisse" and „sicher auf Deutsch" as C1).
         var (germanLevel, germanPhrase) = extraction switch
         {
+            _ when german.Level is not null => (german.Level, german.Phrase),
             { GermanNotRequired: true } => (null, null),
             { GermanLevel: { } extracted } => ((LanguageLevel?)extracted, "laut KI"),
             _ => (german.Level, german.Phrase),

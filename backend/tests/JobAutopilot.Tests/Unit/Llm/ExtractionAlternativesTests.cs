@@ -83,3 +83,29 @@ public class ExtractionV4Tests
         invented.EmailRejected.Should().BeTrue();
     }
 }
+
+/// <summary>08b: v4 entries that are no technology gaps.</summary>
+public class ExtractionV4NormalizerTests
+{
+    [Theory]
+    [InlineData("verhandlungssicheres Deutsch oder C1, gutes Englisch oder B2", true)]
+    [InlineData("Deutsch (C1)", true)]
+    [InlineData("sicheres Deutsch", true)]
+    [InlineData("C# oder Java", false)]
+    public void Language_groups_are_languages(string entry, bool language)
+    {
+        ExtractionNormalizer.IsLanguage(entry).Should().Be(language);
+    }
+
+    [Fact]
+    public void A_degree_is_no_gap_and_agile_development_is_my_scrum()
+    {
+        var extraction = new RequirementExtraction(
+            ["agile Entwicklung", "IT-Ausbildung", "abgeschlossenes Studium"], [], null, false, null, null, Seniority.Unknown, RemoteLevel.Unknown,
+            null, EmploymentType.Unknown, [], "Ein Job.");
+
+        var resolved = ExtractionNormalizer.Resolve(extraction, RealWorldFixtures.Profile);
+
+        resolved.Select(r => r.Name).Should().Equal("Scrum");
+    }
+}
