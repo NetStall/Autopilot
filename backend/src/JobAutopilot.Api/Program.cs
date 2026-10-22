@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using JobAutopilot.Api.Common;
 using JobAutopilot.Api.Features.Applications;
 using JobAutopilot.Api.Features.Documents;
+using JobAutopilot.Api.Features.DailyRun;
 using JobAutopilot.Api.Features.Evaluation;
 using JobAutopilot.Api.Features.Extraction;
 using JobAutopilot.Api.Features.Health;
@@ -82,6 +83,11 @@ builder.Services.AddHostedService<RescoreWorker>();
 builder.Services.AddSingleton<JobAutopilot.Api.Features.Extraction.ExtractionCoordinator>();
 builder.Services.AddHostedService<JobAutopilot.Api.Features.Extraction.ExtractionWorker>();
 
+// „Tageslauf" (08b): import → filters → scoring → KI → channels → summary, one at a time in the background.
+builder.Services.AddSingleton<JobAutopilot.Api.Features.DailyRun.DailyRunCoordinator>();
+builder.Services.AddSingleton<JobAutopilot.Api.Features.DailyRun.ILocalModelProbe, JobAutopilot.Api.Features.DailyRun.OllamaModelProbe>();
+builder.Services.AddHostedService<JobAutopilot.Api.Features.DailyRun.DailyRunWorker>();
+
 builder.Services.AddProblemDetails();
 builder.Services.AddValidation();
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -133,5 +139,6 @@ app.MapChannelStatisticsEndpoints();
 app.MapLlmEndpoints();
 app.MapExtractionEndpoints();
 app.MapEvaluationEndpoints();
+app.MapDailyRunEndpoints();
 
 await app.RunAsync();

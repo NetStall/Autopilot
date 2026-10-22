@@ -85,3 +85,47 @@ export interface FilterStatistics {
   secondsPerVacancy: number
   savedSeconds: number
 }
+
+// „Tageslauf" (08b): GET/POST /api/daily-run, GET /api/statistics/coverage.
+export type DailyRunStage = 'Import' | 'Filters' | 'Scoring' | 'Extraction' | 'Channels' | 'Summary'
+export type StageOutcome = 'Done' | 'Skipped' | 'Failed' | 'Cancelled'
+
+export interface DailyRunStageResult {
+  stage: DailyRunStage
+  outcome: StageOutcome
+  message: string
+  durationMs: number
+}
+
+export interface DailyRunSummary {
+  startedAt: string
+  finishedAt: string
+  newVacancies: number
+  newFiltered: Record<string, number>
+  newInTop20: { vacancyId: string, title: string, company: string, rankScore: number | null }[]
+  emailReadyInTop20: { vacancyId: string, title: string, company: string, email: string, contactName: string | null }[]
+  failures: string[]
+  stages: DailyRunStageResult[]
+}
+
+export interface DailyRunStatus {
+  state: 'Idle' | 'Queued' | 'Running'
+  currentStage: DailyRunStage | null
+  stages: DailyRunStageResult[]
+  last: DailyRunSummary | null
+}
+
+export interface SearchCoverage {
+  name: string
+  source: string | null
+  configured: boolean
+  vacancies: number
+  inTop50: number
+}
+
+export interface Coverage {
+  days: number
+  vacancies: number
+  searches: SearchCoverage[]
+  bringNothing: string[]
+}

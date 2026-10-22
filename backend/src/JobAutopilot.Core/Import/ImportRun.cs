@@ -15,6 +15,9 @@ public enum ImportTrigger
 {
     Manual,
     Scheduled,
+
+    /// <summary>Started by the „Tageslauf" (08b).</summary>
+    DailyRun,
 }
 
 /// <summary>

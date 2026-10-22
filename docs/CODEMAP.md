@@ -138,6 +138,7 @@ Docker: `OLLAMA_ENABLED`, `Llm__Tasks__Extraction` in `.env`.
 | Import lock | `Core/Import/IImportLock.cs`, `Infra/Persistence/PostgresImportLock.cs` | `TryAcquireAsync` (advisory lock) | `Integration/ImportLockTests.cs` |
 | Suchprofil seed at start | `SearchProfileInitializer` in `Api/Features/SearchProfiles/SearchProfileEndpoints.cs` | logs the legacy `preferences` hint once | `Integration/SearchProfileApiTests.cs` |
 | Extraction worker | `Api/Features/Extraction/ExtractionWorker.cs` | one GPU job at a time, no import lock | `Integration/ExtractionApiTests.cs` |
+| „Tageslauf" (08b) | `Api/Features/DailyRun/DailyRunCoordinator.cs` (`ILocalModelProbe`), `DailyRunWorker.cs` (import → filters → scoring → KI → channels → summary, waits for the other workers), `DailyRunEndpoints.cs` (also `GET /api/statistics/coverage`), `scripts/daily-run.ps1`, `fe/app/components/DailyRunPanel.vue` | `GET/POST /api/daily-run?top=`, `DELETE /api/daily-run/current` | `Integration/DailyRunApiTests.cs`, `fe/test/nuxt/dailyRunPanel.test.ts` |
 
 Config: `Import:Schedule` (Enabled, TimeOfDay, TimeZone), `Database:MigrateOnStartup`.
 

@@ -53,6 +53,11 @@ Dependency rule: `Api → Infrastructure → Core`; Core references nothing. The
 2. The list, the channel statistics and the extraction / KI-Bewertung queues use `WithoutFiltered`: a vacancy with an
    application or my „Passt" label is never left out.
 
+**Tageslauf (08b)**
+`DailyRunWorker` queues an import and waits for it, requests a re-score (hard filters + rules) and waits, probes the
+local model (`ILocalModelProbe`) and — if it answers — asks the extraction worker for the Top N and waits, then computes
+the channels of the Top 20 and a summary. One run at a time; a second request joins it.
+
 **Ranking evaluation (07c)**
 1. Labels = my explicit gold labels + automatic ones (`LabelSet`: applied → Passt, Ausblenden → Passt nicht).
 2. `GET /api/evaluation/ranking` orders the labelled vacancies per variant (rules, combined, KI, rank + w × KI) and

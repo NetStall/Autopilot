@@ -128,6 +128,7 @@ dotnet user-secrets set "Claude:ApiKey" "<key>" --project backend/src/JobAutopil
 ./scripts/translate-profile.ps1 [-DryRun]     # draft missing German CV texts (1 Claude call), write profile.json after approval
 ./scripts/seed-gold-labels.ps1                # gold labels from chat (Passt / Passt nicht), via the API
 ./scripts/eval-ranking.ps1 [-Model qwen3.5:9b] # ranking evaluation over the labels (step 07c)
+./scripts/daily-run.ps1 [-Top 100]            # Tageslauf: import, filters, scoring, local KI, channels, summary (08b)
 ollama pull qwen3:8b                          # local model for the requirement extraction (step 07a, optional)
 docker compose up -d db                       # start PostgreSQL only
 dotnet build backend/JobAutopilot.sln

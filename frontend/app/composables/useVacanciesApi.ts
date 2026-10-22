@@ -20,7 +20,7 @@ import type {
 } from '~/types/searchProfile'
 import type { Application, ApplicationStatus, TrackerImportReport } from '~/types/application'
 import type { ApplicationDocuments, CvOptions, DocumentKind, DocumentPreview, Letter } from '~/types/documents'
-import type { ChannelStatistics, FilterStatistics, GermanStatistics } from '~/types/statistics'
+import type { ChannelStatistics, Coverage, DailyRunStatus, FilterStatistics, GermanStatistics } from '~/types/statistics'
 import type { ExtractionStatus, FailedExtraction, GoldLabelSummary, PendingExtractions } from '~/types/extraction'
 
 /** All calls to the backend API. Base URL from runtime config (NUXT_PUBLIC_API_BASE). */
@@ -152,6 +152,22 @@ export function useVacanciesApi() {
     },
 
     /** Required German of the relevant vacancies, overall and by remote level / source. */
+    dailyRun() {
+      return api<DailyRunStatus>('/api/daily-run')
+    },
+
+    startDailyRun(top = 100) {
+      return api<DailyRunStatus>('/api/daily-run', { method: 'POST', query: { top } })
+    },
+
+    cancelDailyRun() {
+      return api<void>('/api/daily-run/current', { method: 'DELETE' })
+    },
+
+    coverage(days = 7) {
+      return api<Coverage>('/api/statistics/coverage', { query: { days } })
+    },
+
     filterStatistics() {
       return api<FilterStatistics>('/api/statistics/filters')
     },
