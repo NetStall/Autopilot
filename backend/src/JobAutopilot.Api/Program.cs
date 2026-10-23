@@ -34,8 +34,11 @@ var builder = WebApplication.CreateBuilder(args);
 // right after appsettings.{env}.json so environment variables still win. Tests use their own invented searches.
 if (!builder.Environment.IsEnvironment("Testing"))
 {
-    var position = builder.Configuration.Sources.Count(s => s is Microsoft.Extensions.Configuration.Json.JsonConfigurationSource);
-    builder.Configuration.Sources.Insert(position, new Microsoft.Extensions.Configuration.Json.JsonConfigurationSource { Path = "appsettings.Local.json", Optional = true });
+    // Not a count of JSON sources: memory and environment sources come first, and the file must follow appsettings.json.
+    var sources = builder.Configuration.Sources;
+    var lastAppsettings = sources.ToList().FindLastIndex(s =>
+        s is Microsoft.Extensions.Configuration.Json.JsonConfigurationSource { Path: { } path } && path.StartsWith("appsettings", StringComparison.OrdinalIgnoreCase));
+    sources.Insert(lastAppsettings + 1, new Microsoft.Extensions.Configuration.Json.JsonConfigurationSource { Path = "appsettings.Local.json", Optional = true });
 }
 
 builder.Services.AddInfrastructure(builder.Configuration);
