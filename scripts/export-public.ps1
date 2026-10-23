@@ -60,7 +60,7 @@ $text = [IO.File]::ReadAllText($readme)
 Push-Location $Target
 try {
     git init -q -b main
-    git add -A
+    git -c core.safecrlf=false add -A
     git -c user.name="$AuthorName" -c user.email="$AuthorEmail" commit -q -m 'Initial public release'
     $count = (git ls-files | Measure-Object).Count
     Write-Host "Exported $count files to $Target (one commit, nothing pushed)."
