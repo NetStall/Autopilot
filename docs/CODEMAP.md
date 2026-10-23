@@ -2,7 +2,7 @@
 
 Paths are relative to the repo root. `Core/` = `backend/src/JobAutopilot.Core/`, `Infra/` =
 `backend/src/JobAutopilot.Infrastructure/`, `Api/` = `backend/src/JobAutopilot.Api/`, `Tests/` =
-`backend/tests/JobAutopilot.Tests/`, `fe/` = `frontend/`. Config = section in `Api/appsettings.json`.
+`backend/tests/JobAutopilot.Tests/`, `fe/` = `frontend/`. Config = section in `Api/appsettings.json`; searches with a place in the git-ignored `Api/appsettings.Local.json` (template `appsettings.Example.json`, loaded in `Program.cs`, not in `Testing`).
 Overview and flows: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Import and sources
@@ -123,7 +123,7 @@ MaxRetries, DailyCallLimit, DraftTokenBudget, prices, MaxVacancyCharacters; ApiK
 | Fit check with extraction | `Core/Fit/FitAnalyzer.cs` (`FitInput.Extraction`, `FitSource`), `Core/Fit/VacancyFitService.cs`, `Core/Scoring/VacancyEnricher.cs` | `AddExtracted`, `ExtractedYears` | `GET /api/vacancies/{id}/fit` (`source`) | `Unit/Llm/ExtractionTests.cs` |
 | „KI-Bewertung" (score next to the rank) | `Core/Extraction/AiFitScore.cs` (`AiFitScoreValidator`, `AiFitScoreGuards` caps, `FitScoreProfile`, `VacancyFitScore`), `Infra/Llm/VacancyFitScoreService.cs`, `Infra/Llm/Prompts/fitscore.v1.md`, `fitscore.v2.md` (current); called by `ExtractionWorker` | `ScoreAsync`, `PendingAsync`, `ScoreWithAsync` (other model) | `aiScore` / `aiFitScore` in `GET /api/vacancies(/{id})` | `Integration/AiFitScoreApiTests.cs`, `fe/test/nuxt/aiFitScorePanel.test.ts` |
 | Ranking evaluation („eval-ranking") | `Core/Evaluation/RankingMetrics.cs`, `Api/Features/Evaluation/EvaluationEndpoints.cs`, `VacancyExtractionService.ExtractWithAsync`, `scripts/eval-ranking.ps1`, reports `docs/evaluation/*.md` | `RankingMetrics.Evaluate`, `LlmRequest.Model` (model override) | `GET /api/evaluation/ranking?implicit=&model=`, `POST /api/evaluation/model-run?model=` | `Unit/Evaluation/RankingMetricsTests.cs`, `Integration/EvaluationApiTests.cs` |
-| Gold labels (explicit + automatic: applied → Passt, Ausblenden → Passt nicht) | `Core/Extraction/VacancyExtraction.cs` (`GoldLabel`), `Core/Extraction/ImplicitLabels.cs` (`VacancyLabel`), `Api/Features/Extraction/LabelSet.cs`, `ExtractionEndpoints.cs`, `scripts/seed-gold-labels.ps1` | `SetLabel`, `GetLabelSummary`, `LabelSet.LoadAsync` | `PUT/DELETE /api/vacancies/{id}/label`, `GET /api/labels/summary` | `Integration/ExtractionApiTests.cs` |
+| Gold labels (explicit + automatic: applied → Passt, Ausblenden → Passt nicht) | `Core/Extraction/VacancyExtraction.cs` (`GoldLabel`), `Core/Extraction/ImplicitLabels.cs` (`VacancyLabel`), `Api/Features/Extraction/LabelSet.cs`, `ExtractionEndpoints.cs`, `scripts/seed-gold-labels.ps1` (reads git-ignored `data/labels.local.json`) | `SetLabel`, `GetLabelSummary`, `LabelSet.LoadAsync` | `PUT/DELETE /api/vacancies/{id}/label`, `GET /api/labels/summary` | `Integration/ExtractionApiTests.cs` |
 | UI (quick label mode: p / n on the list, `pages/index.vue`) | `fe/app/components/VacancyRequirements.vue`, `GoldLabelButtons.vue`, `ExtractionPanel.vue` (Statistik), `AppHeader.vue` (counter), `composables/useLabelSummary.ts`, `types/extraction.ts` | — | — | `fe/test/nuxt/goldLabelAndRequirements.test.ts`, `quickLabel.test.ts` |
 
 Config: `Llm:Tasks:Extraction`, `Llm:Providers:Ollama` (Enabled, BaseUrl, TimeoutSeconds, MaxRetries, Temperature),
