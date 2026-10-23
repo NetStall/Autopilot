@@ -129,6 +129,7 @@ dotnet user-secrets set "Claude:ApiKey" "<key>" --project backend/src/JobAutopil
 ./scripts/seed-gold-labels.ps1                # gold labels from chat (Passt / Passt nicht), via the API
 ./scripts/eval-ranking.ps1 [-Model qwen3.5:9b] # ranking evaluation over the labels (step 07c)
 ./scripts/daily-run.ps1 [-Top 100]            # Tageslauf: import, filters, scoring, local KI, channels, summary (08b)
+./scripts/export-public.ps1 [-Force]          # public copy without history in ..\job-autopilot-public (no push)
 ollama pull qwen3:8b                          # local model for the requirement extraction (step 07a, optional)
 docker compose up -d db                       # start PostgreSQL only
 dotnet build backend/JobAutopilot.sln
