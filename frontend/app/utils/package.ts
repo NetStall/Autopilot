@@ -12,7 +12,7 @@ export function emailText(pkg: Pick<ApplicationPackage, 'email'>): string {
  */
 export function mailtoLink(pkg: Pick<ApplicationPackage, 'email'>): string {
   const to = pkg.email.recipient ?? ''
-  return `mailto:${encodeURIComponent(to).replace('%40', '@')}?subject=${encodeURIComponent(pkg.email.subject)}&body=${encodeURIComponent(emailText(pkg))}`
+  return `mailto:${encodeURIComponent(to).replaceAll('%40', '@')}?subject=${encodeURIComponent(pkg.email.subject)}&body=${encodeURIComponent(emailText(pkg))}`
 }
 
 /** „E-Mail" / „Portal" … for „Als gesendet markieren" (stored as the application's channel). */
