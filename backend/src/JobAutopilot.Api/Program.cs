@@ -30,6 +30,14 @@ using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// My own searches (with my city) live in the git-ignored appsettings.Local.json (08d; template: appsettings.Example.json),
+// right after appsettings.{env}.json so environment variables still win. Tests use their own invented searches.
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    var position = builder.Configuration.Sources.Count(s => s is Microsoft.Extensions.Configuration.Json.JsonConfigurationSource);
+    builder.Configuration.Sources.Insert(position, new Microsoft.Extensions.Configuration.Json.JsonConfigurationSource { Path = "appsettings.Local.json", Optional = true });
+}
+
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddOptions<ImportOptions>()
     .Bind(builder.Configuration.GetSection(ImportOptions.SectionName))

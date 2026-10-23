@@ -31,8 +31,17 @@ internal static class RealWorldFixtures
     public static FitOptions Fit { get; } =
         Configuration.Value.GetSection(FitOptions.SectionName).Get<FitOptions>() ?? throw new InvalidOperationException("No Fit section.");
 
+    /// <summary>The searches of an invented person (home „Talstadt") — independent of the shipped appsettings.</summary>
+    private static readonly List<Core.Import.VacancySearch> Searches =
+    [
+        .. new[] { "Softwareentwickler", "Softwareentwickler C#", ".NET Entwickler", "Full Stack" }
+            .Select((keyword, i) => new Core.Import.VacancySearch { Name = $"region-{i}", Keyword = keyword, Location = "Talstadt", RadiusKm = 70 }),
+        new() { Name = "remote-csharp", Keyword = "C#", RemoteOnly = true },
+        new() { Name = "remote-dotnet", Keyword = ".NET", RemoteOnly = true },
+    ];
+
     public static SearchProfile SearchProfile { get; } = SearchProfileSeed.Create(
-        Configuration.Value.GetSection(ImportOptions.SectionName).Get<ImportOptions>()!.Searches,
+        Searches,
         Configuration.Value.GetSection(ImportOptions.SectionName).Get<ImportOptions>()!.ExcludeTitleTerms,
         ShippedConfig.Relevance(),
         Fit.Penalties,
