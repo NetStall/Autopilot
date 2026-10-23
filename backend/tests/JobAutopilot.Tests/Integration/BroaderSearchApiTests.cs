@@ -100,7 +100,7 @@ public class BroaderSearchApiTests(PostgresFixture postgres) : IntegrationTestBa
         searches.Should().HaveCount(configured.Count).And.HaveCountGreaterThan(5);
         searches!.Select(s => s.Name).Should().OnlyHaveUniqueItems();
         searches.Should().Contain(s => s.RemoteOnly && s.Location == null && s.RadiusKm == null);
-        searches.Should().Contain(s => !s.RemoteOnly && s.Location == "Deggendorf" && s.RadiusKm == 70);
+        searches.Should().Contain(s => !s.RemoteOnly && s.Location == "Talstadt" && s.RadiusKm == 70);
         searches.Should().OnlyContain(s => s.PublishedWithinDays == 30);
     }
 
@@ -122,13 +122,13 @@ public class BroaderSearchApiTests(PostgresFixture postgres) : IntegrationTestBa
 
         var remote = await RunImportAsync("""{ "name": "remote-test", "keyword": "C#", "remoteOnly": true }""");
         var region = await RunImportAsync(
-            """{ "name": "region-test", "keyword": "C#", "location": "Deggendorf", "radiusKm": 70 }""");
+            """{ "name": "region-test", "keyword": "C#", "location": "Talstadt", "radiusKm": 70 }""");
 
         remote.Should().BeEquivalentTo(new { Fetched = 2, Added = 2, Excluded = 0 });
         region.Should().BeEquivalentTo(new { Fetched = 2, Added = 0, Updated = 1, Unchanged = 0, Excluded = 1 });
         region.Searches.Should().ContainSingle().Which.Should().BeEquivalentTo(new
         {
-            Name = "region-test", Keyword = "C#", Location = "Deggendorf", RemoteOnly = false,
+            Name = "region-test", Keyword = "C#", Location = "Talstadt", RemoteOnly = false,
             Fetched = 2, Added = 0, Updated = 1, Excluded = 1,
         });
 

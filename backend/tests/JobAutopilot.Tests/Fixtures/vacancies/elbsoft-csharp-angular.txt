@@ -1,0 +1,41 @@
+title: SOFTWAREENTWICKLER C# / .NET / ANGULAR (W/M/D)
+company: Elbsoft GmbH
+location: 02625 Ostwalde, Sachsen
+source: Arbeitsagentur
+remoteHint: Hybrid
+---
+Die **Elbsoft GmbH** entwickelt seit vielen Jahren Branchensoftware für mittelständische Kunden. Wir digitalisieren Abläufe und machen den Arbeitsalltag unserer Kunden einfacher – im kleinen Team mit kurzen Wegen.
+
+## Deine Aufgaben
+
+- Entwicklung und Pflege unserer Software mit C# / .NET / ASP.NET Core / EF Core / SQL
+- Oberflächen mit Angular, Typescript, HTML und SCSS
+- Unit-Tests (NUnit, Jasmine) und End-to-End-Tests (Playwright)
+- Weiterentwicklung der Architektur im Monorepo (Nx)
+- Zusammenarbeit mit Projektleitung und Support
+
+## Dein Profil
+
+- Gute Kenntnisse in C#, .NET Core, EF Core und SQL
+- Erfahrung mit Angular, Typescript, HTML, SCSS
+- Sicherer Umgang mit Unit Testing (z. B. NUnit, Jasmine)
+- Erfahrung mit End-to-End-Tests (idealerweise Playwright)
+- Grundkenntnisse in einem Monorepo (Nx von Vorteil)
+- Grundkenntnisse in Git
+- Analytisches Denken und Lernbereitschaft
+- Gute Englischkenntnisse in Wort und Schrift
+
+## Das bieten wir
+
+- Unbefristeter Arbeitsvertrag
+- Intensive Einarbeitung
+- Flexible Arbeitszeiten und die Möglichkeit, teilweise im Homeoffice zu arbeiten
+- Flache Hierarchien
+- Betriebliche Altersvorsorge
+
+## Bewirb Dich jetzt!
+
+Wir freuen uns über Deine Unterlagen mit Gehaltsvorstellung und Startdatum über unser Karriereportal. Klicke auf „Jetzt bewerben“ und lade Deine Unterlagen im Bewerbungsformular hoch.
+
+**Elbsoft GmbH**
+02625 Ostwalde

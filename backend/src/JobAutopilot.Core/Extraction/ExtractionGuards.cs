@@ -20,7 +20,7 @@ namespace JobAutopilot.Core.Extraction;
 /// <item>a summary sentence with „zwingend", „erforderlich", „Pflicht" … is dropped when the posting never says so;</item>
 /// <item>alternatives the text joins become one entry (<see cref="ExtractionAlternatives"/>, 08a);</item>
 /// <item>a German level stays only when the text mentions the language at all — a German posting alone asks for no
-/// level (07c, MCA GROUP got „C1" from nothing).</item>
+/// level (07c, Vektor Engineering Group got „C1" from nothing).</item>
 /// </list>
 /// </summary>
 public static partial class ExtractionGuards

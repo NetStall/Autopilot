@@ -279,7 +279,7 @@ describe('hasActiveFilters', () => {
 
   it.each<Partial<VacancyFilters>>([
     { q: 'x' },
-    { location: 'Passau' },
+    { location: 'Auheim' },
     { employerTypes: ['Direct'] },
     { status: 'seen' },
     { remote: 'full' },

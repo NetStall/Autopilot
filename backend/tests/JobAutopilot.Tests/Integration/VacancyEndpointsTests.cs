@@ -65,7 +65,7 @@ public class VacancyEndpointsTests(PostgresFixture postgres) : IntegrationTestBa
         var request = new CreateVacancyRequest
         {
             Title = "Senior Full Stack Engineer (.NET / Vue)",
-            Company = "Boardwise",
+            Company = "Tafelrunde",
             Location = "Remote (Deutschland)",
             Url = "https://www.linkedin.com/jobs/view/1",
             Description = "Wir entwickeln mit C#, .NET und Vue.js.\r\n100 % remote.",
@@ -86,7 +86,7 @@ public class VacancyEndpointsTests(PostgresFixture postgres) : IntegrationTestBa
     public async Task A_pasted_description_is_stored_as_manual_and_scored()
     {
         var created = await (await Client.PostAsJsonAsync(
-            "/api/vacancies", new CreateVacancyRequest { Title = "Softwareentwickler (m/w/d)", Company = "TGW", EmployerType = EmployerType.Direct }, JsonOptions, CancellationToken))
+            "/api/vacancies", new CreateVacancyRequest { Title = "Softwareentwickler (m/w/d)", Company = "Förderwerk", EmployerType = EmployerType.Direct }, JsonOptions, CancellationToken))
             .Content.ReadFromJsonAsync<VacancyDto>(JsonOptions, CancellationToken);
 
         var response = await Client.PutAsJsonAsync(

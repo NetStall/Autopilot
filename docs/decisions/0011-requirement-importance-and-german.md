@@ -4,8 +4,8 @@ Status: accepted (2026-10-20, step 05c)
 
 ## Context
 
-A real posting showed three weaknesses of the fit check. „Senior C# / .NET Developer – Cloud & AWS" (MEDIFOX DAN /
-ResMed, Himalayas) ranked **59**, although it clearly asks for more than I bring:
+A real posting showed three weaknesses of the fit check. „Senior C# / .NET Developer – Cloud & AWS" (Pulsar Care /
+Pulsar Care, Himalayas) ranked **59**, although it clearly asks for more than I bring:
 
 - **False matches.** It got „Vitest ✓" and „GitHub Actions ✓" because my profile lists „Unit Tests" and „CI/CD" as
   aliases, and the posting uses those words.
@@ -54,8 +54,8 @@ ResMed, Himalayas) ranked **59**, although it clearly asks for more than I bring
 
   | Posting | Rank before | Rank after |
   |---|---|---|
-  | MEDIFOX | 59 | 36 |
-  | AraCom .NET | 87 | 87 |
+  | PULSAR | 59 | 36 |
+  | Brückenwerk .NET | 87 | 87 |
   | Next.js junior | 16 | 7 |
 
 - Optional gaps now cost 4 points instead of 0. Alternatives to covered skills still cost nothing.

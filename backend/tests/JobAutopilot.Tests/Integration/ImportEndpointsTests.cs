@@ -35,7 +35,7 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
     public async Task First_import_adds_and_second_import_updates_only_what_changed()
     {
         _source.Returns(".NET Entwickler", Candidate("10000-1-S"), Candidate("10000-2-S"));
-        const string search = """{ "keyword": ".NET Entwickler", "location": "Deggendorf", "radiusKm": 50, "publishedWithinDays": 14 }""";
+        const string search = """{ "keyword": ".NET Entwickler", "location": "Talstadt", "radiusKm": 50, "publishedWithinDays": 14 }""";
 
         var first = await RunImportAsync(search);
         await MarkAllSeenAsync();
@@ -75,7 +75,7 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
         run.Searches.Where(s => s.Source == VacancySource.Himalayas).Should().OnlyContain(s => s.Error != null);
         _source.Searches[0].Should().Be(new VacancySearch
         {
-            Name = "region-softwareentwickler", Keyword = "Softwareentwickler", Location = "Deggendorf", RadiusKm = 70,
+            Name = "region-softwareentwickler", Keyword = "Softwareentwickler", Location = "Talstadt", RadiusKm = 70,
         });
     }
 
@@ -114,8 +114,8 @@ public class ImportEndpointsTests(PostgresFixture postgres) : IntegrationTestBas
 
     [Theory]
     [InlineData("""{ "keyword": "" }""", "Keyword")]
-    [InlineData("""{ "keyword": "Dev", "location": "Passau", "radiusKm": 201 }""", "RadiusKm")]
-    [InlineData("""{ "keyword": "Dev", "location": "Passau", "radiusKm": -1 }""", "RadiusKm")]
+    [InlineData("""{ "keyword": "Dev", "location": "Auheim", "radiusKm": 201 }""", "RadiusKm")]
+    [InlineData("""{ "keyword": "Dev", "location": "Auheim", "radiusKm": -1 }""", "RadiusKm")]
     [InlineData("""{ "keyword": "Dev", "publishedWithinDays": 101 }""", "PublishedWithinDays")]
     public async Task Invalid_search_returns_validation_problem(string body, string expectedField)
     {

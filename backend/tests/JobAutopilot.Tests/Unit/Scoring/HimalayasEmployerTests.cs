@@ -20,7 +20,7 @@ public class HimalayasEmployerTests
     [Fact]
     public void A_himalayas_job_without_agency_signals_is_a_direct_employer()
     {
-        var vacancy = Himalayas("ResMed", "Du entwickelst Backend Services mit C#.");
+        var vacancy = Himalayas("Pulsar Care", "Du entwickelst Backend Services mit C#.");
 
         ShippedConfig.Enricher().Apply(vacancy);
 

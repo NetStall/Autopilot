@@ -1,0 +1,6 @@
+title: Full Stack Developer C# / Vue.js - Fokus Backend, Lindenau
+company: Förderwerk Logistics
+location: 93049 Lindenau
+source: Arbeitsagentur
+remoteHint: Unknown
+---

@@ -6,7 +6,7 @@ using JobAutopilot.Tests.Unit.Scoring;
 
 namespace JobAutopilot.Tests.Unit.Llm;
 
-/// <summary>fitscore.v3 (08c): the model gets the rules' match and may not undo it (DPS case).</summary>
+/// <summary>fitscore.v3 (08c): the model gets the rules' match and may not undo it (Donau case).</summary>
 public class FitScoreMatchTests
 {
     private static readonly FitResult Fit = new(

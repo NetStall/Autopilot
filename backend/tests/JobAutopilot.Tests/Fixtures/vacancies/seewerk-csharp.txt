@@ -1,0 +1,45 @@
+title: Softwareentwickler für Tools und Anwendungen / C# (m/w/d)
+company: Seewerk Prüftechnik GmbH
+location: 88069 Seeweiler
+source: Arbeitsagentur
+remoteHint: FullRemote
+---
+Seewerk Prüftechnik entwickelt Sensoren für die Prozessindustrie. Für unser Softwareteam suchen wir Verstärkung bei den internen Werkzeugen rund um die Sensor-Software.
+
+Softwareentwickler für Tools und Anwendungen / C# (m/w/d)
+
+Die Aufgabe::
+
+- Spezifikation, Design und Programmierung interner Software-Tools für die Codegenerierung
+- Unterstützung bei Funktions- und Integrationstests der Sensor-Software
+- Automatisierung von Softwareprüfungen
+- Software-Architekturen für Tools mit IO-Link Schnittstelle und Bedienoberflächen
+- Verbesserung von Qualitätsstandards und Methoden, auch mit KI-basierten Werkzeugen
+Das Profil::
+
+Sie legen Wert auf...
+... strukturierte Softwareentwicklung nach Qualitätsstandards
+... einen Entwicklungsprozess nach dem V-Modell mit ALM-Tools.
+
+Zudem bringen Sie mit:
+
+- Abgeschlossenes technisches Studium im Bereich Informatik oder eine vergleichbare Ausbildung
+- Mehrjährige Berufserfahrung in der Softwareentwicklung
+- Sehr gute Programmierkenntnisse in C#
+- Erfahrung mit Python, MS Visual Studio, GitLab und Subversion (SVN) wünschenswert
+- Idealerweise Erfahrung mit KI-unterstützter Softwareentwicklung
+- Sehr gute Deutschkenntnisse (Sprachniveau C1 oder vergleichbar) und gute Englischkenntnisse.
+
+Wir bieten::
+
+- Gleitzeit
+- anteilig Homeoffice
+- 30 Tage Urlaub
+- unbefristete Festanstellung
+- betriebliche Altersvorsorge
+- Kantine
+
+Seewerk Prüftechnik GmbH
+Frau Carla Beispiel
+88069 Seeweiler
+c.beispiel@seewerk.example

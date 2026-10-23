@@ -34,7 +34,7 @@ public class SearchProfileApiTests(PostgresFixture postgres) : IntegrationTestBa
 
         dto.Version.Should().Be(1);
         dto.Profile.SearchTerms.Should().Contain(t => t.Text == "Softwareentwickler");
-        dto.Profile.Places.Should().ContainSingle(p => p.City == "Deggendorf" && p.RadiusKm == 70);
+        dto.Profile.Places.Should().ContainSingle(p => p.City == "Talstadt" && p.RadiusKm == 70);
         dto.Searches.Should().Contain(s => s.Name == "region-softwareentwickler");
         (await HistoryAsync()).Should().ContainSingle().Which.Summary.Should().StartWith("Angelegt");
     }
@@ -96,7 +96,7 @@ public class SearchProfileApiTests(PostgresFixture postgres) : IntegrationTestBa
     public async Task Preview_scores_without_saving_anything()
     {
         await SeedAsync(
-            Scored(Make(title: "Softwareentwickler C# (m/w/d)", location: "94469 Deggendorf"), 80),
+            Scored(Make(title: "Softwareentwickler C# (m/w/d)", location: "94469 Talstadt"), 80),
             Scored(Make(title: "Java Developer (m/w/d)"), 10));
         var dto = await GetAsync();
         dto.Profile.MinScore = 0;

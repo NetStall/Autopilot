@@ -11,7 +11,7 @@ import {
 
 const profile: SearchProfile = {
   searchTerms: [{ text: '.NET Entwickler', scope: 'Both' }],
-  places: [{ city: 'Deggendorf', radiusKm: 50 }],
+  places: [{ city: 'Talstadt', radiusKm: 50 }],
   additionalPlaces: ['Plattling'],
   remoteGermany: true,
   remotePreference: 'AtLeastHybrid',
@@ -46,7 +46,7 @@ describe('parseTags', () => {
   })
 
   it('drops case-insensitive duplicates, also of existing tags', () => {
-    expect(parseTags('vue, Vue, Straubing', ['VUE'])).toEqual(['Straubing'])
+    expect(parseTags('vue, Vue, Brunnfeld', ['VUE'])).toEqual(['Brunnfeld'])
     expect(parseTags('Ärzte, ärzte')).toEqual(['Ärzte'])
   })
 

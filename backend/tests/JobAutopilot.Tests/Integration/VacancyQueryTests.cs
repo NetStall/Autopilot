@@ -47,7 +47,7 @@ public class VacancyQueryTests(PostgresFixture postgres) : IntegrationTestBase(p
     {
         await SeedAsync(
             Make(title: "A", location: "93047 Regensburg"),
-            Make(title: "B", location: "94469 Deggendorf"),
+            Make(title: "B", location: "94469 Talstadt"),
             Make(title: "C", location: null));
 
         var page = await GetAsync("?location=regens");

@@ -53,7 +53,7 @@ async function save() {
         <input id="manual-company" v-model="form.company" class="input" type="text" required maxlength="300">
       </label>
       <label for="manual-location">Ort
-        <input id="manual-location" v-model="form.location" class="input" type="text" maxlength="300" placeholder="z. B. 94469 Deggendorf oder Remote (Deutschland)">
+        <input id="manual-location" v-model="form.location" class="input" type="text" maxlength="300" placeholder="z. B. 94469 Talstadt oder Remote (Deutschland)">
       </label>
       <label for="manual-url">Link zur Anzeige
         <input id="manual-url" v-model="form.url" class="input" type="url" maxlength="2000" placeholder="https://…">

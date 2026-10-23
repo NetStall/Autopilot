@@ -55,7 +55,7 @@ public abstract class DocumentsTestBase(PostgresFixture postgres) : IntegrationT
 
     protected async Task<Core.Vacancies.Vacancy> SeedVacancyAsync(string? description = Description)
     {
-        var vacancy = VacancySeed.Make(title: "Full-Stack-Entwickler (m/w/d)", company: "Beispiel GmbH", location: "94469 Deggendorf");
+        var vacancy = VacancySeed.Make(title: "Full-Stack-Entwickler (m/w/d)", company: "Beispiel GmbH", location: "94469 Talstadt");
         vacancy.Description = description;
         vacancy.DuplicateKey = Core.Vacancies.DuplicateKeys.For(vacancy.Company, vacancy.Title);
         await using var db = Postgres.CreateDbContext();

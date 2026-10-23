@@ -4,13 +4,13 @@ Status: accepted (2026-10-20, step 05d)
 
 ## Context
 
-„Full-Stack-Entwickler – C#/.NET & Blazor" (Ing.-Büro Schmidt, Schmallenberg, Homeoffice bis zu 40 %) ranked
+„Full-Stack-Entwickler – C#/.NET & Blazor" (Ing.-Büro Falk, Bergstetten, Homeoffice bis zu 40 %) ranked
 **81** with relevance 100:
 
 - „Blazor im Titel ✓": Blazor is a Suchprofil keyword, but not a skill of mine.
 - DevExpress (Pflicht), XPO, SignalR and gRPC produced no gap, because only profile skills and a dozen configured
   requirements were known.
-- Schmallenberg is out of reach from Deggendorf with 40 % home office, yet cost only the normal region penalty (15).
+- Bergstetten is out of reach from Talstadt with 40 % home office, yet cost only the normal region penalty (15).
 - Many small basics (HTML/CSS, Git, Scrum, Code Reviews, REST, Docker) added up.
 
 ## Decision
@@ -47,21 +47,21 @@ Real profile and saved Suchprofil:
 
 | Posting | Rank before | Rank after |
 |---|---|---|
-| Schmidt | 81 | 26 |
-| Vidispine | 42 | 11 |
-| MEDIFOX | 36 | 35 |
-| AraCom .NET | 87 | 87 |
-| TGW | 88 | 88 |
-| Meierhofer | 88 | 88 |
-| ifm prover | 35 | 15 |
+| Falk | 81 | 26 |
+| Bildfluss | 42 | 11 |
+| PULSAR | 36 | 35 |
+| Brückenwerk .NET | 87 | 87 |
+| Förderwerk | 88 | 88 |
+| Lindenhof | 88 | 88 |
+| Seewerk prover | 35 | 15 |
 | Next.js | 7 | 0 |
 
-- ifm prover („anteilig Homeoffice", Tettnang) is now not reachable and hidden by default; its regression range
+- Seewerk prover („anteilig Homeoffice", Seeweiler) is now not reachable and hidden by default; its regression range
   moved to 5–25.
 - **Revised in 06a:**
   - Only on site or a *stated* share of at most 60 % counts as not reachable. An unknown share costs 20 and stays
-    visible, so ifm prover is at 30 and shown again.
+    visible, so Seewerk prover is at 30 and shown again.
   - The share comes from the Arbeitsagentur field `homeofficeprozent` first, then from the text.
-  - Descriptions are fetched most relevant first. TGW and Meierhofer had a description at the source; they were
+  - Descriptions are fetched most relevant first. Förderwerk and Lindenhof had a description at the source; they were
     stuck behind newer vacancies in the queue (300 per run).
 - The catalog is code, not configuration: a change needs a commit and a re-scoring (which runs at start-up).

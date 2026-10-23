@@ -12,23 +12,23 @@ public class RankingRegressionTests
     public static TheoryData<string, int, int> Ranges => new()
     {
         // .NET + „Angular oder Vue.js": my stack, Angular only as an alternative to Vue; Senior → small penalty.
-        { "aracom-dotnet-angular-vue", 80, 95 },
+        { "brueckenwerk-dotnet-angular-vue", 80, 95 },
         // Senior C#/.NET, but AWS is a must-have gap, German B2 („sicher auf Deutsch"), strong seniority signal (05c).
-        { "medifox-senior-aws", 33, 41 },
+        { "pulsar-senior-aws", 33, 41 },
         // C# but C1 German, and hybrid outside my region with an unknown share („anteilig Homeoffice"): visible with
         // „Remote nur nach Absprache" (−25, 07c), not hidden as unreachable (06a).
-        { "ifm-prover-csharp", 15, 38 },
+        { "seewerk-csharp", 15, 38 },
         // C#/.NET in the title, but DevExpress (Pflicht), Blazor, SignalR, gRPC, XPO in the stack, and the source's
-        // field says 40 % home office in Schmallenberg: not reachable (05d).
-        { "schmidt-blazor-devexpress", 0, 35 },
+        // field says 40 % home office in Bergstetten: not reachable (05d).
+        { "falk-blazor-devexpress", 0, 35 },
         // Broadcast/MAM domain, codecs, FFmpeg, MXF, Kubernetes/Helm required; C# only one of three languages (05d).
-        { "vidispine-broadcast", 0, 30 },
+        { "bildfluss-broadcast", 0, 30 },
         // Title only (no description fetched): my stack in my region.
-        { "tgw-fullstack-vue", 80, 95 },
-        { "meierhofer-dotnet-vue", 80, 95 },
+        { "foerderwerk-fullstack-vue", 80, 95 },
+        { "lindenhof-dotnet-vue", 80, 95 },
         // Same company, other main language / framework: must stay at the bottom.
-        { "aracom-java-angular-vue", 0, 10 },
-        { "aracom-go-vue", 0, 10 },
+        { "brueckenwerk-java-angular-vue", 0, 10 },
+        { "brueckenwerk-go-vue", 0, 10 },
         // React/Next.js junior job: nothing of my stack.
         { "nextjs-junior", 0, 15 },
     };
@@ -45,7 +45,7 @@ public class RankingRegressionTests
     [Fact]
     public void Medifox_has_sensible_reasons_and_no_false_matches()
     {
-        var vacancy = RealWorldFixtures.Scored("medifox-senior-aws");
+        var vacancy = RealWorldFixtures.Scored("pulsar-senior-aws");
 
         vacancy.RelevanceReasons.Should().Contain("Fit: Muss-Anforderung, nicht im Profil: AWS (−15)");
         vacancy.RelevanceReasons.Should().Contain(r => r.StartsWith("Fit: Deutsch B2 gefordert („sicher auf Deutsch“)", StringComparison.Ordinal));
@@ -60,7 +60,7 @@ public class RankingRegressionTests
     [Fact]
     public void Schmidt_counts_no_skill_i_do_not_have_and_is_not_reachable()
     {
-        var vacancy = RealWorldFixtures.Scored("schmidt-blazor-devexpress");
+        var vacancy = RealWorldFixtures.Scored("falk-blazor-devexpress");
 
         vacancy.RelevanceReasons.Should().NotContain(r => r.StartsWith("Blazor", StringComparison.Ordinal), "Blazor is not in my profile");
         vacancy.RelevanceReasons.Should().Contain(r => r.StartsWith("Fit: Muss-Anforderung, nicht im Profil: DevExpress", StringComparison.Ordinal));
@@ -73,7 +73,7 @@ public class RankingRegressionTests
     [Fact]
     public void Vidispine_domain_requirements_are_must_have_gaps()
     {
-        var vacancy = RealWorldFixtures.Scored("vidispine-broadcast");
+        var vacancy = RealWorldFixtures.Scored("bildfluss-broadcast");
 
         vacancy.RelevanceReasons.Should().Contain(r => r.StartsWith("Fit: Muss-Anforderung, nicht im Profil:", StringComparison.Ordinal)
             && r.Contains("Broadcast", StringComparison.Ordinal) && r.Contains("FFmpeg", StringComparison.Ordinal) && r.Contains("MXF", StringComparison.Ordinal));
@@ -83,8 +83,8 @@ public class RankingRegressionTests
     [Fact]
     public void Meierhofer_with_the_v2_extraction_ranks_where_my_label_says()
     {
-        var (before, _) = RealWorldFixtures.ScoredWithExtraction("meierhofer-full", "v1");
-        var (after, extraction) = RealWorldFixtures.ScoredWithExtraction("meierhofer-full", "v2");
+        var (before, _) = RealWorldFixtures.ScoredWithExtraction("lindenhof-full", "v1");
+        var (after, extraction) = RealWorldFixtures.ScoredWithExtraction("lindenhof-full", "v2");
 
         after.RankScore.Should().BeGreaterThanOrEqualTo(60, "gold label Passt; reasons: {0}", string.Join(" | ", after.RelevanceReasons));
         after.RankScore.Should().BeGreaterThan(before.RankScore!.Value);
@@ -101,7 +101,7 @@ public class RankingRegressionTests
     {
         // The real qwen3:8b answer (07b) lists „Deutsch (C1)" as a must-have: before 07c that cost −15 as a skill gap on
         // top of the German penalty, and the rank fell from 79 to 58 although my label is „Passt".
-        var (vacancy, _) = RealWorldFixtures.ScoredWithExtraction("meierhofer-full", "v3");
+        var (vacancy, _) = RealWorldFixtures.ScoredWithExtraction("lindenhof-full", "v3");
 
         vacancy.RankScore.Should().BeGreaterThanOrEqualTo(70, "gold label Passt; reasons: {0}", string.Join(" | ", vacancy.RelevanceReasons));
         vacancy.RelevanceReasons.Should().NotContain(r => r.StartsWith("Fit: Muss-Anforderung", StringComparison.Ordinal) && r.Contains("Deutsch", StringComparison.Ordinal));
@@ -112,7 +112,7 @@ public class RankingRegressionTests
     public void Mca_gets_no_german_level_the_posting_never_mentions()
     {
         // The real v3 answer says „C1", but the posting has no word about German: no penalty for it (07c).
-        var (vacancy, extraction) = RealWorldFixtures.ScoredWithExtraction("mca-group-dotnet", "v3");
+        var (vacancy, extraction) = RealWorldFixtures.ScoredWithExtraction("vektor-dotnet", "v3");
 
         extraction.GermanLevel.Should().BeNull();
         vacancy.RelevanceReasons.Should().NotContain(r => r.Contains("Deutsch", StringComparison.Ordinal), "reasons: {0}", string.Join(" | ", vacancy.RelevanceReasons));
@@ -121,8 +121,8 @@ public class RankingRegressionTests
     [Fact]
     public void Apaleo_states_five_years_and_ranks_below_the_rules()
     {
-        var rules = RealWorldFixtures.Scored("apaleo-senior-dotnet");
-        var (after, extraction) = RealWorldFixtures.ScoredWithExtraction("apaleo-senior-dotnet", "v2");
+        var rules = RealWorldFixtures.Scored("hotelkern-senior-dotnet");
+        var (after, extraction) = RealWorldFixtures.ScoredWithExtraction("hotelkern-senior-dotnet", "v2");
 
         extraction.MinYears.Should().Be(5);
         extraction.MustHave.Should().Contain("Kafka");
@@ -135,8 +135,8 @@ public class RankingRegressionTests
     [Fact]
     public void A_partial_text_cue_without_a_share_is_remote_by_arrangement_not_hidden()
     {
-        // 07c: my labels mean „I would apply" — Dimmel („teilweise im Homeoffice", Bautzen) stays visible with a penalty.
-        var vacancy = RealWorldFixtures.Scored("dimmel-csharp-angular");
+        // 07c: my labels mean „I would apply" — Elbsoft („teilweise im Homeoffice", Ostwalde) stays visible with a penalty.
+        var vacancy = RealWorldFixtures.Scored("elbsoft-csharp-angular");
 
         vacancy.Unreachable.Should().BeFalse("no share is stated; reasons: {0}", string.Join(" | ", vacancy.RelevanceReasons));
         vacancy.RemoteNote.Should().Be("Remote nur nach Absprache – Homeoffice: teilweise (laut Text)");
@@ -146,7 +146,7 @@ public class RankingRegressionTests
     [Fact]
     public void A_cue_that_binds_the_job_to_the_office_still_hides_it()
     {
-        var vacancy = RealWorldFixtures.Scored("monari-dotnet-backend");
+        var vacancy = RealWorldFixtures.Scored("grenzland-dotnet-backend");
 
         vacancy.Unreachable.Should().BeTrue("„hybrides Arbeiten im Headquarter“; reasons: {0}", string.Join(" | ", vacancy.RelevanceReasons));
         vacancy.RelevanceReasons.Should().Contain(r => r.Contains("Präsenz im Büro („hybrides Arbeiten im“)", StringComparison.Ordinal));
@@ -155,7 +155,7 @@ public class RankingRegressionTests
     [Fact]
     public void Mca_with_only_a_home_office_flag_is_visible_by_arrangement()
     {
-        var (vacancy, _) = RealWorldFixtures.ScoredWithExtraction("mca-group-dotnet", "v3");
+        var (vacancy, _) = RealWorldFixtures.ScoredWithExtraction("vektor-dotnet", "v3");
 
         vacancy.Unreachable.Should().BeFalse();
         vacancy.RemoteNote.Should().StartWith("Remote nur nach Absprache");
@@ -164,13 +164,13 @@ public class RankingRegressionTests
     [Fact]
     public void The_field_share_and_an_unknown_share_keep_their_rules()
     {
-        var schmidt = RealWorldFixtures.Scored("schmidt-blazor-devexpress");
-        var ifm = RealWorldFixtures.Scored("ifm-prover-csharp");
+        var falk = RealWorldFixtures.Scored("falk-blazor-devexpress");
+        var Seewerk = RealWorldFixtures.Scored("seewerk-csharp");
 
-        schmidt.RemoteNote.Should().Be("Homeoffice: bis 40 % (Feld)");
-        schmidt.Unreachable.Should().BeTrue();
-        ifm.Unreachable.Should().BeFalse("„anteilig Homeoffice“ names no share: visible with −25");
-        ifm.RelevanceReasons.Should().Contain(r => r.Contains("Remote nur nach Absprache (kein Homeoffice-Anteil genannt) (−25)", StringComparison.Ordinal));
+        falk.RemoteNote.Should().Be("Homeoffice: bis 40 % (Feld)");
+        falk.Unreachable.Should().BeTrue();
+        Seewerk.Unreachable.Should().BeFalse("„anteilig Homeoffice“ names no share: visible with −25");
+        Seewerk.RelevanceReasons.Should().Contain(r => r.Contains("Remote nur nach Absprache (kein Homeoffice-Anteil genannt) (−25)", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public class RankingRegressionTests
     [Fact]
     public void Medifox_requirements_are_classified_by_section()
     {
-        var (vacancy, _) = RealWorldFixtures.Load("medifox-senior-aws");
+        var (vacancy, _) = RealWorldFixtures.Load("pulsar-senior-aws");
         var fit = new Core.Fit.FitAnalyzer(RealWorldFixtures.Fit).Analyze(
             RealWorldFixtures.Profile,
             new Core.Fit.FitInput(vacancy.Title, vacancy.Description, EmployerType.Direct, vacancy.Location, RemoteLevel.FullRemote),

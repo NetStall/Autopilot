@@ -1,5 +1,5 @@
 <!-- „KI-Bewertung", version 2 (step 07c): like v1, plus a fixed check of location and employer type before the score
-     (v1 gave MCA GROUP — a service provider in München — 75 without a blocker) and no blocker for a plus. The caps
+     (v1 gave Vektor Engineering Group — a service provider in München — 75 without a blocker) and no blocker for a plus. The caps
      are applied again in code (AiFitScoreGuards): qwen3:8b names a blocker but often keeps the score.
      Sections: ## system, ## score, ## retry. Changing the text means fitscore.v3.md (cache key includes the version). -->
 

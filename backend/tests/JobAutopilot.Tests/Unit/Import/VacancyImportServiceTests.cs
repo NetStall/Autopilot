@@ -10,7 +10,7 @@ public class VacancyImportServiceTests
 {
     private static readonly VacancySearch DotNet = new()
     {
-        Name = "region-dotnet", Keyword = ".NET Entwickler", Location = "Deggendorf", RadiusKm = 50, PublishedWithinDays = 14,
+        Name = "region-dotnet", Keyword = ".NET Entwickler", Location = "Talstadt", RadiusKm = 50, PublishedWithinDays = 14,
     };
     private static readonly VacancySearch CSharp = new()
     {
@@ -85,7 +85,7 @@ public class VacancyImportServiceTests
         result.Should().BeEquivalentTo(new { Fetched = 2, Added = 1, Updated = 1, Unchanged = 0 });
         existing.Title.Should().Be("Neuer Titel");
         existing.Company.Should().Be("Beispiel GmbH");
-        existing.Location.Should().Be("94469 Deggendorf");
+        existing.Location.Should().Be("94469 Talstadt");
         existing.Url.Should().Be("https://example.de/jobs/A");
         existing.PublishedAt.Should().Be(Candidate("A").PublishedAt);
         existing.IsSeen.Should().BeTrue("the import must never reset what the user has seen");

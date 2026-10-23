@@ -4,7 +4,7 @@
   "personal": {
     "name": "Robin Regression",
     "email": "robin@example.org",
-    "city": "Deggendorf",
+    "city": "Talstadt",
     "website": "https://example.org"
   },
   "summary": {
@@ -64,7 +64,7 @@
     { "name": "Englisch", "level": "B2" }
   ],
   "preferences": {
-    "regions": [ "Deggendorf", "Straubing", "Passau", "Regensburg", "Landshut" ],
+    "regions": [ "Talstadt", "Brunnfeld", "Auheim", "Lindenau", "Rabenhain" ],
     "remote": "Hybrid"
   }
 }

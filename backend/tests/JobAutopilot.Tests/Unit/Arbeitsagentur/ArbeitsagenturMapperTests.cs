@@ -11,7 +11,7 @@ public class ArbeitsagenturMapperTests
         var item = Item(
             referenznummer: "10000-0000000001-S",
             plz: "94469",
-            ort: "Deggendorf",
+            ort: "Talstadt",
             von: "2026-10-09",
             externeUrl: "https://karriere.example.de/jobs/42?cp=BA");
 
@@ -21,7 +21,7 @@ public class ArbeitsagenturMapperTests
         candidate!.ExternalId.Should().Be("10000-0000000001-S");
         candidate.Title.Should().Be("Softwareentwickler C# (m/w/d)");
         candidate.Company.Should().Be("Beispiel Software GmbH");
-        candidate.Location.Should().Be("94469 Deggendorf");
+        candidate.Location.Should().Be("94469 Talstadt");
         candidate.Url.Should().Be("https://karriere.example.de/jobs/42?cp=BA");
         candidate.PublishedAt.Should().Be(new DateTimeOffset(2026, 10, 9, 0, 0, 0, TimeSpan.FromHours(2)));
     }
@@ -29,7 +29,7 @@ public class ArbeitsagenturMapperTests
     [Theory]
     [InlineData(null, "Regensburg", "Regensburg")]
     [InlineData("93047", null, "93047")]
-    [InlineData("  ", " Passau ", "Passau")]
+    [InlineData("  ", " Auheim ", "Auheim")]
     [InlineData(null, null, null)]
     [InlineData("", "", null)]
     public void Location_is_plz_and_ort_or_null(string? plz, string? ort, string? expected)
@@ -135,7 +135,7 @@ public class ArbeitsagenturMapperTests
     private static JobSearchItem Item(
         string? referenznummer = "10000-0000000001-S",
         string? plz = "94469",
-        string? ort = "Deggendorf",
+        string? ort = "Talstadt",
         string? von = "2026-10-09",
         string? externeUrl = null) =>
         new(

@@ -4,7 +4,7 @@ namespace JobAutopilot.Core.Applications;
 
 /// <summary>
 /// Decides whether a vacancy is one I already applied to: linked directly, the same duplicate key, or a similar
-/// company (one name is the start of the other: „TGW" / „TGW Logistics GmbH") with a similar title (most words in
+/// company (one name is the start of the other: „Förderwerk" / „Förderwerk Logistics GmbH") with a similar title (most words in
 /// common). Used for the „Beworben" badge — so I never apply twice by accident — and to link imported applications.
 /// </summary>
 public static class ApplicationMatcher

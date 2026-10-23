@@ -18,7 +18,7 @@ public class SearchProfileRulesTests
             new SearchTerm { Text = "C# .NET", Scope = SearchTermScope.Region },
             new SearchTerm { Text = "C#", Scope = SearchTermScope.Remote },
         },
-        Places = { new SearchPlace { City = "Deggendorf", RadiusKm = 70 } },
+        Places = { new SearchPlace { City = "Talstadt", RadiusKm = 70 } },
         RemoteGermany = true,
         MustHave = { new StackKeyword { Name = "C#", Weight = 25, Core = true } },
         TitleExclusions = { "Ausbildung" },
@@ -32,7 +32,7 @@ public class SearchProfileRulesTests
         { p => p.SearchTerms.Clear(), "Suchbegriffe: mindestens ein Suchbegriff ist nötig." },
         { p => p.SearchTerms.Add(new SearchTerm { Text = "softwareentwickler" }), "Suchbegriffe: „Softwareentwickler\" ist doppelt." },
         { p => p.SearchTerms.Add(new SearchTerm { Text = " " }), "Suchbegriffe: leere Einträge entfernen." },
-        { p => p.Places.Add(new SearchPlace { City = "deggendorf", RadiusKm = 10 }), "Orte: „Deggendorf\" ist doppelt." },
+        { p => p.Places.Add(new SearchPlace { City = "talstadt", RadiusKm = 10 }), "Orte: „Talstadt\" ist doppelt." },
         { p => p.Places[0].RadiusKm = 500, "Orte: Umkreis zwischen 0 und 200 km." },
         { p => { p.Places.Clear(); p.RemoteGermany = false; }, "Orte: mindestens ein Ort oder „Remote deutschlandweit“ ist nötig." },
         { p => p.Sources = new SearchSources { Arbeitsagentur = false, Himalayas = false }, "Quellen: mindestens eine Quelle einschalten." },
@@ -75,7 +75,7 @@ public class SearchProfileRulesTests
             "remote-softwareentwickler", "himalayas-softwareentwickler", "remote-csharp", "himalayas-csharp");
         searches[0].Should().BeEquivalentTo(new VacancySearch
         {
-            Name = "region-softwareentwickler", Keyword = "Softwareentwickler", Location = "Deggendorf", RadiusKm = 70,
+            Name = "region-softwareentwickler", Keyword = "Softwareentwickler", Location = "Talstadt", RadiusKm = 70,
         });
         searches.Single(s => s.Name == "himalayas-csharp").Should().BeEquivalentTo(new { Source = VacancySource.Himalayas, RemoteOnly = true, Location = (string?)null });
     }
@@ -89,7 +89,7 @@ public class SearchProfileRulesTests
 
         var names = SearchProfileRules.GenerateSearches(profile).Select(s => s.Name).ToList();
 
-        names.Should().Contain("region-deggendorf-softwareentwickler").And.Contain("region-regensburg-csharp-dotnet");
+        names.Should().Contain("region-talstadt-softwareentwickler").And.Contain("region-regensburg-csharp-dotnet");
         names.Should().NotContain(n => n.StartsWith("himalayas-", StringComparison.Ordinal));
     }
 
@@ -133,14 +133,14 @@ public class SearchProfileRulesTests
     {
         var searches = new[]
         {
-            new VacancySearch { Name = "region-softwareentwickler", Keyword = "Softwareentwickler", Location = "Deggendorf", RadiusKm = 70 },
-            new VacancySearch { Name = "region-csharp", Keyword = "C# .NET", Location = "Deggendorf", RadiusKm = 70 },
+            new VacancySearch { Name = "region-softwareentwickler", Keyword = "Softwareentwickler", Location = "Talstadt", RadiusKm = 70 },
+            new VacancySearch { Name = "region-csharp", Keyword = "C# .NET", Location = "Talstadt", RadiusKm = 70 },
             new VacancySearch { Name = "remote-softwareentwickler", Keyword = "Softwareentwickler", RemoteOnly = true },
             new VacancySearch { Name = "himalayas-vue", Keyword = "Vue", RemoteOnly = true, Source = VacancySource.Himalayas },
         };
         var legacy = new Preferences
         {
-            SalaryMin = 52000, SalaryMax = 60000, Regions = { "Deggendorf", "Straubing", "Remote" }, Remote = "Hybrid",
+            SalaryMin = 52000, SalaryMax = 60000, Regions = { "Talstadt", "Brunnfeld", "Remote" }, Remote = "Hybrid",
             EarliestStart = "2026-11-01", AvoidEmployerTypes = { EmployerType.Temporary },
         };
 
@@ -149,12 +149,12 @@ public class SearchProfileRulesTests
 
         profile.SearchTerms.Select(t => (t.Text, t.Scope)).Should().Equal(
             ("Softwareentwickler", SearchTermScope.Both), ("C# .NET", SearchTermScope.Region), ("Vue", SearchTermScope.Remote));
-        profile.Places.Should().ContainSingle().Which.Should().BeEquivalentTo(new { City = "Deggendorf", RadiusKm = 70 });
+        profile.Places.Should().ContainSingle().Which.Should().BeEquivalentTo(new { City = "Talstadt", RadiusKm = 70 });
         profile.Sources.Should().BeEquivalentTo(new { Arbeitsagentur = true, Himalayas = true });
         profile.MustHave.Select(k => k.Name).Should().Contain(["C#", ".NET", "Vue"]);
         profile.NiceToHave.Select(k => k.Name).Should().Contain("Softwareentwicklung");
         profile.Exclude.Select(k => k.Name).Should().Contain("Java");
-        profile.AdditionalPlaces.Should().Equal("Straubing");
+        profile.AdditionalPlaces.Should().Equal("Brunnfeld");
         profile.Should().BeEquivalentTo(new
         {
             SalaryMin = 52000, SalaryMax = 60000, EarliestStart = "2026-11-01",

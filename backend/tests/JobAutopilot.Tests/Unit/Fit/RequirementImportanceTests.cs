@@ -170,7 +170,7 @@ public class RequirementImportanceTests
     [Fact]
     public void A_fully_remote_job_based_elsewhere_gets_no_region_penalty()
     {
-        var settings = new FitSettings(new SearchPenalties(), ["Deggendorf", "Regensburg"], RemoteGermany: true, RemotePreference.Any, []);
+        var settings = new FitSettings(new SearchPenalties(), ["Talstadt", "Regensburg"], RemoteGermany: true, RemotePreference.Any, []);
 
         var remote = Analyze("Developer", "C#. 100 % remote.", RemoteLevel.FullRemote, "20095 Hamburg", settings);
         var hybrid = Analyze("Developer", "C#. 4 Tage Homeoffice.", RemoteLevel.Hybrid, "20095 Hamburg", settings);

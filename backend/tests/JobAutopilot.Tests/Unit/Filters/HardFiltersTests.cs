@@ -64,11 +64,11 @@ public class HardFiltersTests
     }
 
     [Theory]
-    [InlineData("meierhofer-full")]
-    [InlineData("mca-group-dotnet")]
-    [InlineData("dimmel-csharp-angular")]
-    [InlineData("tgw-fullstack-vue")]
-    [InlineData("aracom-dotnet-angular-vue")]
+    [InlineData("lindenhof-full")]
+    [InlineData("vektor-dotnet")]
+    [InlineData("elbsoft-csharp-angular")]
+    [InlineData("foerderwerk-fullstack-vue")]
+    [InlineData("brueckenwerk-dotnet-angular-vue")]
     public void None_of_my_passt_vacancies_is_filtered(string fixture)
     {
         // My gold labels „Passt" (08b safety rule); the list exempts them anyway — the rules must not catch them either.

@@ -8,7 +8,7 @@ namespace JobAutopilot.Core.Extraction;
 /// <summary>
 /// The rules' match result as text for the „KI-Bewertung" (fitscore.v3, 08c): fulfilled / partial / gaps, each marked
 /// must or plus, alternatives, German, reachability and employer type — so the model does not judge the skills again
-/// from the raw posting (DPS: „keine Erfahrung mit SQL Server" although I have SQL and MySQL).
+/// from the raw posting (Donau: „keine Erfahrung mit SQL Server" although I have SQL and MySQL).
 /// </summary>
 public static partial class FitScoreMatch
 {

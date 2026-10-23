@@ -1,0 +1,55 @@
+title: Senior Software Engineer (.NET) (f/m/d)
+company: Hotelkern
+location: Remote (Deutschland)
+source: Himalayas
+remoteHint: FullRemote
+---
+Hotelkern builds an API-first property management platform for independent hotels.
+
+What You'll Be Up To:
+
+- Implementing core services for the platform in .NET 10 that run in Docker containers;
+
+- Developing features from the database to the APIs;
+
+- Keeping the platform scalable and the codebase maintainable;
+
+- Monitoring the services in production;
+
+- Covering your code with unit and e2e tests;
+
+- Working in an open, agile team.
+
+What You'll Bring to the Team:
+
+- A degree in Computer Science or a related field, or equivalent practical experience;
+
+- At least 5 years of experience in software engineering;
+
+- Proficient in .NET backend development, including technologies such as Kafka (or equivalents), AWS, Docker, ECS/Kubernetes, and PostgreSQL.
+
+- Experience using AI-assisted coding tools (e.g., GitHub Copilot, Cursor AI, Claude Code);
+
+- Curiosity about new AI technologies;
+
+-
+Nice to have: Experience applying Kafka for real-time processing, AWS/Docker for DevOps workflows, or PostgreSQL optimizations.
+
+- You know how to break down large epics into smaller issues;
+
+- You worked with microservices and asynchronous message-based communication;
+
+- You communicate fluently in English; German is welcome;
+
+What We Offer
+
+-
+Flexible & Remote Work Options: You can work from home, the office or in a hybrid setup.
+
+-
+30 days of vacation.
+
+-
+A learning budget.
+
+Originally posted on Himalayas

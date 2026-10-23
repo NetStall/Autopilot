@@ -17,7 +17,7 @@ public sealed class ArbeitsagenturClientTests : IDisposable
 {
     private static readonly VacancySearch Search = new()
     {
-        Name = "region-dotnet", Keyword = ".NET Entwickler", Location = "Deggendorf", RadiusKm = 50, PublishedWithinDays = 14,
+        Name = "region-dotnet", Keyword = ".NET Entwickler", Location = "Talstadt", RadiusKm = 50, PublishedWithinDays = 14,
     };
 
     private readonly FakeJobsucheHandler _handler = new();
@@ -33,7 +33,7 @@ public sealed class ArbeitsagenturClientTests : IDisposable
         var request = _handler.Requests.Should().ContainSingle().Subject;
         request.Uri.Should().Be(
             "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs" +
-            "?was=.NET%20Entwickler&angebotsart=1&wo=Deggendorf&umkreis=50&veroeffentlichtseit=14&page=1&size=2");
+            "?was=.NET%20Entwickler&angebotsart=1&wo=Talstadt&umkreis=50&veroeffentlichtseit=14&page=1&size=2");
         request.Headers["X-API-Key"].Should().Be("jobboerse-jobsuche");
         request.Headers["User-Agent"].Should().StartWith("job-autopilot/");
     }
@@ -150,7 +150,7 @@ public sealed class ArbeitsagenturClientTests : IDisposable
 
         var candidates = await SearchAsync(Search);
 
-        candidates[0].Location.Should().Be("94469 Deggendorf");
+        candidates[0].Location.Should().Be("94469 Talstadt");
         candidates[0].Url.Should().Be("https://www.arbeitsagentur.de/jobsuche/jobdetail/10000-0000000001-S");
         candidates[1].Location.Should().Be("Regensburg");
         candidates[1].Url.Should().Be("https://karriere.example.de/jobs/42?cp=BA");

@@ -1,0 +1,38 @@
+title: Software Engineer Fullstack (.NET / Vue.js) mit Perspektive Software Architect (m/w/d) – Hybrid o…
+company: Lindenhof Health IT
+location: 94032 Auheim
+source: Arbeitsagentur
+remoteHint: Hybrid
+---
+## Dein zukünftiges Team
+
+Bei Lindenhof Health IT baust du in einem kleinen, crossfunktionalen Team an Software für Kliniken und Pflegeeinrichtungen. Saubere Architektur, automatisierte Tests und gemeinsame Code Reviews sind bei uns Alltag. Wir arbeiten in Sprints nach Scrum oder Kanban und entscheiden technische Fragen gemeinsam. Wer möchte, wächst bei uns mit Mentoring und einem klaren Entwicklungspfad in die Rolle eines Software Architects hinein.
+
+## Das erwartet dich bei uns
+
+- Du entwickelst Webanwendungen mit C#/.NET und Vue.js über den ganzen Lebenszyklus
+- Du arbeitest im Frontend, im Backend, an Datenbanken und APIs
+- Du setzt fachlich anspruchsvolle Anforderungen im Healthcare-Bereich um und nutzt dabei Domain-Driven Design, CQRS und Event Sourcing
+- TDD, Unit Tests, Code Reviews und automatisierte Qualitätssicherung gehören für dich dazu
+- Du arbeitest mit Azure DevOps, CI/CD, Docker und Kubernetes und kümmerst dich mit um den Betrieb
+- Mit OpenTelemetry sorgst du für Monitoring und Traceability
+- Mit der Zeit übernimmst du mehr Verantwortung in Architekturfragen
+
+## Das sind deine Stärken & Skills
+
+- Du hast mehrjährige Erfahrung in der Softwareentwicklung mit C#/.NET
+- Du kennst dich mit Vue.js, HTML, CSS sowie JavaScript/TypeScript aus
+- Du hast fundierte Kenntnisse von DDD, CQRS und idealerweise Event Sourcing
+- Du bringst Erfahrung mit SQL Server, REST APIs, CI/CD, Containerisierung sowie Cloud- und DevOps-Praktiken mit
+- Testautomatisierung ist für dich selbstverständlich
+- Erfahrung mit OpenTelemetry ist ein Plus
+- Du nutzt Werkzeuge wie GitHub Copilot oder Claude Code im Alltag
+- Deine Deutschkenntnisse in Wort und Schrift sind sehr gut
+
+## Was wir bieten
+
+- Mobile Arbeit an bis zu 3 Tagen pro Woche
+- Einarbeitung mit Mentoring
+- Ein kollegiales Team
+- Weiterbildungsbudget
+- Zuschuss zum Deutschlandticket

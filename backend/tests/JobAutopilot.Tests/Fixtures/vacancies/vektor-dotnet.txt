@@ -1,0 +1,32 @@
+title: Softwareentwickler (m/w/d) mit in C# und .NET.
+company: Vektor Engineering Group
+location: 80331 München
+source: Arbeitsagentur
+remoteHint: Hybrid
+---
+## Deine Aufgaben:
+
+- Entwicklung und Wartung von Softwarelösungen mit C# und dem .NET-Framework.
+- Mitarbeit von der Analyse über die Implementierung bis zu Test und Dokumentation.
+- Entwurf von Softwarearchitekturen und neuen Modulen.
+- Zusammenarbeit mit UI/UX, Datenbankentwicklung und DevOps.
+- Fehleranalyse und Verbesserung der Codequalität.
+
+## Das bringst du mit:
+
+- Studium der Informatik oder eine vergleichbare Qualifikation.
+- Mehrjährige Berufserfahrung in der Softwareentwicklung, insbesondere in C# und dem .NET-Framework.
+- Fundierte Kenntnisse in .NET Core, .NET Framework und idealerweise Erfahrung mit ASP.NET, WPF oder Xamarin.
+- Erfahrung mit relationalen Datenbanken (z.B. SQL Server) und ORM-Technologien (z.B. Entity Framework).
+- Gute Kenntnisse in agiler Softwareentwicklung (Scrum/Kanban) und Versionskontrolle (z.B. Git).
+
+## Deine Entwicklungsperspektiven
+
+Mit der Zeit kannst du in andere Bereiche wechseln oder intern aufsteigen, auch in unseren Tochtergesellschaften.
+
+## Was wir zu bieten haben
+
+- Abwechslungsreiche Projekte bei renommierten Industrieunternehmen
+- Individuelle Weiterbildung
+- Work-Life-Balance (u.a. Home Office, Events)
+- Betriebliche Altersvorsorge

@@ -346,7 +346,7 @@ onBeforeUnmount(() => {
           <legend>Orte</legend>
           <div v-for="(place, index) in form.places" :key="index" class="sp__row">
             <label :for="`city-${index}`" class="visually-hidden">Ort {{ index + 1 }}</label>
-            <input :id="`city-${index}`" v-model.trim="place.city" class="input" placeholder="z. B. Deggendorf">
+            <input :id="`city-${index}`" v-model.trim="place.city" class="input" placeholder="z. B. Talstadt">
             <label :for="`radius-${index}`" class="sp__inline">Umkreis (km)
               <input :id="`radius-${index}`" v-model.number="place.radiusKm" class="input sp__number" type="number" min="0" max="200" step="5">
             </label>
@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
           id="additional-places"
           v-model="form.additionalPlaces"
           label="Weitere Orte in meiner Region"
-          hint="Zählen für „in meiner Region“, ohne eigene Suche (z. B. Plattling, Straubing)."
+          hint="Zählen für „in meiner Region“, ohne eigene Suche (z. B. Plattling, Brunnfeld)."
         />
 
         <div class="sp__grid">

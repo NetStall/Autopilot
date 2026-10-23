@@ -46,7 +46,7 @@ personal data and postings on the machine. The app must keep working without it.
 
 ## Revision 07a2 — extraction quality
 
-Meierhofer (my label „Passt") fell to rank 45 with `qwen3:8b` + `extraction.v1`:
+Lindenhof (my label „Passt") fell to rank 45 with `qwen3:8b` + `extraction.v1`:
 - almost everything was a must-have, partly in both lists;
 - the company's industry („Healthcare") became a required domain;
 - „Senior, 5 Jahre" was inferred.
@@ -67,14 +67,14 @@ The changes:
 - **Thinking off** for the extraction (`reasoning_effort: none`, `Llm:Extraction:Thinking`).
 - **Himalayas „Remote (…)"** is FullRemote; „hybrid setup" in the perks no longer downgrades it, only „vor Ort" does.
 - Real profile:
-  - Meierhofer 45 → 65;
-  - Apaleo 63 → 29 (5 years stated; Kafka, AWS, Kubernetes required).
+  - Lindenhof 45 → 65;
+  - Hotelkern 63 → 29 (5 years stated; Kafka, AWS, Kubernetes required).
 
 ## Revision 07b — extraction v3
 
 - Home office in days is its own field (`homeOfficeDaysPerWeek`, 20 % per day). A share ≤ 5 next to „Tag(e)" in the
-  text is read as days. A share counts only when the text states one, so the 40 % the model invented for Dimmel
-  and monari no longer appears.
+  text is read as days. A share counts only when the text states one, so the 40 % the model invented for Elbsoft
+  and Grenzland no longer appears.
 - An item after „idealerweise" / „von Vorteil" inside a requirement line is a plus („DDD, CQRS und idealerweise
   Event Sourcing").
 - The summary only paraphrases the text: a sentence with „zwingend", „erforderlich", „Pflicht" … is dropped when the

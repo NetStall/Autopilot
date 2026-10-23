@@ -62,7 +62,7 @@ public class ExtractionQualityTests
         const string text = "Mobile Arbeit an bis zu 3 Tagen pro Woche und Sabbaticals.";
 
         ExtractionGuards.Apply(Base() with { HomeOfficePercent = percent, HomeOfficeDaysPerWeek = days }, text).HomeOfficePercent
-            .Should().Be(expected, "Meierhofer: „bis zu 3 Tage“ is 60 % — the text's own share wins over the model's number");
+            .Should().Be(expected, "Lindenhof: „bis zu 3 Tage“ is 60 % — the text's own share wins over the model's number");
         ExtractionGuards.Apply(Base() with { HomeOfficePercent = 40 }, "Homeoffice nach Absprache.").HomeOfficePercent.Should().BeNull("no share stated");
     }
 
@@ -213,7 +213,7 @@ public class ExtractionQualityTests
     {
         var vacancy = new Vacancy
         {
-            Id = Guid.NewGuid(), Source = VacancySource.Himalayas, ExternalId = "h1", Title = "Senior Software Engineer (.NET)", Company = "Apaleo",
+            Id = Guid.NewGuid(), Source = VacancySource.Himalayas, ExternalId = "h1", Title = "Senior Software Engineer (.NET)", Company = "Hotelkern",
             Location = "Remote (Deutschland)", Url = "https://example.org", Description = text,
         };
 

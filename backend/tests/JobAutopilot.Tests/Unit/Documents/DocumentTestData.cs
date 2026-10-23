@@ -33,7 +33,7 @@ internal static class DocumentTestData
     public static LetterInput Input(string title = Title, string? description = Description, SearchProfile? searchProfile = null)
     {
         var profile = Profile();
-        var vacancy = new LetterVacancy(title, "Beispiel GmbH", "94469 Deggendorf", description, "Arbeitsagentur");
+        var vacancy = new LetterVacancy(title, "Beispiel GmbH", "94469 Talstadt", description, "Arbeitsagentur");
         var fit = new FitAnalyzer(FitOptions).Analyze(profile, title, description, Core.Vacancies.EmployerType.Direct, Today);
         return LetterFactsBuilder.Build(profile, vacancy, fit, searchProfile, Today);
     }

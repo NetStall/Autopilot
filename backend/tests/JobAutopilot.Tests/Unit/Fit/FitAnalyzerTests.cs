@@ -184,14 +184,14 @@ public class FitAnalyzerTests
     [InlineData("24103 Kiel", RemoteLevel.Hybrid, "Text", 25, false)]
     [InlineData("24103 Kiel", RemoteLevel.Unknown, "Text", 20, false)]
     [InlineData("24103 Kiel", RemoteLevel.OnSite, "Text", 35, true)]
-    [InlineData("94469 Deggendorf", RemoteLevel.Hybrid, "Text", 0, false)]
+    [InlineData("94469 Talstadt", RemoteLevel.Hybrid, "Text", 0, false)]
     [InlineData("93049 Regensburg", RemoteLevel.OnSite, "Text", 0, false)]
     [InlineData("24103 Kiel", RemoteLevel.FullRemote, "Text", 0, false)]
     [InlineData(null, RemoteLevel.Hybrid, "Text", 0, false)]
     public void Jobs_outside_my_regions_cost_points_unless_fully_remote_and_are_unreachable_on_site_or_with_little_home_office(
         string? location, RemoteLevel remote, string description, int penalty, bool unreachable)
     {
-        var settings = FitSettings.Neutral with { Places = ["Deggendorf", "Regensburg"], RemoteGermany = true };
+        var settings = FitSettings.Neutral with { Places = ["Talstadt", "Regensburg"], RemoteGermany = true };
 
         var result = _analyzer.Analyze(Profile, new FitInput("Dev", description, EmployerType.Direct, location, remote), Today, settings);
 
@@ -203,13 +203,13 @@ public class FitAnalyzerTests
     [Fact]
     public void The_sources_home_office_field_wins_over_the_text()
     {
-        var settings = FitSettings.Neutral with { Places = ["Deggendorf"], RemoteGermany = true };
+        var settings = FitSettings.Neutral with { Places = ["Talstadt"], RemoteGermany = true };
 
         var result = _analyzer.Analyze(
-            Profile, new FitInput("Dev", "80 % Homeoffice", EmployerType.Direct, "57392 Schmallenberg", RemoteLevel.Hybrid, HomeOfficePercent: 40), Today, settings);
+            Profile, new FitInput("Dev", "80 % Homeoffice", EmployerType.Direct, "57392 Bergstetten", RemoteLevel.Hybrid, HomeOfficePercent: 40), Today, settings);
 
         result.Unreachable.Should().BeTrue();
-        result.Warnings.Should().Contain(w => w.Text == "Praktisch nicht erreichbar: 57392 Schmallenberg, Homeoffice bis 40 %" && w.Penalty == 35);
+        result.Warnings.Should().Contain(w => w.Text == "Praktisch nicht erreichbar: 57392 Bergstetten, Homeoffice bis 40 %" && w.Penalty == 35);
     }
 
     [Theory]

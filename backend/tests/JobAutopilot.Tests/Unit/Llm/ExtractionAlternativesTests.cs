@@ -28,7 +28,7 @@ public class ExtractionAlternativesTests
     {
         // Real qwen3:8b v3 answer (08a): before, „relationale Datenbanken" was a must-have gap and generic phrases
         // („Teamarbeit", „neue Technologien") cost points as a plus — rank 62.
-        var (vacancy, _) = RealWorldFixtures.ScoredWithExtraction("aracom-dotnet-angular-vue", "v3");
+        var (vacancy, _) = RealWorldFixtures.ScoredWithExtraction("brueckenwerk-dotnet-angular-vue", "v3");
         var reasons = string.Join(" | ", vacancy.RelevanceReasons);
 
         // The invented test profile has no Entity Framework, Tailwind or AI skill — those gaps stay (−23).

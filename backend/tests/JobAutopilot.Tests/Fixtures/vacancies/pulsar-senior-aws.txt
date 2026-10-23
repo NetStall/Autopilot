@@ -1,0 +1,65 @@
+title: Senior C# / .NET Developer (m/w/d) – Cloud & AWS
+company: Pulsar Care Software
+location: Remote (Deutschland)
+source: Himalayas
+remoteHint: FullRemote
+---
+Baue mit uns Cloud Services, die Pflegeteams jeden Tag verlässlich nutzen.
+
+Als Senior C# / .NET Developer (m/w/d) – Cloud & AWS verantwortest du Backend Services in der AWS Cloud von der ersten Zeile bis zum Betrieb und arbeitest eng mit Product Owner, Frontend und QA zusammen.
+
+Die Position ist zu 100 % remote und kann vollständig ortsunabhängig in Deutschland ausgeübt werden.
+
+Was du bewirkst
+
+- Entwickelst C#/.NET Backend Services in der AWS Cloud und betreibst sie selbst
+
+- Entwickelst unsere Produkte im agilen Team weiter
+
+- Sorgst mit Monitoring, Logging und Metriken für Stabilität
+
+- Baust CI/CD Pipelines und automatisierte Deployments
+
+- Arbeitest mit PostgreSql und Microsoft SQL
+
+- Sicherst die Qualität mit Unit Tests, Integrationstests und automatisierten Tests
+
+Was du mitbringst
+
+- Verfügst über mehrjährige Erfahrung in der Senior Softwareentwicklung mit C# und .NET
+
+- Hast praktische Erfahrung im Betrieb von Services in AWS Cloud Umgebungen
+
+- Kennst dich mit Skalierbarkeit und Hochverfügbarkeit aus
+
+- Beherrschst CI/CD, Monitoring und Deployment Prozesse sicher
+
+- Arbeitest mit Clean Code, SOLID, TDD und DDD
+
+- Hast ein Informatikstudium oder eine vergleichbare Qualifikation
+
+- Kommunizierst sicher auf Deutsch und Englisch
+
+Ein Plus, aber kein Muss
+
+- Erfahrung mit AWS Services wie ECS, Lambda und CloudWatch
+
+- Docker aus der praktischen Softwareentwicklung
+
+Das zeichnet dich aus
+
+- Teamorientierung und Lernbereitschaft
+
+- Offene Kommunikation
+
+Unsere Benefits für dich
+
+- Zuschuss für Sport oder Kinderbetreuung
+
+- 30 Tage Urlaub
+
+- Weiterbildungsbudget
+
+Pulsar Care Software entwickelt seit vielen Jahren Software für die Pflege und das Sozialwesen.
+
+Originally posted on Himalayas

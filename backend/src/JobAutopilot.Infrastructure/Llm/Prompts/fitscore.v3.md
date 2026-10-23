@@ -1,6 +1,6 @@
 <!-- „KI-Bewertung", version 3 (step 08c): the model gets the rules' match result (fulfilled / partial / gaps, must or
      plus, alternatives, German, reachability, employer type) and only adds what the rules cannot see. v2 re-judged the
-     skills from the raw text (DPS: „keine Erfahrung mit SQL Server" with SQL and MySQL in the profile, a plus as a
+     skills from the raw text (Donau: „keine Erfahrung mit SQL Server" with SQL and MySQL in the profile, a plus as a
      blocker). The blocker rules are also enforced in code (FitScoreMatch.Check, AiFitScoreGuards).
      Sections: ## system, ## score, ## retry. -->
 

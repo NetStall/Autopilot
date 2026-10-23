@@ -209,7 +209,7 @@ ignored. Their format (also used for one ad-hoc search):
 "Import": {
   "Searches": [
     // region: keyword around a place
-    { "Name": "region-csharp", "Keyword": "Softwareentwickler C#", "Location": "Deggendorf", "RadiusKm": 70 },
+    { "Name": "region-csharp", "Keyword": "Softwareentwickler C#", "Location": "Talstadt", "RadiusKm": 70 },
     // remote: no Location = all of Germany, only home-office postings
     { "Name": "remote-dotnet", "Keyword": ".NET", "RemoteOnly": true, "MaxPages": 5 }
   ],

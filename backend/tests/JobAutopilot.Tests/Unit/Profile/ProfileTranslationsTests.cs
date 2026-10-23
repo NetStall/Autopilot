@@ -12,7 +12,7 @@ public class ProfileTranslationsTests
           "summary": { "fullstack": "Full-stack developer.", "backend": "Backend developer.", "backend.de": "Backend-Entwickler." },
           "experience": [
             {
-              "company": "F&L",
+              "company": "Muster & Co",
               "title": "Team Lead",
               "bullets": [
                 { "text": "Built REST APIs.", "tags": ["rest"] },

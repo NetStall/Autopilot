@@ -1,0 +1,81 @@
+title: Software Engineer, Broadcast & Video Formats
+company: Bildfluss Media
+location: Remote (Deutschland)
+source: Himalayas
+remoteHint: FullRemote
+---
+Purpose of the role
+
+Bildfluss Media builds a media asset management platform for TV stations. We need an engineer who knows broadcast video in depth and turns that knowledge into dependable software running on Kubernetes and delivered with GitOps.
+
+Responsibilities
+
+- Build media features: ingest, analysis, transcoding, proxies and delivery in broadcast formats.
+
+- Fix format problems in incoming files (frame rates, audio mapping, timecode, metadata).
+
+- Integrate transcoders and media tools such as FFmpeg in containerised workflows.
+
+- Validate metadata against broadcast standards.
+
+- Support customer projects with media knowledge.
+
+- Contribute to code quality and CI/CD pipelines.
+
+Must-have
+
+- Hands-on experience in broadcast, post-production, or MAM environments.
+
+- Solid knowledge of video formats:
+
+-
+Codecs: H.264/AVC, HEVC, ProRes, DNxHD
+
+-
+Containers: MXF (OP1a), MP4/MOV, MPEG-TS
+
+-
+Video fundamentals: interlaced vs. progressive, frame rates, color spaces
+
+-
+Audio: channel layouts, loudness
+
+- Experience with media metadata formats (e.g. SMPTE, EBU Core).
+
+- Practical experience with FFmpeg and media analysis tooling.
+
+- Programming experience in [Java / .Net / C#] and comfort working with REST APIs.
+
+- Working knowledge of Kubernetes and Helm, plus Git-based workflows.
+
+- Structured way of working; fluent English, German is a plus.
+
+Tooling and stack
+
+-
+Platform: Kubernetes, Helm, GitOps (Flux or Argo CD)
+
+-
+Cloud: AWS (S3, EKS basics)
+
+-
+CI/CD: Azure DevOps, GitHub
+
+-
+Media tooling: FFmpeg, MediaInfo
+
+Nice-to-have
+
+- Experience with other MAM platforms
+
+- Delivery specifications such as IMF
+
+- Live and IP workflows (SMPTE ST 2110, SRT)
+
+Soft skills
+
+- Curious and detail-oriented
+
+- Explains media topics clearly
+
+Originally posted on Himalayas

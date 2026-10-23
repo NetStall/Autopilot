@@ -1,0 +1,60 @@
+title: Full-Stack-Entwickler (m/w/d) – C#/.NET & Blazor
+company: Ingenieurbüro Falk GmbH
+location: 57392 Bergstetten
+source: Arbeitsagentur
+remoteHint: Hybrid
+homeOfficePercent: 40
+---
+# Deine Rolle:
+
+Du setzt unsere Software technisch vollständig um – vom Backend (C#/.NET, PostgreSQL) bis zum Frontend (Blazor, DevExpress). Du entwickelst die Anwendung selbstständig weiter, bindest REST-APIs an und optimierst die Datenbank.
+
+Sprachen & Technologien
+
+- Backend:
+    - C#/.NET (Core/Framework) – Mindestens 3 Jahre Berufserfahrung
+    - Datenbanken: PostgreSQL, alternativ SQL-Server oder MySQL
+    - Kommunikation: SignalR (Echtzeit), gRPC (Dateiübertragung)
+    - ORM: DevExpress XPO
+- Frontend:
+    - Blazor (WASM) – Erfahrung in der UI-Entwicklung
+    - DevExpress (Pflicht)
+    - HTML/CSS/JS/TypeScript
+    - REST-API-Integration
+
+ Arbeitsweise
+
+- Agile Methoden (Scrum/Kanban)
+- Teamorientiert, selbstständig
+
+Das Ingenieurbüro Falk plant Brücken, Straßen und Kanäle. Unsere Entwicklungsabteilung baut daraus eine eigene Software für die Projektsteuerung von Ingenieurbüros.
+
+# Deine Aufgaben:
+
+**Backend**
+
+- Weiterentwicklung der Backend-Architektur (C#, Blazor, PostgreSQL)
+- Betrieb der DevOps-Infrastruktur (CI/CD, Deployment, Monitoring)
+- APIs, Microservices und Datenbankdesign
+
+**Frontend**
+
+- Benutzeroberflächen mit Blazor
+- Anbindung der REST-APIs
+- Responsive Design
+
+**Zusammenarbeit**
+
+- Code-Reviews und Dokumentation
+
+# Dein Profil (Nice to Have):
+
+- Erfahrung mit Docker/Kubernetes oder CI/CD-Pipelines
+- Kenntnisse in CSS-Frameworks (z. B. Bootstrap, Tailwind CSS)
+- Sicherheitsbewusstsein (Authentifizierung, Verschlüsselung)
+- Nutzung von KI-Tools (z. B. GitHub Copilot)
+
+## Bewirb Dich jetzt!
+
+Zusendung der Bewerbungsunterlagen an:
+bewerbung@ingbuero-falk.example

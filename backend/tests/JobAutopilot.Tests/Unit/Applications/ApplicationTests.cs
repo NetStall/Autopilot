@@ -80,31 +80,31 @@ public class ApplicationTests
     [Fact]
     public void Marking_a_vacancy_as_applied_prefills_from_the_vacancy()
     {
-        var vacancy = Vacancy.CreateManual("Full Stack Developer C# / Vue.js", "TGW", Monday, location: "93049 Regensburg", url: "https://example.de/1");
+        var vacancy = Vacancy.CreateManual("Full Stack Developer C# / Vue.js", "Förderwerk", Monday, location: "93049 Regensburg", url: "https://example.de/1");
         vacancy.Source = VacancySource.Arbeitsagentur;
 
         var application = Application.ForVacancy(vacancy, Monday);
 
         application.Should().BeEquivalentTo(new
         {
-            VacancyId = vacancy.Id, Company = "TGW", Position = "Full Stack Developer C# / Vue.js", Location = "93049 Regensburg",
+            VacancyId = vacancy.Id, Company = "Förderwerk", Position = "Full Stack Developer C# / Vue.js", Location = "93049 Regensburg",
             Channel = "Arbeitsagentur", Status = ApplicationStatus.Sent, AppliedAt = Monday,
         });
         application.Events.Should().ContainSingle().Which.Note.Should().Be("Als beworben markiert");
-        application.DuplicateKey.Should().Be(DuplicateKeys.For("TGW", "Full Stack Developer C# / Vue.js"));
+        application.DuplicateKey.Should().Be(DuplicateKeys.For("Förderwerk", "Full Stack Developer C# / Vue.js"));
     }
 
     [Theory]
-    [InlineData("TGW Logistics GmbH (TGW Logistics Group)", "Full Stack Developer C# / Vue.js – Fokus Backend (m/w/d)",
-        "TGW", "Full Stack Developer C# / Vue.js - Fokus Backend,Teunz,Regensburg", true)]
-    [InlineData("DPS Business Solutions GmbH", "Softwareentwickler (m/w/d)", "DPS Business Solutions GmbH", "DPS Business Solutions GmbH: Softwareentwickler (m/w/d)", true)]
-    [InlineData("AraCom IT Services GmbH", "Senior Fullstack-Entwickler (m/w/d) – .NET & Angular oder Vue.js",
-        "AraCom IT Services GmbH", "Senior Fullstack-Entwickler (m/w/d) – .NET & Angular oder Vue.js", true)]
-    [InlineData("TGW Logistics GmbH", "Full Stack Developer C# / Vue.js", "TGW Logistics GmbH", "Projektleiter Intralogistik (m/w/d)", false)]
-    [InlineData("AraCom IT Services GmbH", "Senior Fullstack-Entwickler (m/w/d) – .NET & Angular oder Vue.js",
-        "AraCom IT Services GmbH", "Senior Fullstack-Entwickler (m/w/d) – Go & Vue.js", false)]
-    [InlineData("AraCom IT Services GmbH", "Senior Fullstack-Entwickler (m/w/d) – .NET & Angular oder Vue.js",
-        "AraCom IT Services GmbH", "Senior Fullstack-Entwickler (m/w/d) – Java & Angular oder Vue.js", false)]
+    [InlineData("Förderwerk Logistics GmbH (Förderwerk Logistics Group)", "Full Stack Developer C# / Vue.js – Fokus Backend (m/w/d)",
+        "Förderwerk", "Full Stack Developer C# / Vue.js - Fokus Backend, Lindenau", true)]
+    [InlineData("Donau Business Software GmbH", "Softwareentwickler (m/w/d)", "Donau Business Software GmbH", "Donau Business Software GmbH: Softwareentwickler (m/w/d)", true)]
+    [InlineData("Brückenwerk IT Services GmbH", "Senior Fullstack-Entwickler (m/w/d) – .NET & Angular oder Vue.js",
+        "Brückenwerk IT Services GmbH", "Senior Fullstack-Entwickler (m/w/d) – .NET & Angular oder Vue.js", true)]
+    [InlineData("Förderwerk Logistics GmbH", "Full Stack Developer C# / Vue.js", "Förderwerk Logistics GmbH", "Projektleiter Intralogistik (m/w/d)", false)]
+    [InlineData("Brückenwerk IT Services GmbH", "Senior Fullstack-Entwickler (m/w/d) – .NET & Angular oder Vue.js",
+        "Brückenwerk IT Services GmbH", "Senior Fullstack-Entwickler (m/w/d) – Go & Vue.js", false)]
+    [InlineData("Brückenwerk IT Services GmbH", "Senior Fullstack-Entwickler (m/w/d) – .NET & Angular oder Vue.js",
+        "Brückenwerk IT Services GmbH", "Senior Fullstack-Entwickler (m/w/d) – Java & Angular oder Vue.js", false)]
     [InlineData("synaforce GmbH", "Softwareentwickler (m/w/d)", "synaforce GmbH", "Softwareentwickler (m/w/d) - in Hofkirchen", true)]
     [InlineData("Canon Production Printing", "Software Developer (m/f/d)", "Canonical", "Software Developer", false)]
     [InlineData("MAX STREICHER GmbH & Co. KG aA", "Wirtschaftsinformatiker (m/w/d)", "Max Bögl", "Wirtschaftsinformatiker (m/w/d)", false)]

@@ -24,10 +24,10 @@ public sealed class ApplicationApiTests(PostgresFixture postgres) : IntegrationT
 
     private const string Tracker = """
         { "applications": [
-          { "id": "tgw", "datum": "2026-09-18", "firma": "TGW Logistics GmbH (TGW Logistics Group)",
+          { "id": "foerderwerk", "datum": "2026-09-18", "firma": "Förderwerk Logistics GmbH (Förderwerk Logistics Group)",
             "position": "Full Stack Developer C# / Vue.js – Fokus Backend (m/w/d)", "kanal": "Firmenwebsite", "typ": "Direkt",
             "status": "Gesendet", "gehalt": 57000, "letzteAktion": "2026-09-18", "unterlagen": "CV.pdf, Anschreiben", "sprache": "DE" },
-          { "id": "partspace", "datum": "2026-09-13", "firma": "PartSpace GmbH", "position": "Full Stack Software Entwickler (m/w/d)",
+          { "id": "teilwerk", "datum": "2026-09-13", "firma": "Teilwerk GmbH", "position": "Full Stack Software Entwickler (m/w/d)",
             "kanal": "DEVjobs.de", "status": "Absage", "letzteAktion": "2026-09-16" },
           { "id": "odd", "datum": "2026-09-14", "firma": "Bäckerei", "position": "IT-Mitarbeiter", "kanal": "Arbeitsagentur",
             "status": "Interview", "gehalt": 18 },
@@ -38,7 +38,7 @@ public sealed class ApplicationApiTests(PostgresFixture postgres) : IntegrationT
     [Fact]
     public async Task Tracker_import_is_idempotent_links_vacancies_and_reports_warnings()
     {
-        var vacancy = Make(title: "Full Stack Developer C# / Vue.js - Fokus Backend,Teunz,Regensburg", company: "TGW");
+        var vacancy = Make(title: "Full Stack Developer C# / Vue.js - Fokus Backend, Lindenau", company: "Förderwerk");
         await SeedAsync(vacancy);
         await File.WriteAllTextAsync(_trackerFile, Tracker, Encoding.UTF8, CancellationToken);
 
@@ -52,9 +52,9 @@ public sealed class ApplicationApiTests(PostgresFixture postgres) : IntegrationT
 
         await using var db = Postgres.CreateDbContext();
         var stored = await db.Applications.Include(a => a.Events).OrderBy(a => a.ExternalRef).ToListAsync(CancellationToken);
-        stored.Select(a => a.ExternalRef).Should().Equal("odd", "partspace", "tgw");
-        stored.Single(a => a.ExternalRef == "tgw").VacancyId.Should().Be(vacancy.Id);
-        stored.Single(a => a.ExternalRef == "partspace").Status.Should().Be(ApplicationStatus.Rejected);
+        stored.Select(a => a.ExternalRef).Should().Equal("foerderwerk", "odd", "teilwerk");
+        stored.Single(a => a.ExternalRef == "foerderwerk").VacancyId.Should().Be(vacancy.Id);
+        stored.Single(a => a.ExternalRef == "teilwerk").Status.Should().Be(ApplicationStatus.Rejected);
         stored.Should().OnlyContain(a => a.Events.Count == 1, "re-running added no history");
     }
 
@@ -63,15 +63,15 @@ public sealed class ApplicationApiTests(PostgresFixture postgres) : IntegrationT
     {
         await File.WriteAllTextAsync(_trackerFile, Tracker, Encoding.UTF8, CancellationToken);
         await ImportAsync();
-        var tgw = (await ListAsync(string.Empty)).Single(a => a.ExternalRef == "tgw");
-        await PostStatusAsync(tgw.Id, ApplicationStatus.Interview, "Einladung");
+        var foerderwerk = (await ListAsync(string.Empty)).Single(a => a.ExternalRef == "foerderwerk");
+        await PostStatusAsync(foerderwerk.Id, ApplicationStatus.Interview, "Einladung");
 
         await File.WriteAllTextAsync(_trackerFile, Tracker.Replace("\"gehalt\": 57000", "\"gehalt\": 58000", StringComparison.Ordinal),
             Encoding.UTF8, CancellationToken);
         var report = await ImportAsync();
 
         report.Updated.Should().Be(1);
-        var after = await Client.GetFromJsonAsync<ApplicationDto>($"/api/applications/{tgw.Id}", ApiJson, CancellationToken);
+        var after = await Client.GetFromJsonAsync<ApplicationDto>($"/api/applications/{foerderwerk.Id}", ApiJson, CancellationToken);
         after!.SalaryExpectation.Should().Be(58000);
         after.Status.Should().Be(ApplicationStatus.Interview, "the status set in the tool is newer than the export");
     }
@@ -84,10 +84,10 @@ public sealed class ApplicationApiTests(PostgresFixture postgres) : IntegrationT
         await ImportAsync();
 
         var due = await ListAsync("?followUpDue=true");
-        due.Select(a => a.ExternalRef).Should().Equal("tgw");
+        due.Select(a => a.ExternalRef).Should().Equal("foerderwerk");
         due[0].FollowUpAt.Should().NotBeNull();
-        (await ListAsync("?status=Rejected")).Select(a => a.ExternalRef).Should().Equal("partspace");
-        (await ListAsync("?channel=DEVjobs.de")).Select(a => a.ExternalRef).Should().Equal("partspace");
+        (await ListAsync("?status=Rejected")).Select(a => a.ExternalRef).Should().Equal("teilwerk");
+        (await ListAsync("?channel=DEVjobs.de")).Select(a => a.ExternalRef).Should().Equal("teilwerk");
 
         var changed = await PostStatusAsync(due[0].Id, ApplicationStatus.Acknowledged, "Eingangsbestätigung");
 

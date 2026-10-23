@@ -1,0 +1,44 @@
+title: Senior Fullstack-Entwickler (m/w/d) – Java & Angular oder Vue.js
+company: Brückenwerk IT Services GmbH
+location: 86368 Westhafen
+source: Arbeitsagentur
+remoteHint: Unknown
+---
+**Webanwendungen für unsere Kunden – mit dir im Team**
+
+Brückenwerk IT Services entwickelt Individualsoftware für Kunden aus Handel, Verwaltung und Industrie. Für unser Entwicklungsteam suchen wir eine:n **Fullstack-Entwickler (m/w/d)**, die oder der sich im Backend und im Frontend zu Hause fühlt.
+
+## Deine Aufgaben
+
+- Neu- und Weiterentwicklung von Webanwendungen
+- Backend-Services mit SpringBoot
+- Benutzeroberflächen mit **Angular oder** **Vue.js**
+- Mitarbeit an Architektur und Qualität unserer Anwendungen
+- Abstimmung mit Team und Fachabteilungen
+
+## Das bringst du mit
+
+### **Backend**
+
+- **Sehr gute Kenntnisse in Java** *(Must-have)*
+- Erfahrung mit relationalen Datenbanken (z.B. **MSSQL,** **PostgreSQL, MySql**)
+- Kenntnisse mit **Hibernate/JPA** sind ein Plus
+
+### **Frontend**
+
+- **Fundierte Erfahrung mit Angular + Vue.js** *(Must-have)*
+- Kenntnisse in **einem** CSS-Framework wie **Tailwind** sind von Vorteil
+
+## Das solltest du außerdem mitbringen
+
+- Erfahrung im verantwortungsvollen Einsatz von KI in der Entwicklung
+- Erfahrung in der Entwicklung moderner Webanwendungen
+- Selbstständige, strukturierte Arbeitsweise
+- Freude an Teamarbeit
+
+## Das erwartet dich
+
+- **Homeoffice |** Du entscheidest selbst: im Büro oder im Homeoffice (bis zu 100% Homeoffice möglich).
+- **Urlaub |** 30 Tage Urlaub
+
+Interesse? Schick uns deine Unterlagen über unsere Online-Bewerbungsplattform.

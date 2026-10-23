@@ -93,7 +93,7 @@ this file.
 
 ### Result counts per keyword (2026-10-18, `angebotsart=1`, `veroeffentlichtseit=30`)
 
-| Keyword (`was`) | `wo=Deggendorf&umkreis=70` | Germany, no filter | Germany, `prozentual_100` | Germany, `prozentual_0;nv_true` |
+| Keyword (`was`) | `wo=Talstadt&umkreis=70` | Germany, no filter | Germany, `prozentual_100` | Germany, `prozentual_0;nv_true` |
 |---|---|---|---|---|
 | `Softwareentwickler` | 55 | 3413 | 32 | 663 |
 | `C%23` (C#) | 39 | 2257 | 3 | 175 |
@@ -109,7 +109,7 @@ this file.
   The client uses `Uri.EscapeDataString` (covered by a test).
 - **Bare `C#` and `.NET` are imprecise in a region.** The search is fuzzy: `C%23` also matches driving licence
   class "C/CE" (truck drivers), `.NET` matches sales, butchers, care workers … Share of IT titles among the results
-  (region Deggendorf + 70 km): `C#` 17/39, `.NET` 10/51 — but `Softwareentwickler C#` 7/7, `C# .NET` 5/5,
+  (region Talstadt + 70 km): `C#` 17/39, `.NET` 10/51 — but `Softwareentwickler C#` 7/7, `C# .NET` 5/5,
   `.NET Entwickler` 4/4, `C# Entwickler` 4/4. Together with `homeoffice=prozentual_100` the bare keywords are
   precise (3/3 each), because the home-office filter narrows the results a lot.
 - `dotnet` and `ASP.NET` return (almost) nothing; `Full Stack` and `Fullstack` return partly different postings.

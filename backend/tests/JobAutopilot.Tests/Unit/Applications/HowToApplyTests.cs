@@ -44,7 +44,7 @@ public class HowToApplyTests
     [InlineData("We do not accept applications by e-mail.")]
     public void Portal_only_phrases_win_over_an_address_in_the_text(string sentence)
     {
-        // PartSpace (08a) refused an e-mail application for exactly this reason.
+        // Teilwerk (08a) refused an e-mail application for exactly this reason.
         var found = HowToApplyDetector.Detect($"{sentence} Fragen an info@firma.de", null);
 
         found.PortalOnly.Should().BeTrue();

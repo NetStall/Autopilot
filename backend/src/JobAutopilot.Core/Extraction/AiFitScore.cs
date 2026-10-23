@@ -54,8 +54,8 @@ public sealed record StoredFitScore(AiFitScore Result, string Key, string Model,
 }
 
 /// <summary>
-/// The caps the prompt states, applied in code because qwen3:8b names the blocker but keeps the score (07c: monari
-/// „nicht erreichbar: Gronau" with 80): not reachable → at most 40, service provider / agency → at most 60. A
+/// The caps the prompt states, applied in code because qwen3:8b names the blocker but keeps the score (07c: Grenzland
+/// „nicht erreichbar: Westerbruch" with 80): not reachable → at most 40, service provider / agency → at most 60. A
 /// „nicht erreichbar" blocker on a fully remote posting is dropped — the job board's remote flag wins. The verdict
 /// always follows the (capped) score.
 /// </summary>

@@ -136,7 +136,7 @@ public static partial class ExtractionNormalizer
                     found.Add((ai.Name, ai));
                 }
 
-                // „agile Entwicklung" → my Scrum / agile skill (08b, TGW).
+                // „agile Entwicklung" → my Scrum / agile skill (08b, Förderwerk).
                 if (found.Count == 0 && !domain && AgileConcept().IsMatch(entry) && agile is not null)
                 {
                     found.Add((agile.Name, agile));
@@ -234,7 +234,7 @@ public static partial class ExtractionNormalizer
     [GeneratedRegex(@"\b(?:agil\w*|scrum|kanban)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex AgileConcept();
 
-    /// <summary>„IT-Ausbildung", „abgeschlossenes Studium", „Bachelor" — a degree is no technology gap (08b, TGW).</summary>
+    /// <summary>„IT-Ausbildung", „abgeschlossenes Studium", „Bachelor" — a degree is no technology gap (08b, Förderwerk).</summary>
     [GeneratedRegex(@"(?:ausbildung|studium|abschluss|hochschul|bachelor|master|diplom|degree|qualifikation)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, 250)]
     private static partial Regex Education();
 

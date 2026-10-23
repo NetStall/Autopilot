@@ -39,11 +39,11 @@ public class LetterPromptTests
     }
 
     [Theory]
-    [InlineData("AraCom IT Services GmbH", "AraCom")]
-    [InlineData("b-plus Gruppe GmbH", "b-plus")]
-    [InlineData("MCA GROUP", "MCA")]
-    [InlineData("Meierhofer", "Meierhofer")]
-    [InlineData("DPS Business Solutions GmbH", "DPS")]
+    [InlineData("Brückenwerk IT Services GmbH", "Brückenwerk")]
+    [InlineData("k-werk Gruppe GmbH", "k-werk")]
+    [InlineData("VEKTOR GROUP", "VEKTOR")]
+    [InlineData("Lindenhof", "Lindenhof")]
+    [InlineData("Donau Business Software GmbH", "Donau")]
     [InlineData("GmbH", null)]
     public void The_salutation_uses_the_short_company_name(string company, string? expected)
     {

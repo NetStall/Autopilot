@@ -37,8 +37,8 @@ public sealed record ToneResult(DocumentLanguage Language, Formality Formality, 
     public string Salutation => Contact?.Salutation(Language, Formality) ?? DefaultSalutation;
 
     /// <summary>
-    /// The salutation with the company when no person is named (letter.v2, 06c): „Hallo liebes AraCom-Team,",
-    /// „Sehr geehrtes AraCom-Team,", „Dear AraCom team," — never a bare „Hallo liebes Team,".
+    /// The salutation with the company when no person is named (letter.v2, 06c): „Hallo liebes Brückenwerk-Team,",
+    /// „Sehr geehrtes Brückenwerk-Team,", „Dear Brückenwerk team," — never a bare „Hallo liebes Team,".
     /// </summary>
     public string SalutationFor(string? company)
     {
@@ -56,7 +56,7 @@ public sealed record ToneResult(DocumentLanguage Language, Formality Formality, 
     }
 }
 
-/// <summary>The short name of a company for a salutation: „AraCom IT Services GmbH" → „AraCom", „b-plus Gruppe GmbH" → „b-plus".</summary>
+/// <summary>The short name of a company for a salutation: „Brückenwerk IT Services GmbH" → „Brückenwerk", „k-werk Gruppe GmbH" → „k-werk".</summary>
 public static partial class CompanyNames
 {
     public static string? ShortName(string? company)
@@ -72,7 +72,7 @@ public static partial class CompanyNames
             return null;
         }
 
-        // A short name stays whole („Meierhofer", „MCA"); a long one becomes its first word, unless that is generic.
+        // A short name stays whole („Lindenhof", „Vektor"); a long one becomes its first word, unless that is generic.
         var name = words.Length <= 2 && !GenericWord().IsMatch(words[^1]) ? string.Join(' ', words) : words[0];
         return name.Length >= 2 && !GenericWord().IsMatch(name) ? name : null;
     }

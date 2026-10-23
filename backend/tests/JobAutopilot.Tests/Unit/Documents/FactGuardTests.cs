@@ -67,7 +67,7 @@ public class FactGuardTests
     [Fact]
     public void A_gap_named_honestly_once_stays_honest_in_the_whole_paragraph()
     {
-        // The real AraCom letter (06c): Angular in the „Ganz offen" paragraph warned on the second sentence.
+        // The real Brückenwerk letter (06c): Angular in the „Ganz offen" paragraph warned on the second sentence.
         var warnings = Check(WithParagraph(2, "Ganz offen: Mit Angular habe ich noch nicht produktiv gearbeitet. Ich arbeite aber seit drei Jahren "
             + "mit Vue 3 und TypeScript im selben komponentenbasierten Ansatz. Da ihr Angular oder Vue.js sucht, passt Vue zu meiner Erfahrung."));
 
@@ -77,7 +77,7 @@ public class FactGuardTests
     [Fact]
     public void A_plain_no_experience_sentence_is_honest()
     {
-        // Second real run (Bonisoft, 06c).
+        // Second real run (Bonuswerk, 06c).
         Check(WithParagraph(2, "Erfahrung mit Kubernetes habe ich nicht."))
             .Should().NotContain(w => w.Code == DraftWarning.InventedTechnology);
     }

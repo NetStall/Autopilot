@@ -12,7 +12,7 @@ public class VacancySearchRulesTests
     {
         Name = name,
         Keyword = "Softwareentwickler C#",
-        Location = "Deggendorf",
+        Location = "Talstadt",
         RadiusKm = 70,
     };
 
@@ -89,7 +89,7 @@ public class VacancySearchRulesTests
             {
               "Import": {
                 "Searches": [
-                  { "Name": "region-csharp", "Keyword": "C#", "Location": "Deggendorf", "RadiusKm": 70 },
+                  { "Name": "region-csharp", "Keyword": "C#", "Location": "Talstadt", "RadiusKm": 70 },
                   { "Name": "remote-dotnet", "Keyword": ".NET", "RemoteOnly": true, "MaxPages": 3 }
                 ],
                 "ExcludeTitleTerms": [ "Ausbildung", "Duales Studium" ]
@@ -103,7 +103,7 @@ public class VacancySearchRulesTests
         options.Searches.Should().HaveCount(2);
         options.Searches[0].Should().Be(new VacancySearch
         {
-            Name = "region-csharp", Keyword = "C#", Location = "Deggendorf", RadiusKm = 70, PublishedWithinDays = 30,
+            Name = "region-csharp", Keyword = "C#", Location = "Talstadt", RadiusKm = 70, PublishedWithinDays = 30,
         });
         options.Searches[1].Should().Be(new VacancySearch
         {

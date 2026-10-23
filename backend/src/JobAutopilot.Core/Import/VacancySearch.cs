@@ -3,7 +3,7 @@ using JobAutopilot.Core.Vacancies;
 namespace JobAutopilot.Core.Import;
 
 /// <summary>
-/// One search against a vacancy source, e.g. "C#" within 70 km of Deggendorf, or ".NET" fully remote anywhere
+/// One search against a vacancy source, e.g. "C#" within 70 km of Talstadt, or ".NET" fully remote anywhere
 /// in Germany. <see cref="Name"/> identifies the search; vacancies remember which searches found them.
 /// </summary>
 public sealed record VacancySearch

@@ -1,0 +1,6 @@
+title: Software Engineer Fullstack (.NET / Vue.js) mit Perspektive Software Architect (m/w/d) – Hybrid o…
+company: Lindenhof Health IT
+location: 94032 Auheim
+source: Arbeitsagentur
+remoteHint: Hybrid
+---

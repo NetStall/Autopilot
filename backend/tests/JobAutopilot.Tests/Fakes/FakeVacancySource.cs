@@ -56,6 +56,6 @@ public sealed class FakeVacancySource(VacancySource source = VacancySource.Arbei
     }
 
     public static VacancyCandidate Candidate(string externalId, string title = "Softwareentwickler (m/w/d)") =>
-        new(externalId, title, "Beispiel GmbH", "94469 Deggendorf", $"https://example.de/jobs/{externalId}",
+        new(externalId, title, "Beispiel GmbH", "94469 Talstadt", $"https://example.de/jobs/{externalId}",
             new DateTimeOffset(2026, 9, 30, 0, 0, 0, TimeSpan.FromHours(2)));
 }

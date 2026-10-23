@@ -136,7 +136,7 @@ public static partial class GermanRequirementDetector
         @"|\b" + GermanWord + @"\b[^.\n]{0,40}?\bverhandlungssicher\w*" +
         @"|\b(?:sehr\s+gut\w*|exzellent\w*|hervorragend\w*|ausgezeichnet\w*|perfekt\w*)\s+(?:\w+\s+){0,2}?" + GermanWord + @"\b(?:\s+in\s+Wort\s+und\s+Schrift)?" +
         @"|\b" + GermanWord + @"\b\s+(?:\w+\s+){0,3}?(?:sehr\s+gut|fließend|fliessend|auf\s+muttersprach\w*|muttersprachlich\w*|als\s+Muttersprache)" +
-        // „Deine Deutschkenntnisse in Wort und Schrift sind sehr gut" (Meierhofer, 07b): only after the noun Kenntnisse,
+        // „Deine Deutschkenntnisse in Wort und Schrift sind sehr gut" (Lindenhof, 07b): only after the noun Kenntnisse,
         // so „deutschen Kunden hervorragend betreuen" stays out.
         @"|\b" + KnowledgeNoun + @"\b\s+(?:\w+\s+){0,6}?(?:sehr\s+gut|exzellent|hervorragend|ausgezeichnet|fließend|fliessend|verhandlungssicher)" +
         @"|\b(?:fließend\w*|fliessend\w*)\s+(?:\w+\s+){0,2}?" + GermanWord + @"\b" +

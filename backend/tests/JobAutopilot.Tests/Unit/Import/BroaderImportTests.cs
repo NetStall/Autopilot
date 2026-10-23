@@ -11,14 +11,14 @@ public class BroaderImportTests
 {
     private static readonly VacancySearch Region = new()
     {
-        Name = "region-csharp", Keyword = "C#", Location = "Deggendorf", RadiusKm = 70,
+        Name = "region-csharp", Keyword = "C#", Location = "Talstadt", RadiusKm = 70,
     };
 
     private static readonly VacancySearch Remote = new() { Name = "remote-csharp", Keyword = "C#", RemoteOnly = true };
 
     private static readonly VacancySearch RegionDotNet = new()
     {
-        Name = "region-dotnet", Keyword = ".NET Entwickler", Location = "Deggendorf", RadiusKm = 70,
+        Name = "region-dotnet", Keyword = ".NET Entwickler", Location = "Talstadt", RadiusKm = 70,
     };
 
     private static readonly TitleExclusionFilter Exclusion = new(["Ausbildung", "Werkstudent", "Praktikum"]);

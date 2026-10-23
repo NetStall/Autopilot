@@ -5,7 +5,7 @@
       "stellenangebotsTitel": "Softwareentwickler C# (m/w/d)",
       "firma": "Beispiel Software GmbH",
       "stellenlokationen": [
-        { "adresse": { "plz": "94469", "ort": "Deggendorf", "region": "BAYERN", "land": "DEUTSCHLAND" }, "breite": 48.84, "laenge": 12.96 }
+        { "adresse": { "plz": "94469", "ort": "Talstadt", "region": "BAYERN", "land": "DEUTSCHLAND" }, "breite": 48.84, "laenge": 12.96 }
       ],
       "veroeffentlichungszeitraum": { "von": "2026-10-09" },
       "datumErsteVeroeffentlichung": "2026-10-09",
@@ -30,6 +30,6 @@
   "maxErgebnisse": 5,
   "page": 1,
   "size": 2,
-  "woOutput": { "bereinigterOrt": "Deggendorf", "suchmodus": "UMKREISSUCHE", "koordinaten": [ { "lat": 48.83, "lon": 12.97 } ] },
+  "woOutput": { "bereinigterOrt": "Talstadt", "suchmodus": "UMKREISSUCHE", "koordinaten": [ { "lat": 48.83, "lon": 12.97 } ] },
   "facetten": {}
 }

@@ -1,0 +1,30 @@
+title: .NET Backend Entwickler (m/w/d)
+company: Grenzland Systems GmbH
+location: 48599 Westerbruch
+source: Arbeitsagentur
+remoteHint: Hybrid
+---
+Grenzland Systems betreibt einen Onlineshop und eine Händler-App für Gartenmöbel in ganz Europa. Rund 200 Kolleginnen und Kollegen arbeiten bei uns mit kurzen Entscheidungswegen.
+
+**DEIN AUFGABENGEBIET**
+
+- Konzeption und Weiterentwicklung unserer Systeme, z.B. der Händler App
+- Web-APIs auf Basis von C#
+- Code Reviews und Optimierung bestehender Codes
+- Pflege der Datenbanken
+
+**DAS BRINGST DU MIT**
+
+- Ausbildung oder Studium im Bereich Informatik mit Berufserfahrung
+- fundierte Erfahrungen mit C#, .NET Core, sowie SQL
+- idealerweise Kenntnisse in SignalR und Git
+- Erfahrung mit agilen Methoden (SCRUM, Kanban)
+
+### DAS ERWARTET DICH
+
+- ein sicherer Arbeitsplatz in einem Familienunternehmen
+- ein aufgeschlossenes Team
+- Weiterbildung
+- hybrides Arbeiten im Headquarter und Mobile Office sowie flexible Arbeitszeiten
+- 30 Tage Urlaub
+- Jobrad und Kantine
