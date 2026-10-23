@@ -70,11 +70,11 @@ public sealed class PdfAndFileTests : IDisposable
     }
 
     [Theory]
-    [InlineData("Vitalii Strashuk", DocumentLanguage.De, true, "Müller & Söhne GmbH", "Vitalii_Strashuk_Anschreiben_Mueller_Soehne_GmbH.pdf")]
-    [InlineData("Vitalii Strashuk", DocumentLanguage.De, false, "ACME", "Vitalii_Strashuk_Lebenslauf_ACME.pdf")]
-    [InlineData("Vitalii Strashuk", DocumentLanguage.En, true, "Acme Inc.", "Vitalii_Strashuk_Cover_Letter_Acme_Inc.pdf")]
-    [InlineData("Vitalii Strashuk", DocumentLanguage.En, false, "../../etc/passwd", "Vitalii_Strashuk_CV_etc_passwd.pdf")]
-    [InlineData("Vitalii Strashuk", DocumentLanguage.De, false, "???", "Vitalii_Strashuk_Lebenslauf_Firma.pdf")]
+    [InlineData("Max Mustermann", DocumentLanguage.De, true, "Müller & Söhne GmbH", "Max_Mustermann_Anschreiben_Mueller_Soehne_GmbH.pdf")]
+    [InlineData("Max Mustermann", DocumentLanguage.De, false, "ACME", "Max_Mustermann_Lebenslauf_ACME.pdf")]
+    [InlineData("Max Mustermann", DocumentLanguage.En, true, "Acme Inc.", "Max_Mustermann_Cover_Letter_Acme_Inc.pdf")]
+    [InlineData("Max Mustermann", DocumentLanguage.En, false, "../../etc/passwd", "Max_Mustermann_CV_etc_passwd.pdf")]
+    [InlineData("Max Mustermann", DocumentLanguage.De, false, "???", "Max_Mustermann_Lebenslauf_Firma.pdf")]
     public void File_names_are_safe(string person, DocumentLanguage language, bool letter, string company, string expected) =>
         DocumentFileStore.FileName(person, language, letter, company).Should().Be(expected);
 

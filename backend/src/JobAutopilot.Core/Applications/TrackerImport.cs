@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace JobAutopilot.Core.Applications;
 
-/// <summary>One row of Vitalii's tracker export (German field names, see docs/applications.md).</summary>
+/// <summary>One row of the candidate's tracker export (German field names, see docs/applications.md).</summary>
 public sealed class TrackerEntry
 {
     public string? Id { get; init; }

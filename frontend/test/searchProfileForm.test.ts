@@ -12,7 +12,7 @@ import {
 const profile: SearchProfile = {
   searchTerms: [{ text: '.NET Entwickler', scope: 'Both' }],
   places: [{ city: 'Talstadt', radiusKm: 50 }],
-  additionalPlaces: ['Plattling'],
+  additionalPlaces: ['Mühlbach'],
   remoteGermany: true,
   remotePreference: 'AtLeastHybrid',
   mustHave: [newKeyword('C#', 20)],
@@ -90,7 +90,7 @@ describe('parseImportedProfile', () => {
     ['not json', 'Die Datei ist kein gültiges JSON.'],
     ['[1, 2]', 'Die Datei enthält kein Suchprofil.'],
     ['null', 'Die Datei enthält kein Suchprofil.'],
-    ['{"name": "Vitalii"}', 'Die Datei enthält kein Suchprofil (searchTerms, places oder penalties fehlen).'],
+    ['{"name": "Max"}', 'Die Datei enthält kein Suchprofil (searchTerms, places oder penalties fehlen).'],
   ])('rejects %s', (text, error) => {
     expect(parseImportedProfile(text)).toEqual({ error })
   })

@@ -5,12 +5,12 @@ Read this file fully before changing anything. If a rule here conflicts with a p
 
 ## What this project is
 
-A personal tool that helps one developer (Vitalii) run his job search in Germany:
+A personal tool that helps one developer (the author) run his job search in Germany:
 
 1. **Fetch** vacancies from job sources (first: the Bundesagentur für Arbeit Jobsuche API).
 2. **Filter & score** them against his profile (stack, region, employer type — direct employers over recruitment agencies).
 3. **Draft** a tailored Anschreiben (and later CV variant) per vacancy with the Claude API.
-4. **Review** — Vitalii reads, edits and approves every draft in the UI.
+4. **Review** — The candidate reads, edits and approves every draft in the UI.
 5. **Send** the approved application (e-mail first).
 6. **Track** status, follow-ups and response statistics.
 
@@ -82,7 +82,7 @@ Dependency direction: `Api → Infrastructure → Core`. **Core references nothi
 
 - **Vacancy** — a job posting from a source (source + external id are unique).
 - **EmployerType** — `Direct`, `Agency`, `Temporary`, `Unknown`.
-- **Application** — Vitalii's application to one vacancy.
+- **Application** — The candidate's application to one vacancy.
 - **ApplicationStatus** — `Draft`, `Approved`, `Sent`, `Acknowledged`, `Response`, `Interview`, `TechInterview`, `Offer`, `Rejected`, `NoResponse`, `Withdrawn`
   (UI labels: Entwurf, Freigegeben, Gesendet, Eingangsbestätigung, Rückmeldung, Interview, Tech-Interview, Angebot, Absage, Keine Antwort, Zurückgezogen).
 - **Follow-up date** = last action + 7 days while the application is open.

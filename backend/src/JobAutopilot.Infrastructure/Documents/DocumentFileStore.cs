@@ -14,7 +14,7 @@ public sealed class DocumentOptions
 
 /// <summary>
 /// Writes and reads the approved PDFs under <c>{OutputPath}/{applicationId}/</c>. File names are built from my name and
-/// the company with a safe character set (no path separators), e.g. <c>Vitalii_Strashuk_Anschreiben_Muster_GmbH.pdf</c>.
+/// the company with a safe character set (no path separators), e.g. <c>Max_Mustermann_Anschreiben_Muster_GmbH.pdf</c>.
 /// </summary>
 public sealed class DocumentFileStore(string rootPath)
 {

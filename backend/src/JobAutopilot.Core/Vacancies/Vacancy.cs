@@ -156,7 +156,7 @@ public class Vacancy
     }
 
     /// <summary>
-    /// Creates a vacancy that Vitalii entered by hand. Manual vacancies have no id in any
+    /// Creates a vacancy that the candidate entered by hand. Manual vacancies have no id in any
     /// external system, so a unique one is generated.
     /// </summary>
     public static Vacancy CreateManual(

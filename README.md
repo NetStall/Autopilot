@@ -15,6 +15,12 @@ that it was sent; follow-ups and statistics close the loop.
 <sub>Screenshots from a separate demo stack with fictional companies and the invented example profile
 (`docs/profile.example.json`) — no real data.</sub>
 
+## About this repository
+
+Built AI-first: I set the goals, rules and reviews (`AGENTS.md`, `prompts/`), and coding agents wrote most of the code
+under them. This public copy is a single snapshot. The full history stays private because it holds real postings and
+labels. Test fixtures use synthetic postings with fictional companies and cities.
+
 ## How it works
 
 A layered pipeline: cheap rules first, the local model only for what the rules let through, Claude only for the few
@@ -203,7 +209,10 @@ skips its own searches. Himalayas postings past their expiry date are deleted (i
 The import searches are **generated from the Suchprofil** (see *Suchprofil* below): every search term × every place
 (region) and × remote Germany, for each enabled source. The page Suchprofil lists them read-only. `Import:Searches`
 and `Import:ExcludeTitleTerms` in `appsettings.json` are only the **seed** of the first Suchprofil; after that they are
-ignored. Their format (also used for one ad-hoc search):
+ignored. `appsettings.json` ships only the searches without a place. The ones around your city go in the
+git-ignored `appsettings.Local.json`: copy `appsettings.Example.json` and replace `<Stadt>`. It is loaded after
+`appsettings.{Environment}.json`. Arrays merge **by index**, so keep the whole list and set `Source` and `RemoteOnly`
+on every entry. In Docker it is copied into the locally built image. Their format (also used for one ad-hoc search):
 
 ```jsonc
 "Import": {
@@ -481,7 +490,7 @@ The review screen (`/unterlagen/{id}`, also via **Bewerbungen → Details → Un
 - **Verlauf:** every generation and save is a version; older versions can be restored.
 
 **Freigeben** writes the PDFs to `data/applications/{applicationId}/`, e.g.
-`Vitalii_Strashuk_Anschreiben_<Firma>.pdf` and `…_Lebenslauf_<Firma>.pdf`; the download buttons appear. With open
+`<Vorname>_<Nachname>_Anschreiben_<Firma>.pdf` and `…_Lebenslauf_<Firma>.pdf`; the download buttons appear. With open
 warnings, approving needs a ticked confirmation, which is recorded in the history. A change after approval sets the
 application back to *Entwurf*.
 
@@ -733,6 +742,10 @@ frontend/  Nuxt 4 app: app/pages (list, detail), app/components, app/composables
            app/utils (URL filters, dates, URL safety — unit-tested in frontend/test)
 docs/      roadmap, architecture decisions, API notes
 prompts/   task prompts, one per roadmap step
-scripts/   backup-db.ps1, restore-db.ps1
+scripts/   backup, daily run, evaluation, seed-gold-labels (reads git-ignored data/labels.local.json), export-public
 dev.ps1    dev mode in one window
 ```
+
+## Author & license
+
+Vitalii Strashuk — [strashuk.de](https://strashuk.de). MIT licensed, see [LICENSE](LICENSE).

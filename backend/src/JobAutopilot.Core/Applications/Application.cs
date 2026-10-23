@@ -19,7 +19,7 @@ public enum ApplicationStatus
 }
 
 /// <summary>
-/// Vitalii's application to one job — personal data. Applications in this step are recorded by hand or imported from
+/// The candidate's application to one job — personal data. Applications in this step are recorded by hand or imported from
 /// his tracker; nothing is ever sent by the tool (AGENTS.md).
 /// </summary>
 public class Application

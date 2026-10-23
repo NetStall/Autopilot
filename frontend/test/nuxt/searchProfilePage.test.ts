@@ -78,16 +78,16 @@ describe('Suchprofil page', () => {
     expect(wrapper.text()).toContain('Keine ungespeicherten Änderungen.')
 
     const input = wrapper.find('#additional-places')
-    await input.setValue('Plattling, Auheim')
+    await input.setValue('Mühlbach, Auheim')
     await input.trigger('keydown', { key: 'Enter' })
-    expect(wrapper.find('ul[aria-label="Weitere Orte in meiner Region"]').text()).toContain('Plattling')
+    expect(wrapper.find('ul[aria-label="Weitere Orte in meiner Region"]').text()).toContain('Mühlbach')
     expect(wrapper.find('ul[aria-label="Weitere Orte in meiner Region"]').text()).toContain('Auheim')
 
     await wrapper.find('button[aria-label="Brunnfeld entfernen"]').trigger('click')
     expect(wrapper.find('button[aria-label="Brunnfeld entfernen"]').exists()).toBe(false)
 
     await waitForPreview()
-    expect(api.previewSearchProfile).toHaveBeenCalledWith(expect.objectContaining({ additionalPlaces: ['Plattling', 'Auheim'] }))
+    expect(api.previewSearchProfile).toHaveBeenCalledWith(expect.objectContaining({ additionalPlaces: ['Mühlbach', 'Auheim'] }))
     expect(wrapper.text()).toContain('Mit diesen Einstellungen: 142 passende Stellen (davon 31 voll remote) – 22 mehr als bisher')
   })
 

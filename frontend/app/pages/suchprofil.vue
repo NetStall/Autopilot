@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
           id="additional-places"
           v-model="form.additionalPlaces"
           label="Weitere Orte in meiner Region"
-          hint="Zählen für „in meiner Region“, ohne eigene Suche (z. B. Plattling, Brunnfeld)."
+          hint="Zählen für „in meiner Region“, ohne eigene Suche (z. B. Mühlbach, Brunnfeld)."
         />
 
         <div class="sp__grid">

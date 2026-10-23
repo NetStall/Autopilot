@@ -123,7 +123,7 @@ public sealed class VacancyEnricher(
     }
 
     /// <summary>
-    /// Manual vacancies keep the type Vitalii chose. Otherwise a detected type wins; when nothing is detected now
+    /// Manual vacancies keep the type the candidate chose. Otherwise a detected type wins; when nothing is detected now
     /// (e.g. re-scoring without the source's flags), the stored type stays.
     /// </summary>
     private string? ApplyEmployer(Vacancy vacancy, EmployerType hint)

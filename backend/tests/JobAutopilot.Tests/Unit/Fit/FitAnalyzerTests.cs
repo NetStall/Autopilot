@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace JobAutopilot.Tests.Unit.Fit;
 
-/// <summary>The fit check with the shipped Fit configuration and a profile like Vitalii's (B1, 3.5 years, Vue not React).</summary>
+/// <summary>The fit check with the shipped Fit configuration and a typical candidate profile (B1, 3.5 years, Vue not React).</summary>
 public class FitAnalyzerTests
 {
     private static readonly DateOnly Today = new(2026, 10, 19);

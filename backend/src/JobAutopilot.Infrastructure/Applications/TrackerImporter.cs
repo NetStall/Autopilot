@@ -29,7 +29,7 @@ public sealed record TrackerImportReport(
 public sealed class TrackerImportException(string message) : Exception(message);
 
 /// <summary>
-/// Imports Vitalii's existing application tracker. Idempotent: rows are matched by their tracker <c>id</c>
+/// Imports the candidate's existing application tracker. Idempotent: rows are matched by their tracker <c>id</c>
 /// (<see cref="Application.ExternalRef"/>) — re-running updates instead of duplicating. Imported applications are linked
 /// to a stored vacancy when company and title match. Personal data: only counts and ids are logged.
 /// </summary>

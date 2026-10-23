@@ -24,7 +24,7 @@ public class ExtractionAlternativesTests
     }
 
     [Fact]
-    public void AraCom_has_no_angular_or_database_gap_and_ranks_clearly_higher()
+    public void Brueckenwerk_has_no_angular_or_database_gap_and_ranks_clearly_higher()
     {
         // Real qwen3:8b v3 answer (08a): before, „relationale Datenbanken" was a must-have gap and generic phrases
         // („Teamarbeit", „neue Technologien") cost points as a plus — rank 62.

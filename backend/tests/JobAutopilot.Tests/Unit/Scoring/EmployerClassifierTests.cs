@@ -74,7 +74,7 @@ public class EmployerClassifierTests
 
         var manual = Vacancy.CreateManual("Softwareentwickler", "Hays AG", DateTimeOffset.UnixEpoch, employerType: EmployerType.Direct);
         enricher.Apply(manual);
-        manual.EmployerType.Should().Be(EmployerType.Direct, "Vitalii's own choice is kept");
+        manual.EmployerType.Should().Be(EmployerType.Direct, "the candidate's own choice is kept");
     }
 
     private static Vacancy Imported(string title, string company)

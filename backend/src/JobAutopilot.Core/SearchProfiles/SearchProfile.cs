@@ -166,7 +166,7 @@ public sealed class SearchSources
 }
 
 /// <summary>
-/// „Suchprofil" — what Vitalii is looking for (preferences), stored in the database and edited in the UI.
+/// „Suchprofil" — what the candidate is looking for (preferences), stored in the database and edited in the UI.
 /// Facts about him stay in <c>profile.json</c>; <c>appsettings.json</c> only seeds this on first start.
 /// </summary>
 public sealed class SearchProfile

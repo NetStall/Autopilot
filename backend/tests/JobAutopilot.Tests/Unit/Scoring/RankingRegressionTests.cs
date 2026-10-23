@@ -43,7 +43,7 @@ public class RankingRegressionTests
     }
 
     [Fact]
-    public void Medifox_has_sensible_reasons_and_no_false_matches()
+    public void Pulsar_has_sensible_reasons_and_no_false_matches()
     {
         var vacancy = RealWorldFixtures.Scored("pulsar-senior-aws");
 
@@ -71,7 +71,7 @@ public class RankingRegressionTests
     }
 
     [Fact]
-    public void Vidispine_domain_requirements_are_must_have_gaps()
+    public void Bildfluss_domain_requirements_are_must_have_gaps()
     {
         var vacancy = RealWorldFixtures.Scored("bildfluss-broadcast");
 
@@ -81,7 +81,7 @@ public class RankingRegressionTests
     }
 
     [Fact]
-    public void Meierhofer_with_the_v2_extraction_ranks_where_my_label_says()
+    public void Lindenhof_with_the_v2_extraction_ranks_where_my_label_says()
     {
         var (before, _) = RealWorldFixtures.ScoredWithExtraction("lindenhof-full", "v1");
         var (after, extraction) = RealWorldFixtures.ScoredWithExtraction("lindenhof-full", "v2");
@@ -97,7 +97,7 @@ public class RankingRegressionTests
     }
 
     [Fact]
-    public void Meierhofer_with_the_real_v3_extraction_counts_german_once()
+    public void Lindenhof_with_the_real_v3_extraction_counts_german_once()
     {
         // The real qwen3:8b answer (07b) lists „Deutsch (C1)" as a must-have: before 07c that cost −15 as a skill gap on
         // top of the German penalty, and the rank fell from 79 to 58 although my label is „Passt".
@@ -119,7 +119,7 @@ public class RankingRegressionTests
     }
 
     [Fact]
-    public void Apaleo_states_five_years_and_ranks_below_the_rules()
+    public void Hotelkern_states_five_years_and_ranks_below_the_rules()
     {
         var rules = RealWorldFixtures.Scored("hotelkern-senior-dotnet");
         var (after, extraction) = RealWorldFixtures.ScoredWithExtraction("hotelkern-senior-dotnet", "v2");
@@ -189,7 +189,7 @@ public class RankingRegressionTests
     }
 
     [Fact]
-    public void Medifox_requirements_are_classified_by_section()
+    public void Pulsar_requirements_are_classified_by_section()
     {
         var (vacancy, _) = RealWorldFixtures.Load("pulsar-senior-aws");
         var fit = new Core.Fit.FitAnalyzer(RealWorldFixtures.Fit).Analyze(

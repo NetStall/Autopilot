@@ -1,7 +1,7 @@
 namespace JobAutopilot.Core.Profile;
 
 /// <summary>
-/// Vitalii's profile — the only source of facts for everything generated later (AGENTS.md: „No invented facts").
+/// The candidate's profile — the only source of facts for everything generated later (AGENTS.md: „No invented facts").
 /// Loaded from <c>data/profile.json</c> (git-ignored); <c>docs/profile.example.json</c> shows the format.
 /// </summary>
 public sealed class CandidateProfile
