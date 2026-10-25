@@ -23,7 +23,7 @@
     "@nuxt/test-utils": "4.3.3",
     "@vue/test-utils": "2.5.1",
     "happy-dom": "20.14.5",
-    "sass": "^1.105.1",
+    "sass": "^1.106.1",
     "typescript": "^5.9.0",
     "vitest": "^5.0.4",
     "vue-tsc": "^3.3.13"
