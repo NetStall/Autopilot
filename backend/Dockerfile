@@ -2,7 +2,7 @@
 # Build context: repository root (for .editorconfig, which holds the analyzer rules), see Dockerfile.dockerignore.
 
 # ---- build ----
-FROM mcr.microsoft.com/dotnet/sdk:10.0.402-noble AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403-noble AS build
 WORKDIR /src
 
 # Restore first so the layer is cached as long as no project file changes.
