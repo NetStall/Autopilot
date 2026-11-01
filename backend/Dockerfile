@@ -18,7 +18,7 @@ RUN dotnet publish backend/src/JobAutopilot.Api/JobAutopilot.Api.csproj \
     --configuration Release --no-restore --output /app /p:UseAppHost=false
 
 # ---- runtime ----
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.13-noble AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.14-noble AS runtime
 WORKDIR /app
 COPY --from=build /app ./
 
